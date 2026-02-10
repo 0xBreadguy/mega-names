@@ -18,8 +18,8 @@ contract MegaNamesTest is Test {
         names = new MegaNames(address(usdm), WARREN_SAFE);
         
         // Mint USDM to test accounts
-        usdm.mint(alice, 10_000e6); // $10k
-        usdm.mint(bob, 10_000e6);
+        usdm.mint(alice, 10_000e18); // $10k
+        usdm.mint(bob, 10_000e18);
     }
 
     function test_MetadataCorrect() public view {
@@ -36,13 +36,13 @@ contract MegaNamesTest is Test {
     }
 
     function test_LengthFees() public view {
-        // Fees in USDM (6 decimals)
-        assertEq(names.registrationFee(1), 1000e6);  // $1000
-        assertEq(names.registrationFee(2), 500e6);   // $500
-        assertEq(names.registrationFee(3), 100e6);   // $100
-        assertEq(names.registrationFee(4), 10e6);    // $10
-        assertEq(names.registrationFee(5), 1e6);     // $1
-        assertEq(names.registrationFee(10), 1e6);    // $1
+        // Fees in USDM (18 decimals)
+        assertEq(names.registrationFee(1), 1000e18);  // $1000
+        assertEq(names.registrationFee(2), 500e18);   // $500
+        assertEq(names.registrationFee(3), 100e18);   // $100
+        assertEq(names.registrationFee(4), 10e18);    // $10
+        assertEq(names.registrationFee(5), 1e18);     // $1
+        assertEq(names.registrationFee(10), 1e18);    // $1
     }
 
     function test_CommitRevealRegister() public {
@@ -158,7 +158,7 @@ contract MegaNamesTest is Test {
 
         (,, uint64 newExpiresAt,,) = names.records(tokenId);
         assertGt(newExpiresAt, expiresAt);
-        assertEq(usdm.balanceOf(WARREN_SAFE), warrenBefore + 1e6); // $1 fee
+        assertEq(usdm.balanceOf(WARREN_SAFE), warrenBefore + 1e18); // $1 fee
 
         vm.stopPrank();
     }
@@ -230,7 +230,7 @@ contract MegaNamesTest is Test {
         names.register("x", alice, secret);
         uint256 balAfter = usdm.balanceOf(alice);
 
-        assertEq(balBefore - balAfter, 1000e6); // $1000
+        assertEq(balBefore - balAfter, 1000e18); // $1000
 
         vm.stopPrank();
     }

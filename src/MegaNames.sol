@@ -88,11 +88,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     uint256 constant GRACE_PERIOD = 90 days;
     uint256 constant MAX_SUBDOMAIN_DEPTH = 10;
     uint256 constant COIN_TYPE_ETH = 60;
-    uint256 constant MAX_PREMIUM_CAP = 100_000e6; // 100k USDM
+    uint256 constant MAX_PREMIUM_CAP = 100_000e18; // 100k USDM
     uint256 constant MAX_DECAY_PERIOD = 3650 days;
     
-    // Default fees in USDM (6 decimals)
-    uint256 constant DEFAULT_FEE = 1e6; // $1 for 5+ chars
+    // Default fees in USDM (18 decimals)
+    uint256 constant DEFAULT_FEE = 1e18; // $1 for 5+ chars
 
     /*//////////////////////////////////////////////////////////////
                                  STORAGE
@@ -140,18 +140,18 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         paymentToken = _paymentToken;
         feeRecipient = _feeRecipient;
         defaultFee = DEFAULT_FEE;
-        maxPremium = 10_000e6; // 10k USDM max premium
+        maxPremium = 10_000e18; // 10k USDM max premium
         premiumDecayPeriod = 21 days;
 
-        // Set length-based fees in USDM (6 decimals)
+        // Set length-based fees in USDM (18 decimals)
         // Pricing: premium short names, cheap long names
-        lengthFees[1] = 1000e6;  // $1000/year for 1 char
+        lengthFees[1] = 1000e18;  // $1000/year for 1 char
         lengthFeeSet[1] = true;
-        lengthFees[2] = 500e6;   // $500/year for 2 char
+        lengthFees[2] = 500e18;   // $500/year for 2 char
         lengthFeeSet[2] = true;
-        lengthFees[3] = 100e6;   // $100/year for 3 char
+        lengthFees[3] = 100e18;   // $100/year for 3 char
         lengthFeeSet[3] = true;
-        lengthFees[4] = 10e6;    // $10/year for 4 char
+        lengthFees[4] = 10e18;    // $10/year for 4 char
         lengthFeeSet[4] = true;
         // 5+ chars = $1/year (defaultFee)
     }

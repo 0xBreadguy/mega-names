@@ -75,7 +75,7 @@ The naming layer for MegaETH that:
 ## 3. Economics
 
 ### 3.1 Pricing Model (USDM)
-All fees paid in USDM stablecoin (6 decimals):
+All fees paid in USDM stablecoin (18 decimals):
 
 | Length | Fee (per year) |
 |--------|----------------|

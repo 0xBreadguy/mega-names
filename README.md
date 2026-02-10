@@ -20,7 +20,7 @@ MegaNames is a fork of [wei-names](https://github.com/z0r0z/wei-names) adapted f
 
 100% of registration fees go to the [Warren Protocol](https://github.com/megaeth-labs/warren) for on-chain website infrastructure.
 
-**All prices in USDM (6 decimals):**
+**All prices in USDM (18 decimals):**
 
 | Length | Annual Fee |
 |--------|-----------|
@@ -94,7 +94,7 @@ forge script script/Deploy.s.sol --rpc-url megaeth --broadcast
 | Contract | Description |
 |----------|-------------|
 | `MegaNames.sol` | Main registry + resolver |
-| `MockUSDM.sol` | Test token (6 decimals) |
+| `MockUSDM.sol` | Test token (18 decimals) |
 
 ## Addresses
 
