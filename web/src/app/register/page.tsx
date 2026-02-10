@@ -48,13 +48,16 @@ function RegisterContent() {
     query: { enabled: !!address },
   })
 
-  // Check USDM allowance
+  // Check USDM allowance (refetch on mount to get fresh data)
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: CONTRACTS.testnet.usdm,
     abi: ERC20_ABI,
     functionName: 'allowance',
     args: [address!, CONTRACTS.testnet.megaNames],
-    query: { enabled: !!address },
+    query: { 
+      enabled: !!address,
+      refetchOnMount: 'always',
+    },
   })
 
   const hasEnoughBalance = balance && balance >= price
@@ -111,13 +114,16 @@ function RegisterContent() {
     }
   }, [approveError, registerError])
 
+  // Approve max uint256 for unlimited future registrations
+  const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+  
   const handleApprove = () => {
     setError(null)
     approve({
       address: CONTRACTS.testnet.usdm,
       abi: ERC20_ABI,
       functionName: 'approve',
-      args: [CONTRACTS.testnet.megaNames, price],
+      args: [CONTRACTS.testnet.megaNames, MAX_UINT256],
     })
   }
 
@@ -256,7 +262,9 @@ function RegisterContent() {
                   </div>
                   <div>
                     <p className="font-semibold">APPROVE USDM</p>
-                    <p className="text-sm text-[#666]">Allow MegaNames to spend {formatUSDM(price)}</p>
+                    <p className="text-sm text-[#666]">
+                      {hasEnoughAllowance ? 'Already approved ✓' : 'One-time approval for all future registrations'}
+                    </p>
                   </div>
                 </div>
                 {step === 'approve' && !hasEnoughAllowance && (
