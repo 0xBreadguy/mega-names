@@ -6,8 +6,8 @@ out/
 broadcast/
 !/broadcast/*/31337/
 
-# Docs
-docs/
+# Forge Docs (generated)
+forge-doc/
 
 # Dotenv file
 .env
