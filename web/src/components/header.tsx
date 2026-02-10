@@ -35,7 +35,7 @@ export function Header() {
               MY NAMES
             </Link>
             <a 
-              href="https://megaeth.com" 
+              href="https://rabbithole.megaeth.com" 
               target="_blank"
               rel="noopener noreferrer"
               className="font-label text-sm text-[#666] hover:text-black hover:underline underline-offset-4"

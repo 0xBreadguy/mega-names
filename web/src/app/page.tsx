@@ -222,7 +222,7 @@ export default function Home() {
             </p>
             <div className="flex items-center gap-6">
               <a 
-                href="https://megaeth.com" 
+                href="https://rabbithole.megaeth.com" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-label text-sm hover:underline"
