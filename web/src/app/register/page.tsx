@@ -1,28 +1,32 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft, Check, Loader2, AlertTriangle, FileSignature, Send, X } from 'lucide-react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useChainId, useSignTypedData } from 'wagmi'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { 
+  useAccount, 
+  useReadContract, 
+  useSendCalls,
+  useCallsStatus,
+  useWriteContract,
+  useWaitForTransactionReceipt
+} from 'wagmi'
+import { encodeFunctionData, erc20Abi } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI, ERC20_ABI } from '@/lib/contracts'
 import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
+import { Loader2, Check, ArrowLeft, Zap } from 'lucide-react'
+import Link from 'next/link'
 
-const REQUIRED_CHAIN_ID = 6343 // MegaETH Testnet
-
-type FlowStep = 'idle' | 'confirm' | 'signing' | 'transacting' | 'success'
+type Step = 'check' | 'connect' | 'ready' | 'pending' | 'success'
 
 function RegisterContent() {
   const searchParams = useSearchParams()
-  const name = searchParams.get('name')?.toLowerCase() || ''
+  const router = useRouter()
+  const name = searchParams.get('name')?.toLowerCase()
   
   const { address, isConnected } = useAccount()
-  const chainId = useChainId()
-  const { switchChain, isPending: isSwitching } = useSwitchChain()
-  const isWrongChain = chainId !== REQUIRED_CHAIN_ID
-  
+  const [step, setStep] = useState<Step>('check')
   const [error, setError] = useState<string | null>(null)
-  const [flowStep, setFlowStep] = useState<FlowStep>('idle')
+  const [txHash, setTxHash] = useState<string | null>(null)
 
   const tokenId = name ? getTokenId(name) : BigInt(0)
   const price = name ? getPrice(name.length) : BigInt(0)
@@ -36,8 +40,6 @@ function RegisterContent() {
     query: { enabled: !!name },
   })
 
-  const isAvailable = records && records[0] === ''
-
   // Check USDM balance
   const { data: balance } = useReadContract({
     address: CONTRACTS.testnet.usdm,
@@ -47,357 +49,282 @@ function RegisterContent() {
     query: { enabled: !!address },
   })
 
-  // Get nonce for permit
-  const { data: nonce } = useReadContract({
+  // Check existing USDM allowance
+  const { data: allowance } = useReadContract({
     address: CONTRACTS.testnet.usdm,
     abi: ERC20_ABI,
-    functionName: 'nonces',
-    args: [address!],
+    functionName: 'allowance',
+    args: [address!, CONTRACTS.testnet.megaNames],
     query: { enabled: !!address },
   })
 
-  const hasEnoughBalance = balance && balance >= price
+  const isAvailable = records && records[0] === ''
+  const hasBalance = balance && balance >= price
+  const hasAllowance = allowance && allowance >= price
 
-  // Sign permit
-  const { signTypedDataAsync } = useSignTypedData()
-
-  // Register with permit
+  // EIP-5792: Batch calls (approve + register in ONE click)
   const { 
-    writeContract: registerWithPermit, 
+    sendCalls, 
+    data: callsId,
+    isPending: isSendingCalls,
+    error: sendCallsError
+  } = useSendCalls()
+
+  // Track batched calls status
+  const { data: callsStatus } = useCallsStatus({
+    id: callsId?.id!,
+    query: { enabled: !!callsId?.id, refetchInterval: 1000 },
+  })
+
+  // Fallback: regular writeContract for wallets without EIP-5792
+  const { 
+    writeContract: registerDirect, 
     data: registerHash,
-    isPending: isWriting,
-    error: registerError,
+    isPending: isRegisteringDirect 
   } = useWriteContract()
 
-  const { isLoading: isWaitingRegister, isSuccess: registerSuccess } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess: isDirectSuccess } = useWaitForTransactionReceipt({
     hash: registerHash,
   })
 
-  useEffect(() => {
-    if (registerSuccess) {
-      setFlowStep('success')
-    }
-  }, [registerSuccess])
+  // Combined pending state
+  const isPending = isSendingCalls || isRegisteringDirect || isConfirming
 
   useEffect(() => {
-    if (registerError) {
-      setError(registerError.message)
-      setFlowStep('idle')
+    if (!name || !isValidName(name)) {
+      router.push('/')
     }
-  }, [registerError])
+  }, [name, router])
 
-  const startRegistration = () => {
-    setError(null)
-    setFlowStep('confirm')
-  }
+  useEffect(() => {
+    if (checkingAvailability) {
+      setStep('check')
+    } else if (!isConnected) {
+      setStep('connect')
+    } else if (isAvailable !== undefined) {
+      setStep('ready')
+    }
+  }, [checkingAvailability, isConnected, isAvailable])
 
-  const cancelRegistration = () => {
-    setFlowStep('idle')
-    setError(null)
-  }
+  // Track batched calls completion
+  useEffect(() => {
+    if (callsStatus?.status === 'success') {
+      setStep('success')
+      if (callsStatus.receipts?.[0]?.transactionHash) {
+        setTxHash(callsStatus.receipts[0].transactionHash)
+      }
+    }
+  }, [callsStatus])
 
-  const executeRegistration = async () => {
-    if (!address || !name || nonce === undefined) return
-    
+  // Track direct registration completion
+  useEffect(() => {
+    if (isDirectSuccess) {
+      setStep('success')
+      setTxHash(registerHash || null)
+    }
+  }, [isDirectSuccess, registerHash])
+
+  useEffect(() => {
+    if (isPending) setStep('pending')
+  }, [isPending])
+
+  useEffect(() => {
+    if (sendCallsError) {
+      setError(sendCallsError.message)
+      setStep('ready')
+    }
+  }, [sendCallsError])
+
+  const handleRegister = async () => {
+    if (!address || !name) return
     setError(null)
-    setFlowStep('signing')
+
+    const registerCalldata = encodeFunctionData({
+      abi: MEGA_NAMES_ABI,
+      functionName: 'registerDirect',
+      args: [name, address],
+    })
+
+    // If already approved, just register
+    if (hasAllowance) {
+      try {
+        registerDirect({
+          address: CONTRACTS.testnet.megaNames,
+          abi: MEGA_NAMES_ABI,
+          functionName: 'registerDirect',
+          args: [name, address],
+        })
+      } catch (err: any) {
+        setError(err.message)
+      }
+      return
+    }
+
+    // Otherwise, batch approve + register (EIP-5792)
+    const approveCalldata = encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [CONTRACTS.testnet.megaNames, price],
+    })
 
     try {
-      // Create permit deadline (1 hour from now)
-      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
-
-      // Sign EIP-2612 permit
-      const signature = await signTypedDataAsync({
-        types: {
-          Permit: [
-            { name: 'owner', type: 'address' },
-            { name: 'spender', type: 'address' },
-            { name: 'value', type: 'uint256' },
-            { name: 'nonce', type: 'uint256' },
-            { name: 'deadline', type: 'uint256' },
-          ],
-        },
-        primaryType: 'Permit',
-        domain: {
-          name: 'Mock USDM',
-          version: '1',
-          chainId: REQUIRED_CHAIN_ID,
-          verifyingContract: CONTRACTS.testnet.usdm,
-        },
-        message: {
-          owner: address,
-          spender: CONTRACTS.testnet.megaNames,
-          value: price,
-          nonce: nonce,
-          deadline: deadline,
-        },
+      sendCalls({
+        calls: [
+          {
+            to: CONTRACTS.testnet.usdm,
+            data: approveCalldata,
+          },
+          {
+            to: CONTRACTS.testnet.megaNames,
+            data: registerCalldata,
+          },
+        ],
       })
-
-      setFlowStep('transacting')
-
-      // Parse signature
-      const r = signature.slice(0, 66) as `0x${string}`
-      const s = `0x${signature.slice(66, 130)}` as `0x${string}`
-      const v = parseInt(signature.slice(130, 132), 16)
-
-      // Call registerWithPermit
-      registerWithPermit({
-        address: CONTRACTS.testnet.megaNames,
-        abi: MEGA_NAMES_ABI,
-        functionName: 'registerWithPermit',
-        args: [name, address, deadline, v, r, s],
-      })
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to sign permit')
-      setFlowStep('idle')
+    } catch (err: any) {
+      // Fallback: if sendCalls not supported, do sequential
+      console.warn('sendCalls not supported, falling back to sequential')
+      setError('Your wallet may not support batched transactions. Please approve USDM first.')
     }
   }
 
-  if (!name || !isValidName(name)) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="font-display text-2xl mb-4">INVALID NAME</p>
-          <Link href="/" className="btn-secondary px-6 py-3 inline-block">
-            ← BACK TO SEARCH
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (checkingAvailability) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    )
-  }
-
-  if (!isAvailable) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="font-display text-2xl mb-4">{name}.mega IS NOT AVAILABLE</p>
-          <Link href="/" className="btn-secondary px-6 py-3 inline-block">
-            ← SEARCH ANOTHER NAME
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isConnected) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="text-center">
-          <p className="font-display text-2xl mb-4">CONNECT WALLET TO REGISTER</p>
-          <p className="text-[#666] mb-8">You need to connect your wallet to register {name}.mega</p>
-          <Link href="/" className="btn-secondary px-6 py-3 inline-block">
-            ← BACK
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (isWrongChain) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <AlertTriangle className="w-16 h-16 mx-auto mb-6" />
-          <p className="font-display text-2xl mb-4">WRONG NETWORK</p>
-          <p className="text-[#666] mb-8">
-            Please switch to MegaETH Testnet to register {name}.mega
-          </p>
-          <button
-            onClick={() => switchChain({ chainId: REQUIRED_CHAIN_ID })}
-            disabled={isSwitching}
-            className="btn-primary px-8 py-3"
-          >
-            {isSwitching ? (
-              <Loader2 className="w-5 h-5 animate-spin inline" />
-            ) : (
-              'SWITCH TO MEGAETH TESTNET'
-            )}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Success state
-  if (flowStep === 'success') {
-    return (
-      <div className="min-h-[calc(100vh-64px)]">
-        <div className="max-w-2xl mx-auto px-4 py-16">
-          <div className="border-2 border-black p-8 text-center">
-            <div className="w-16 h-16 bg-black text-white flex items-center justify-center mx-auto mb-6">
-              <Check className="w-8 h-8" />
-            </div>
-            <p className="font-display text-3xl mb-4">REGISTERED!</p>
-            <p className="text-[#666] mb-8">{name}.mega is now yours</p>
-            <div className="flex gap-4 justify-center">
-              <Link href="/my-names" className="btn-primary px-6 py-3">
-                MY NAMES
-              </Link>
-              <Link href="/" className="btn-secondary px-6 py-3">
-                SEARCH MORE
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  if (!name) return null
 
   return (
     <div className="min-h-[calc(100vh-64px)]">
       <div className="max-w-2xl mx-auto px-4 py-16">
-        {/* Back link */}
         <Link href="/" className="inline-flex items-center gap-2 text-[#666] hover:text-black mb-8">
           <ArrowLeft className="w-4 h-4" />
           <span className="font-label text-sm">BACK TO SEARCH</span>
         </Link>
 
-        {/* Name display */}
-        <div className="border-2 border-black p-8 mb-8">
-          <p className="font-label text-sm text-[#666] mb-2">REGISTERING</p>
-          <p className="font-display text-5xl lg:text-6xl">{name}.mega</p>
-        </div>
-
-        {/* Price */}
-        <div className="border-2 border-black p-6 mb-8">
-          <div className="flex justify-between items-center">
+        <div className="border-2 border-black mb-8">
+          <div className="p-8 border-b-2 border-black">
+            <p className="font-label text-sm text-[#666] mb-2">REGISTERING</p>
+            <h1 className="font-display text-5xl lg:text-6xl">{name}.mega</h1>
+          </div>
+          <div className="p-8 flex items-center justify-between">
             <div>
-              <p className="font-label text-sm text-[#666]">PRICE / YEAR</p>
-              <p className="font-display text-3xl">{formatUSDM(price)}</p>
+              <p className="font-label text-xs text-[#666]">PRICE / YEAR</p>
+              <p className="font-display text-4xl">{formatUSDM(price)}</p>
             </div>
             <div className="text-right">
-              <p className="font-label text-sm text-[#666]">YOUR BALANCE</p>
-              <p className={`font-display text-2xl ${hasEnoughBalance ? '' : 'text-red-600'}`}>
-                {balance ? formatUSDM(balance) : '...'}
-              </p>
+              <p className="font-label text-xs text-[#666]">DURATION</p>
+              <p className="font-display text-4xl">1 YEAR</p>
             </div>
           </div>
         </div>
 
-        {!hasEnoughBalance && (
-          <div className="border-2 border-dashed border-red-600 p-6 mb-8 text-center">
-            <p className="text-red-600 font-semibold">INSUFFICIENT USDM BALANCE</p>
-            <p className="text-[#666] text-sm mt-2">You need {formatUSDM(price)} to register this name</p>
+        {/* Single-click badge */}
+        <div className="mb-6 p-4 bg-green-50 border-2 border-green-400 flex items-center gap-3">
+          <Zap className="w-5 h-5 text-green-600" />
+          <div>
+            <p className="font-label text-sm text-green-800">SINGLE-CLICK REGISTRATION</p>
+            <p className="text-sm text-green-700">One confirmation - no separate approval needed</p>
+          </div>
+        </div>
+
+        {step === 'check' && (
+          <div className="border-2 border-black p-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="font-label text-sm">CHECKING AVAILABILITY...</p>
           </div>
         )}
 
-        {/* Confirmation Modal */}
-        {flowStep === 'confirm' && (
-          <div className="border-2 border-black p-6 mb-8 bg-white">
-            <div className="flex justify-between items-start mb-6">
-              <h3 className="font-display text-xl">CONFIRM REGISTRATION</h3>
-              <button onClick={cancelRegistration} className="text-[#666] hover:text-black">
-                <X className="w-5 h-5" />
-              </button>
+        {step === 'connect' && (
+          <div className="border-2 border-black p-8 text-center">
+            <p className="font-label text-sm mb-4">CONNECT YOUR WALLET TO CONTINUE</p>
+            <p className="text-[#666]">Use the connect button in the header</p>
+          </div>
+        )}
+
+        {step === 'ready' && !isAvailable && (
+          <div className="border-2 border-black p-8 text-center">
+            <p className="font-label text-sm text-red-600 mb-4">NAME NOT AVAILABLE</p>
+            <p className="text-[#666]">This name has already been registered</p>
+            <Link href="/" className="btn-secondary inline-block mt-4 px-6 py-3">
+              SEARCH ANOTHER NAME
+            </Link>
+          </div>
+        )}
+
+        {step === 'ready' && isAvailable && (
+          <div className="border-2 border-black">
+            <div className="p-8">
+              {!hasBalance && (
+                <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-400">
+                  <p className="font-label text-sm text-yellow-800">INSUFFICIENT USDM BALANCE</p>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    You need {formatUSDM(price)} USDM to register this name.
+                    {balance !== undefined && ` You have ${formatUSDM(balance)}.`}
+                  </p>
+                </div>
+              )}
+
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
+                  <p className="font-label text-sm text-red-800">ERROR</p>
+                  <p className="text-sm text-red-700 mt-1">{error}</p>
+                </div>
+              )}
+
+              <p className="text-[#666] mb-6">
+                {hasAllowance 
+                  ? 'USDM already approved. Click to register your name.'
+                  : 'Click to approve USDM and register in a single transaction.'}
+              </p>
             </div>
-            
-            <div className="space-y-4 mb-6">
-              <p className="text-[#666]">You will be asked to:</p>
-              
-              <div className="flex gap-4 items-start p-4 border border-[#ccc]">
-                <div className="w-8 h-8 border-2 border-black flex items-center justify-center font-bold shrink-0">
-                  1
-                </div>
-                <div>
-                  <p className="font-semibold flex items-center gap-2">
-                    <FileSignature className="w-4 h-4" /> Sign Spending Permit
-                  </p>
-                  <p className="text-sm text-[#666] mt-1">
-                    Authorize MegaNames to spend <strong>{formatUSDM(price)}</strong> from your wallet.
-                    This is a gasless signature — no transaction fee.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex gap-4 items-start p-4 border border-[#ccc]">
-                <div className="w-8 h-8 border-2 border-black flex items-center justify-center font-bold shrink-0">
-                  2
-                </div>
-                <div>
-                  <p className="font-semibold flex items-center gap-2">
-                    <Send className="w-4 h-4" /> Confirm Transaction
-                  </p>
-                  <p className="text-sm text-[#666] mt-1">
-                    Register <strong>{name}.mega</strong> to your wallet.
-                    This transfers {formatUSDM(price)} and mints your name NFT.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={cancelRegistration}
-                className="btn-secondary flex-1 py-3"
-              >
-                CANCEL
-              </button>
-              <button
-                onClick={executeRegistration}
-                className="btn-primary flex-1 py-3"
-              >
-                CONTINUE
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Signing State */}
-        {flowStep === 'signing' && (
-          <div className="border-2 border-black p-6 mb-8 text-center">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-            <p className="font-display text-xl mb-2">AWAITING SIGNATURE</p>
-            <p className="text-[#666]">
-              Please sign the spending permit in your wallet.
-              <br />
-              <span className="text-sm">This authorizes the payment — no gas fee required.</span>
-            </p>
-          </div>
-        )}
-
-        {/* Transacting State */}
-        {flowStep === 'transacting' && (
-          <div className="border-2 border-black p-6 mb-8 text-center">
-            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-            <p className="font-display text-xl mb-2">
-              {isWaitingRegister ? 'CONFIRMING...' : 'CONFIRM TRANSACTION'}
-            </p>
-            <p className="text-[#666]">
-              {isWaitingRegister 
-                ? 'Waiting for transaction confirmation...'
-                : 'Please confirm the registration transaction in your wallet.'
-              }
-            </p>
-          </div>
-        )}
-
-        {/* Register Button (only in idle state) */}
-        {flowStep === 'idle' && hasEnoughBalance && (
-          <>
             <button
-              onClick={startRegistration}
-              className="btn-primary w-full py-4 text-lg"
+              onClick={handleRegister}
+              disabled={isPending || !hasBalance}
+              className="btn-primary w-full py-5 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
-              REGISTER {name.toUpperCase()}.MEGA FOR {formatUSDM(price)}
+              {isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  CONFIRMING...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5" />
+                  REGISTER NOW
+                </>
+              )}
             </button>
-            <p className="text-center text-[#666] text-sm mt-4">
-              One signature + one transaction
-            </p>
-          </>
+          </div>
         )}
 
-        {/* Error display */}
-        {error && (
-          <div className="border-2 border-red-600 p-4 mt-4">
-            <p className="text-red-600 text-sm font-mono break-all">{error}</p>
+        {step === 'pending' && (
+          <div className="border-2 border-black p-8 text-center">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+            <p className="font-label text-sm mb-2">REGISTERING...</p>
+            <p className="text-[#666]">Waiting for transaction confirmation</p>
+          </div>
+        )}
+
+        {step === 'success' && (
+          <div className="border-2 border-black p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <p className="font-label text-sm mb-2">SUCCESS!</p>
+            <p className="text-[#666] mb-6">
+              You are now the owner of <strong>{name}.mega</strong>
+            </p>
+            {txHash && (
+              <a 
+                href={`https://megaeth-testnet.explorer.caldera.xyz/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline mb-4 inline-block"
+              >
+                View on Explorer →
+              </a>
+            )}
+            <div className="mt-4">
+              <Link href="/my-names" className="btn-primary inline-block px-8 py-4">
+                VIEW MY NAMES
+              </Link>
+            </div>
           </div>
         )}
       </div>
