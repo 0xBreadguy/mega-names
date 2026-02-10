@@ -125,7 +125,7 @@ export default function Home() {
                       </div>
                       {isAvailable && (
                         <Link
-                          href={`/register/${searchedName}`}
+                          href={`/register?name=${searchedName}`}
                           className="btn-primary w-full mt-6 py-3 flex items-center justify-center gap-2 text-sm"
                         >
                           REGISTER NOW <ArrowRight className="w-4 h-4" />
