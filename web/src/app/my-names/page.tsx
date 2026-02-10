@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
 import { useReadContract } from 'wagmi'
-import { encodeFunctionData, isAddress, type Hash } from 'viem'
+import { encodeFunctionData, isAddress, type Hash, erc20Abi } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice } from '@/lib/utils'
 import { useMegaName, useResolveMegaName } from '@/lib/hooks'
-import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
 const MEGAETH_TESTNET_CHAIN_ID = 6343
@@ -568,6 +568,246 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
   )
 }
 
+// Renew Modal
+interface RenewModalProps {
+  name: OwnedName
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<Hash | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [step, setStep] = useState<'approve' | 'renew'>('approve')
+  
+  const { address } = useAccount()
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
+
+  const price = getPrice(name.label.length)
+  const displayName = `${name.label}.mega`
+
+  // Check existing USDM allowance
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: CONTRACTS.testnet.usdm,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: [address!, CONTRACTS.testnet.megaNames],
+    query: { enabled: !!address, staleTime: 0 },
+  })
+
+  const hasAllowance = allowance && allowance >= price
+
+  // Set initial step based on allowance
+  useEffect(() => {
+    if (hasAllowance) {
+      setStep('renew')
+    }
+  }, [hasAllowance])
+
+  const handleApprove = async () => {
+    if (!walletClient || !publicClient) return
+    
+    setError(null)
+    setIsPending(true)
+
+    try {
+      const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+      const data = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [CONTRACTS.testnet.megaNames, MAX_UINT256],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.usdm,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      await publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 })
+      await refetchAllowance()
+      setStep('renew')
+    } catch (err: any) {
+      console.error('Approve error:', err)
+      setError(err.shortMessage || err.message || 'Approval failed')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleRenew = async () => {
+    if (!walletClient || !publicClient) return
+    
+    setError(null)
+    setIsPending(true)
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'renew',
+        args: [name.tokenId],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.megaNames,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      setTxHash(hash)
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30_000,
+      })
+
+      if (receipt.status === 'success') {
+        setIsSuccess(true)
+        setTimeout(() => {
+          onSuccess()
+          onClose()
+        }, 2000)
+      } else {
+        setError('Renewal failed')
+      }
+    } catch (err: any) {
+      console.error('Renew error:', err)
+      setError(err.shortMessage || err.message || 'Renewal failed')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const formatExpiry = (expiresAt: bigint) => {
+    const date = new Date(Number(expiresAt) * 1000)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+  }
+
+  const newExpiry = BigInt(Number(name.expiresAt) + 365 * 24 * 60 * 60)
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-6 border-b-2 border-black flex items-center justify-between">
+        <h2 className="font-display text-2xl">RENEW NAME</h2>
+        <button onClick={onClose} className="p-1 hover:bg-gray-100">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="p-6">
+        {isSuccess ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <p className="font-label text-sm mb-2">RENEWED!</p>
+            <p className="text-[#666]">{displayName} extended by 1 year</p>
+            <p className="text-sm text-[#666] mt-2">New expiry: {formatExpiry(newExpiry)}</p>
+            {txHash && (
+              <a
+                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline mt-4 inline-block"
+              >
+                View on Explorer →
+              </a>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <p className="font-label text-xs text-[#666] mb-2">RENEWING</p>
+              <p className="font-display text-3xl">{displayName}</p>
+            </div>
+
+            <div className="mb-6 p-4 border-2 border-black">
+              <div className="flex justify-between mb-2">
+                <span className="text-[#666]">Current expiry</span>
+                <span>{formatExpiry(name.expiresAt)}</span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="text-[#666]">Extension</span>
+                <span>+1 year</span>
+              </div>
+              <div className="flex justify-between font-bold border-t-2 border-black pt-2 mt-2">
+                <span>New expiry</span>
+                <span>{formatExpiry(newExpiry)}</span>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-[#F8F8F8] border-2 border-black">
+              <div className="flex justify-between">
+                <span className="font-label text-sm">RENEWAL COST</span>
+                <span className="font-display text-xl">{formatUSDM(price)}</span>
+              </div>
+            </div>
+
+            {/* Step indicator */}
+            <div className="mb-6 flex items-center gap-4">
+              <div className={`flex items-center gap-2 ${hasAllowance ? 'text-green-600' : 'text-black'}`}>
+                <div className={`w-8 h-8 flex items-center justify-center border-2 ${hasAllowance ? 'border-green-600 bg-green-600 text-white' : 'border-black'}`}>
+                  {hasAllowance ? <Check className="w-4 h-4" /> : '1'}
+                </div>
+                <span className="font-label text-sm">APPROVE</span>
+              </div>
+              <div className="flex-1 h-0.5 bg-gray-300" />
+              <div className={`flex items-center gap-2 ${step === 'renew' ? 'text-black' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 flex items-center justify-center border-2 ${step === 'renew' ? 'border-black' : 'border-gray-300'}`}>
+                  2
+                </div>
+                <span className="font-label text-sm">RENEW</span>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {!isSuccess && (
+        <button
+          onClick={step === 'approve' ? handleApprove : handleRenew}
+          disabled={isPending}
+          className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+              {step === 'approve' ? 'APPROVING...' : 'RENEWING...'}
+            </>
+          ) : step === 'approve' ? (
+            'APPROVE USDM'
+          ) : (
+            `RENEW FOR ${formatUSDM(price)}`
+          )}
+        </button>
+      )}
+    </Modal>
+  )
+}
+
 // Name Card Component
 interface NameCardProps {
   name: OwnedName
@@ -576,10 +816,11 @@ interface NameCardProps {
   onSetPrimary: () => void
   onCreateSubdomain: () => void
   onSetAddr: () => void
+  onRenew: () => void
   isSettingPrimary: boolean
 }
 
-function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, isSettingPrimary }: NameCardProps) {
+function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, isSettingPrimary }: NameCardProps) {
   const [showSubdomains, setShowSubdomains] = useState(false)
   
   const formatExpiry = (expiresAt: bigint) => {
@@ -708,12 +949,18 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
         </div>
       )}
       
-      {/* Renewal price - only for parent names */}
+      {/* Renewal section - only for parent names */}
       {!hasSubdomains && (
-        <div className="px-6 py-3 border-t-2 border-black bg-[#FAFAFA] flex items-center justify-between">
-          <span className="text-xs text-[#666] font-label">RENEWAL</span>
-          <span className="text-sm">{formatUSDM(getPrice(name.label.length))}/year</span>
-        </div>
+        <button
+          onClick={onRenew}
+          className="w-full px-6 py-3 border-t-2 border-black bg-[#FAFAFA] flex items-center justify-between hover:bg-gray-100 transition-colors"
+        >
+          <span className="text-xs text-[#666] font-label flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            RENEW
+          </span>
+          <span className="text-sm font-medium">{formatUSDM(getPrice(name.label.length))}/year</span>
+        </button>
       )}
     </div>
   )
@@ -729,6 +976,7 @@ export default function MyNamesPage() {
   const [transferringName, setTransferringName] = useState<OwnedName | null>(null)
   const [creatingSubdomainFor, setCreatingSubdomainFor] = useState<OwnedName | null>(null)
   const [settingAddrFor, setSettingAddrFor] = useState<OwnedName | null>(null)
+  const [renewingName, setRenewingName] = useState<OwnedName | null>(null)
   const [settingPrimaryFor, setSettingPrimaryFor] = useState<bigint | null>(null)
 
   // Get primary name using getName
@@ -1003,6 +1251,7 @@ export default function MyNamesPage() {
                 onSetPrimary={() => handleSetPrimary(name)}
                 onCreateSubdomain={() => setCreatingSubdomainFor(name)}
                 onSetAddr={() => setSettingAddrFor(name)}
+                onRenew={() => setRenewingName(name)}
                 isSettingPrimary={settingPrimaryFor === name.tokenId}
               />
             ))}
@@ -1063,6 +1312,14 @@ export default function MyNamesPage() {
         <SetAddrModal
           name={settingAddrFor}
           onClose={() => setSettingAddrFor(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {renewingName && (
+        <RenewModal
+          name={renewingName}
+          onClose={() => setRenewingName(null)}
           onSuccess={handleSuccess}
         />
       )}
