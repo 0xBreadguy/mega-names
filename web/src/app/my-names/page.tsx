@@ -6,7 +6,7 @@ import { useReadContract } from 'wagmi'
 import { encodeFunctionData, isAddress, type Hash } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice } from '@/lib/utils'
-import { Loader2, ArrowLeft, ExternalLink, Send, X, Check } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 
 const MEGAETH_TESTNET_CHAIN_ID = 6343
@@ -15,8 +15,23 @@ interface OwnedName {
   tokenId: bigint
   label: string
   expiresAt: bigint
+  parent: bigint
+  isSubdomain: boolean
+  subdomains?: OwnedName[]
 }
 
+// Modal wrapper component
+function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white border-2 border-black max-w-md w-full">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// Transfer Modal
 interface TransferModalProps {
   name: OwnedName
   onClose: () => void
@@ -35,6 +50,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
   const { data: walletClient } = useWalletClient()
 
   const isValidRecipient = isAddress(recipient) && recipient.toLowerCase() !== address.toLowerCase()
+  const displayName = name.isSubdomain ? `${name.label}.${name.parent}` : `${name.label}.mega`
 
   const handleTransfer = async () => {
     if (!walletClient || !publicClient || !isValidRecipient) return
@@ -85,98 +101,394 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white border-2 border-black max-w-md w-full">
-        {/* Header */}
-        <div className="p-6 border-b-2 border-black flex items-center justify-between">
-          <h2 className="font-display text-2xl">TRANSFER NAME</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Modal onClose={onClose}>
+      <div className="p-6 border-b-2 border-black flex items-center justify-between">
+        <h2 className="font-display text-2xl">TRANSFER NAME</h2>
+        <button onClick={onClose} className="p-1 hover:bg-gray-100">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
-        {/* Content */}
-        <div className="p-6">
-          {isSuccess ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
-                <Check className="w-8 h-8 text-white" />
-              </div>
-              <p className="font-label text-sm mb-2">TRANSFER COMPLETE!</p>
-              <p className="text-[#666]">
-                {name.label}.mega has been transferred
-              </p>
-              {txHash && (
-                <a
-                  href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline mt-4 inline-block"
-                >
-                  View on Explorer →
-                </a>
+      <div className="p-6">
+        {isSuccess ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <p className="font-label text-sm mb-2">TRANSFER COMPLETE!</p>
+            <p className="text-[#666]">{displayName} has been transferred</p>
+            {txHash && (
+              <a
+                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline mt-4 inline-block"
+              >
+                View on Explorer →
+              </a>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <p className="font-label text-xs text-[#666] mb-2">TRANSFERRING</p>
+              <p className="font-display text-3xl">{displayName}</p>
+            </div>
+
+            <div className="mb-6">
+              <label className="font-label text-xs text-[#666] mb-2 block">
+                RECIPIENT ADDRESS
+              </label>
+              <input
+                type="text"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="0x..."
+                className="w-full p-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                disabled={isPending}
+              />
+              {recipient && !isAddress(recipient) && (
+                <p className="text-red-600 text-xs mt-1">Invalid address</p>
+              )}
+              {recipient && recipient.toLowerCase() === address.toLowerCase() && (
+                <p className="text-red-600 text-xs mt-1">Cannot transfer to yourself</p>
               )}
             </div>
-          ) : (
-            <>
-              <div className="mb-6">
-                <p className="font-label text-xs text-[#666] mb-2">TRANSFERRING</p>
-                <p className="font-display text-3xl">{name.label}.mega</p>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
+                <p className="text-sm text-red-700">{error}</p>
               </div>
-
-              <div className="mb-6">
-                <label className="font-label text-xs text-[#666] mb-2 block">
-                  RECIPIENT ADDRESS
-                </label>
-                <input
-                  type="text"
-                  value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                  placeholder="0x..."
-                  className="w-full p-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                  disabled={isPending}
-                />
-                {recipient && !isAddress(recipient) && (
-                  <p className="text-red-600 text-xs mt-1">Invalid address</p>
-                )}
-                {recipient && recipient.toLowerCase() === address.toLowerCase() && (
-                  <p className="text-red-600 text-xs mt-1">Cannot transfer to yourself</p>
-                )}
-              </div>
-
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              )}
-
-              <div className="p-4 bg-yellow-50 border-2 border-yellow-400 mb-6">
-                <p className="text-sm text-yellow-800">
-                  ⚠️ This action is irreversible. Make sure the recipient address is correct.
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Footer */}
-        {!isSuccess && (
-          <button
-            onClick={handleTransfer}
-            disabled={!isValidRecipient || isPending}
-            className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
-                TRANSFERRING...
-              </>
-            ) : (
-              'CONFIRM TRANSFER'
             )}
-          </button>
+
+            <div className="p-4 bg-yellow-50 border-2 border-yellow-400 mb-6">
+              <p className="text-sm text-yellow-800">
+                ⚠️ This action is irreversible. Make sure the recipient address is correct.
+              </p>
+            </div>
+          </>
         )}
       </div>
+
+      {!isSuccess && (
+        <button
+          onClick={handleTransfer}
+          disabled={!isValidRecipient || isPending}
+          className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+              TRANSFERRING...
+            </>
+          ) : (
+            'CONFIRM TRANSFER'
+          )}
+        </button>
+      )}
+    </Modal>
+  )
+}
+
+// Create Subdomain Modal
+interface SubdomainModalProps {
+  parentName: OwnedName
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps) {
+  const [label, setLabel] = useState('')
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<Hash | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
+  
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
+
+  const isValidLabel = label.length > 0 && /^[a-z0-9-]+$/.test(label)
+  const fullName = `${label}.${parentName.label}.mega`
+
+  const handleCreate = async () => {
+    if (!walletClient || !publicClient || !isValidLabel) return
+    
+    setError(null)
+    setIsPending(true)
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'registerSubdomain',
+        args: [parentName.tokenId, label],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.megaNames,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      setTxHash(hash)
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30_000,
+      })
+
+      if (receipt.status === 'success') {
+        setIsSuccess(true)
+        setTimeout(() => {
+          onSuccess()
+          onClose()
+        }, 2000)
+      } else {
+        setError('Failed to create subdomain')
+      }
+    } catch (err: any) {
+      console.error('Subdomain error:', err)
+      setError(err.shortMessage || err.message || 'Failed to create subdomain')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-6 border-b-2 border-black flex items-center justify-between">
+        <h2 className="font-display text-2xl">CREATE SUBDOMAIN</h2>
+        <button onClick={onClose} className="p-1 hover:bg-gray-100">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="p-6">
+        {isSuccess ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <p className="font-label text-sm mb-2">SUBDOMAIN CREATED!</p>
+            <p className="text-[#666]">{fullName}</p>
+            {txHash && (
+              <a
+                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline mt-4 inline-block"
+              >
+                View on Explorer →
+              </a>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <p className="font-label text-xs text-[#666] mb-2">PARENT NAME</p>
+              <p className="font-display text-2xl">{parentName.label}.mega</p>
+            </div>
+
+            <div className="mb-6">
+              <label className="font-label text-xs text-[#666] mb-2 block">
+                SUBDOMAIN LABEL
+              </label>
+              <div className="flex items-center border-2 border-black">
+                <input
+                  type="text"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  placeholder="subdomain"
+                  className="flex-1 p-3 font-mono text-sm focus:outline-none"
+                  disabled={isPending}
+                />
+                <span className="px-3 py-3 bg-gray-100 border-l-2 border-black text-sm text-[#666]">
+                  .{parentName.label}.mega
+                </span>
+              </div>
+              {label && !isValidLabel && (
+                <p className="text-red-600 text-xs mt-1">Only lowercase letters, numbers, and hyphens</p>
+              )}
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="p-4 bg-green-50 border-2 border-green-400 mb-6">
+              <p className="text-sm text-green-800">
+                ✨ Subdomains are free to create! You can transfer or sell them like any name.
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+
+      {!isSuccess && (
+        <button
+          onClick={handleCreate}
+          disabled={!isValidLabel || isPending}
+          className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+              CREATING...
+            </>
+          ) : (
+            'CREATE SUBDOMAIN'
+          )}
+        </button>
+      )}
+    </Modal>
+  )
+}
+
+// Name Card Component
+interface NameCardProps {
+  name: OwnedName
+  isPrimary: boolean
+  onTransfer: () => void
+  onSetPrimary: () => void
+  onCreateSubdomain: () => void
+  isSettingPrimary: boolean
+}
+
+function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, isSettingPrimary }: NameCardProps) {
+  const [showSubdomains, setShowSubdomains] = useState(false)
+  
+  const formatExpiry = (expiresAt: bigint) => {
+    const date = new Date(Number(expiresAt) * 1000)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  }
+
+  const daysUntilExpiry = (expiresAt: bigint) => {
+    const now = Math.floor(Date.now() / 1000)
+    const diff = Number(expiresAt) - now
+    return Math.ceil(diff / 86400)
+  }
+
+  const days = daysUntilExpiry(name.expiresAt)
+  const isExpiringSoon = days <= 30
+  const hasSubdomains = name.subdomains && name.subdomains.length > 0
+
+  return (
+    <div className={`border-2 border-black ${isPrimary ? 'bg-[#F8F8F8]' : ''}`}>
+      <div className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="font-display text-3xl">{name.label}.mega</h2>
+              {isPrimary && (
+                <span className="px-2 py-1 text-xs font-label bg-black text-white">
+                  PRIMARY
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-[#666] mt-1">
+              Expires {formatExpiry(name.expiresAt)}
+              {isExpiringSoon && (
+                <span className="text-orange-600 ml-2">
+                  ({days} days left)
+                </span>
+              )}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {!isPrimary && (
+              <button
+                onClick={onSetPrimary}
+                disabled={isSettingPrimary}
+                className="p-2 hover:bg-yellow-100 transition-colors border-2 border-black disabled:opacity-50"
+                title="Set as Primary"
+              >
+                {isSettingPrimary ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Star className="w-5 h-5" />
+                )}
+              </button>
+            )}
+            <button
+              onClick={onCreateSubdomain}
+              className="p-2 hover:bg-blue-100 transition-colors border-2 border-black"
+              title="Create Subdomain"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onTransfer}
+              className="p-2 hover:bg-gray-100 transition-colors border-2 border-black"
+              title="Transfer"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+            <a
+              href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${name.tokenId.toString()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 hover:bg-gray-100 transition-colors border-2 border-black"
+              title="View on Explorer"
+            >
+              <ExternalLink className="w-5 h-5" />
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      {/* Subdomains toggle */}
+      {hasSubdomains && (
+        <button
+          onClick={() => setShowSubdomains(!showSubdomains)}
+          className="w-full px-6 py-3 border-t-2 border-black bg-[#FAFAFA] flex items-center justify-between hover:bg-gray-100"
+        >
+          <span className="text-xs text-[#666] font-label">
+            {name.subdomains!.length} SUBDOMAIN{name.subdomains!.length > 1 ? 'S' : ''}
+          </span>
+          {showSubdomains ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+      )}
+      
+      {/* Subdomains list */}
+      {showSubdomains && hasSubdomains && (
+        <div className="border-t-2 border-black">
+          {name.subdomains!.map((sub) => (
+            <div key={sub.tokenId.toString()} className="px-6 py-3 flex items-center justify-between border-b border-gray-200 last:border-b-0 bg-white">
+              <span className="font-mono text-sm">{sub.label}.{name.label}.mega</span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${sub.tokenId.toString()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 hover:bg-gray-100"
+                  title="View on Explorer"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Renewal price - only for parent names */}
+      {!hasSubdomains && (
+        <div className="px-6 py-3 border-t-2 border-black bg-[#FAFAFA] flex items-center justify-between">
+          <span className="text-xs text-[#666] font-label">RENEWAL</span>
+          <span className="text-sm">{formatUSDM(getPrice(name.label.length))}/year</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -184,10 +496,13 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
 export default function MyNamesPage() {
   const { address, isConnected } = useAccount()
   const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
   
   const [ownedNames, setOwnedNames] = useState<OwnedName[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [transferringName, setTransferringName] = useState<OwnedName | null>(null)
+  const [creatingSubdomainFor, setCreatingSubdomainFor] = useState<OwnedName | null>(null)
+  const [settingPrimaryFor, setSettingPrimaryFor] = useState<bigint | null>(null)
 
   // Get primary name using getName
   const { data: primaryName, refetch: refetchPrimaryName } = useReadContract({
@@ -197,6 +512,42 @@ export default function MyNamesPage() {
     args: [address!],
     query: { enabled: !!address },
   })
+
+  const handleSetPrimary = async (name: OwnedName) => {
+    if (!walletClient || !publicClient) return
+    
+    setSettingPrimaryFor(name.tokenId)
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'setPrimaryName',
+        args: [name.tokenId],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.megaNames,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      await publicClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30_000,
+      })
+
+      refetchPrimaryName()
+    } catch (err: any) {
+      console.error('Set primary error:', err)
+    } finally {
+      setSettingPrimaryFor(null)
+    }
+  }
 
   // Fetch owned names from events + verify ownership
   const fetchOwnedNames = async () => {
@@ -228,7 +579,23 @@ export default function MyNamesPage() {
         toBlock: 'latest',
       })
 
-      // Also get Transfer events TO this address (in case of secondary market)
+      // Get SubdomainRegistered events
+      const subdomainLogs = await publicClient.getLogs({
+        address: CONTRACTS.testnet.megaNames,
+        event: {
+          type: 'event',
+          name: 'SubdomainRegistered',
+          inputs: [
+            { name: 'tokenId', type: 'uint256', indexed: true },
+            { name: 'parentId', type: 'uint256', indexed: true },
+            { name: 'label', type: 'string', indexed: false },
+          ],
+        },
+        fromBlock: BigInt(0),
+        toBlock: 'latest',
+      })
+
+      // Get Transfer events TO this address
       const transferLogs = await publicClient.getLogs({
         address: CONTRACTS.testnet.megaNames,
         event: {
@@ -262,8 +629,16 @@ export default function MyNamesPage() {
         }
       }
 
+      // Also check subdomain ownership
+      for (const log of subdomainLogs) {
+        if (log.args.tokenId) {
+          tokenIds.add(log.args.tokenId.toString())
+        }
+      }
+
       // Verify current ownership and get details for each token
       const names: OwnedName[] = []
+      const subdomainsByParent: Map<string, OwnedName[]> = new Map()
       
       for (const tokenIdStr of tokenIds) {
         const tokenId = BigInt(tokenIdStr)
@@ -287,19 +662,40 @@ export default function MyNamesPage() {
             args: [tokenId],
           })
           
-          const [label, , expiresAt] = record as [string, bigint, bigint, bigint, bigint]
+          const [label, parent, expiresAt] = record as [string, bigint, bigint, bigint, bigint]
+          const isSubdomain = parent !== BigInt(0)
           
-          // Only include if not expired
-          if (BigInt(expiresAt) > BigInt(Math.floor(Date.now() / 1000))) {
-            names.push({
-              tokenId,
-              label,
-              expiresAt: BigInt(expiresAt),
-            })
+          const nameData: OwnedName = {
+            tokenId,
+            label,
+            expiresAt: BigInt(expiresAt),
+            parent,
+            isSubdomain,
+          }
+          
+          if (isSubdomain) {
+            // Group subdomains by parent
+            const parentStr = parent.toString()
+            if (!subdomainsByParent.has(parentStr)) {
+              subdomainsByParent.set(parentStr, [])
+            }
+            subdomainsByParent.get(parentStr)!.push(nameData)
+          } else {
+            // Only include parent names if not expired
+            if (BigInt(expiresAt) > BigInt(Math.floor(Date.now() / 1000))) {
+              names.push(nameData)
+            }
           }
         } catch {
-          // Token might not exist or be burned, skip
           continue
+        }
+      }
+      
+      // Attach subdomains to their parents
+      for (const name of names) {
+        const subs = subdomainsByParent.get(name.tokenId.toString())
+        if (subs) {
+          name.subdomains = subs
         }
       }
       
@@ -318,26 +714,13 @@ export default function MyNamesPage() {
     fetchOwnedNames()
   }, [address, publicClient])
 
-  const handleTransferSuccess = () => {
-    // Refresh the list after transfer
+  const handleSuccess = () => {
     fetchOwnedNames()
     refetchPrimaryName()
   }
 
-  const formatExpiry = (expiresAt: bigint) => {
-    const date = new Date(Number(expiresAt) * 1000)
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    })
-  }
-
-  const daysUntilExpiry = (expiresAt: bigint) => {
-    const now = Math.floor(Date.now() / 1000)
-    const diff = Number(expiresAt) - now
-    return Math.ceil(diff / 86400)
-  }
+  // Extract primary label from full name (e.g., "bread.mega" -> "bread")
+  const primaryLabel = primaryName?.replace('.mega', '') || null
 
   if (!isConnected) {
     return (
@@ -384,63 +767,17 @@ export default function MyNamesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {ownedNames.map((name) => {
-              const days = daysUntilExpiry(name.expiresAt)
-              const isPrimary = primaryName === name.label
-              const isExpiringSoon = days <= 30
-              
-              return (
-                <div 
-                  key={name.tokenId.toString()} 
-                  className={`border-2 border-black ${isPrimary ? 'bg-[#F8F8F8]' : ''}`}
-                >
-                  <div className="p-6 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h2 className="font-display text-3xl">{name.label}.mega</h2>
-                        {isPrimary && (
-                          <span className="px-2 py-1 text-xs font-label bg-black text-white">
-                            PRIMARY
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-[#666] mt-1">
-                        Expires {formatExpiry(name.expiresAt)}
-                        {isExpiringSoon && (
-                          <span className="text-orange-600 ml-2">
-                            ({days} days left)
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setTransferringName(name)}
-                        className="p-2 hover:bg-gray-100 transition-colors border-2 border-black"
-                        title="Transfer"
-                      >
-                        <Send className="w-5 h-5" />
-                      </button>
-                      <a
-                        href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${name.tokenId.toString()}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 hover:bg-gray-100 transition-colors border-2 border-black"
-                        title="View on Explorer"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </a>
-                    </div>
-                  </div>
-                  
-                  {/* Renewal price hint */}
-                  <div className="px-6 py-3 border-t-2 border-black bg-[#FAFAFA] flex items-center justify-between">
-                    <span className="text-xs text-[#666] font-label">RENEWAL</span>
-                    <span className="text-sm">{formatUSDM(getPrice(name.label.length))}/year</span>
-                  </div>
-                </div>
-              )
-            })}
+            {ownedNames.map((name) => (
+              <NameCard
+                key={name.tokenId.toString()}
+                name={name}
+                isPrimary={primaryLabel === name.label}
+                onTransfer={() => setTransferringName(name)}
+                onSetPrimary={() => handleSetPrimary(name)}
+                onCreateSubdomain={() => setCreatingSubdomainFor(name)}
+                isSettingPrimary={settingPrimaryFor === name.tokenId}
+              />
+            ))}
           </div>
         )}
 
@@ -450,7 +787,14 @@ export default function MyNamesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-label text-xs text-[#666]">TOTAL NAMES</p>
-                <p className="font-display text-2xl">{ownedNames.length}</p>
+                <p className="font-display text-2xl">
+                  {ownedNames.length}
+                  {ownedNames.reduce((acc, n) => acc + (n.subdomains?.length || 0), 0) > 0 && (
+                    <span className="text-lg text-[#666] ml-2">
+                      (+{ownedNames.reduce((acc, n) => acc + (n.subdomains?.length || 0), 0)} subdomains)
+                    </span>
+                  )}
+                </p>
               </div>
               <Link href="/" className="btn-secondary px-6 py-3">
                 REGISTER MORE
@@ -469,13 +813,21 @@ export default function MyNamesPage() {
         </div>
       </div>
 
-      {/* Transfer Modal */}
+      {/* Modals */}
       {transferringName && (
         <TransferModal
           name={transferringName}
           address={address!}
           onClose={() => setTransferringName(null)}
-          onSuccess={handleTransferSuccess}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {creatingSubdomainFor && (
+        <SubdomainModal
+          parentName={creatingSubdomainFor}
+          onClose={() => setCreatingSubdomainFor(null)}
+          onSuccess={handleSuccess}
         />
       )}
     </div>

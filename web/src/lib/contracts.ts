@@ -49,6 +49,7 @@ export const MEGA_NAMES_ABI = [
   
   // Events
   { type: 'event', name: 'NameRegistered', inputs: [{ name: 'tokenId', type: 'uint256', indexed: true }, { name: 'label', type: 'string' }, { name: 'owner', type: 'address', indexed: true }, { name: 'expiresAt', type: 'uint256' }] },
+  { type: 'event', name: 'SubdomainRegistered', inputs: [{ name: 'tokenId', type: 'uint256', indexed: true }, { name: 'parentId', type: 'uint256', indexed: true }, { name: 'label', type: 'string' }] },
   { type: 'event', name: 'Transfer', inputs: [{ name: 'from', type: 'address', indexed: true }, { name: 'to', type: 'address', indexed: true }, { name: 'id', type: 'uint256', indexed: true }] },
 ] as const
 
