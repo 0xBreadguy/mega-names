@@ -1,29 +1,26 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Check, Loader2, AlertTriangle } from 'lucide-react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useChainId } from 'wagmi'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useChainId, useSignTypedData } from 'wagmi'
 import { CONTRACTS, MEGA_NAMES_ABI, ERC20_ABI } from '@/lib/contracts'
 import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
-import { megaethTestnet } from '@/lib/wagmi'
-
-type Step = 'check' | 'approve' | 'register' | 'success'
 
 const REQUIRED_CHAIN_ID = 6343 // MegaETH Testnet
 
 function RegisterContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const name = searchParams.get('name')?.toLowerCase() || ''
   
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const { switchChain, isPending: isSwitching } = useSwitchChain()
   const isWrongChain = chainId !== REQUIRED_CHAIN_ID
-  const [step, setStep] = useState<Step>('check')
+  
   const [error, setError] = useState<string | null>(null)
+  const [isRegistering, setIsRegistering] = useState(false)
 
   const tokenId = name ? getTokenId(name) : BigInt(0)
   const price = name ? getPrice(name.length) : BigInt(0)
@@ -48,38 +45,25 @@ function RegisterContent() {
     query: { enabled: !!address },
   })
 
-  // Check USDM allowance (refetch on mount to get fresh data)
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+  // Get nonce for permit
+  const { data: nonce } = useReadContract({
     address: CONTRACTS.testnet.usdm,
     abi: ERC20_ABI,
-    functionName: 'allowance',
-    args: [address!, CONTRACTS.testnet.megaNames],
-    query: { 
-      enabled: !!address,
-      refetchOnMount: 'always',
-    },
+    functionName: 'nonces',
+    args: [address!],
+    query: { enabled: !!address },
   })
 
   const hasEnoughBalance = balance && balance >= price
-  const hasEnoughAllowance = allowance && allowance >= price
 
-  // Approve USDM
+  // Sign permit
+  const { signTypedDataAsync } = useSignTypedData()
+
+  // Register with permit
   const { 
-    writeContract: approve, 
-    data: approveHash,
-    isPending: isApproving,
-    error: approveError,
-  } = useWriteContract()
-
-  const { isLoading: isWaitingApprove, isSuccess: approveSuccess } = useWaitForTransactionReceipt({
-    hash: approveHash,
-  })
-
-  // Register name
-  const { 
-    writeContract: register, 
+    writeContract: registerWithPermit, 
     data: registerHash,
-    isPending: isRegistering,
+    isPending: isWriting,
     error: registerError,
   } = useWriteContract()
 
@@ -87,54 +71,66 @@ function RegisterContent() {
     hash: registerHash,
   })
 
-  // Update step based on state
   useEffect(() => {
-    if (registerSuccess) {
-      setStep('success')
-    } else if (hasEnoughAllowance || approveSuccess) {
-      setStep('register')
-    } else {
-      setStep('approve')
-    }
-  }, [hasEnoughAllowance, approveSuccess, registerSuccess])
-
-  // Refetch allowance after approval
-  useEffect(() => {
-    if (approveSuccess) {
-      refetchAllowance()
-    }
-  }, [approveSuccess, refetchAllowance])
-
-  // Handle errors
-  useEffect(() => {
-    if (approveError) {
-      setError(approveError.message)
-    } else if (registerError) {
+    if (registerError) {
       setError(registerError.message)
+      setIsRegistering(false)
     }
-  }, [approveError, registerError])
+  }, [registerError])
 
-  // Approve max uint256 for unlimited future registrations
-  const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
-  
-  const handleApprove = () => {
+  const handleRegister = async () => {
+    if (!address || !name || nonce === undefined) return
+    
     setError(null)
-    approve({
-      address: CONTRACTS.testnet.usdm,
-      abi: ERC20_ABI,
-      functionName: 'approve',
-      args: [CONTRACTS.testnet.megaNames, MAX_UINT256],
-    })
-  }
+    setIsRegistering(true)
 
-  const handleRegister = () => {
-    setError(null)
-    register({
-      address: CONTRACTS.testnet.megaNames,
-      abi: MEGA_NAMES_ABI,
-      functionName: 'registerDirect',
-      args: [name, address!],
-    })
+    try {
+      // Create permit deadline (1 hour from now)
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
+
+      // Sign EIP-2612 permit
+      const signature = await signTypedDataAsync({
+        types: {
+          Permit: [
+            { name: 'owner', type: 'address' },
+            { name: 'spender', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'nonce', type: 'uint256' },
+            { name: 'deadline', type: 'uint256' },
+          ],
+        },
+        primaryType: 'Permit',
+        domain: {
+          name: 'Mock USDM',
+          version: '1',
+          chainId: REQUIRED_CHAIN_ID,
+          verifyingContract: CONTRACTS.testnet.usdm,
+        },
+        message: {
+          owner: address,
+          spender: CONTRACTS.testnet.megaNames,
+          value: price,
+          nonce: nonce,
+          deadline: deadline,
+        },
+      })
+
+      // Parse signature
+      const r = signature.slice(0, 66) as `0x${string}`
+      const s = `0x${signature.slice(66, 130)}` as `0x${string}`
+      const v = parseInt(signature.slice(130, 132), 16)
+
+      // Call registerWithPermit
+      registerWithPermit({
+        address: CONTRACTS.testnet.megaNames,
+        abi: MEGA_NAMES_ABI,
+        functionName: 'registerWithPermit',
+        args: [name, address, deadline, v, r, s],
+      })
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to sign permit')
+      setIsRegistering(false)
+    }
   }
 
   if (!name || !isValidName(name)) {
@@ -210,6 +206,31 @@ function RegisterContent() {
     )
   }
 
+  // Success state
+  if (registerSuccess) {
+    return (
+      <div className="min-h-[calc(100vh-64px)]">
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <div className="border-2 border-black p-8 text-center">
+            <div className="w-16 h-16 bg-black text-white flex items-center justify-center mx-auto mb-6">
+              <Check className="w-8 h-8" />
+            </div>
+            <p className="font-display text-3xl mb-4">REGISTERED!</p>
+            <p className="text-[#666] mb-8">{name}.mega is now yours</p>
+            <div className="flex gap-4 justify-center">
+              <Link href="/my-names" className="btn-primary px-6 py-3">
+                MY NAMES
+              </Link>
+              <Link href="/" className="btn-secondary px-6 py-3">
+                SEARCH MORE
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-[calc(100vh-64px)]">
       <div className="max-w-2xl mx-auto px-4 py-16">
@@ -248,91 +269,27 @@ function RegisterContent() {
           </div>
         )}
 
-        {/* Steps */}
-        {hasEnoughBalance && step !== 'success' && (
-          <div className="space-y-4">
-            {/* Step 1: Approve */}
-            <div className={`border-2 p-6 ${step === 'approve' ? 'border-black' : 'border-[#ccc]'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-8 h-8 border-2 flex items-center justify-center font-bold ${
-                    hasEnoughAllowance || approveSuccess ? 'bg-black text-white border-black' : 'border-black'
-                  }`}>
-                    {hasEnoughAllowance || approveSuccess ? <Check className="w-4 h-4" /> : '1'}
-                  </div>
-                  <div>
-                    <p className="font-semibold">APPROVE USDM</p>
-                    <p className="text-sm text-[#666]">
-                      {hasEnoughAllowance ? 'Already approved ✓' : 'One-time approval for all future registrations'}
-                    </p>
-                  </div>
-                </div>
-                {step === 'approve' && !hasEnoughAllowance && (
-                  <button
-                    onClick={handleApprove}
-                    disabled={isApproving || isWaitingApprove}
-                    className="btn-primary px-6 py-2 text-sm disabled:opacity-50"
-                  >
-                    {isApproving || isWaitingApprove ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'APPROVE'
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Step 2: Register */}
-            <div className={`border-2 p-6 ${step === 'register' ? 'border-black' : 'border-[#ccc]'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-8 h-8 border-2 flex items-center justify-center font-bold ${
-                    registerSuccess ? 'bg-black text-white border-black' : 'border-black'
-                  }`}>
-                    {registerSuccess ? <Check className="w-4 h-4" /> : '2'}
-                  </div>
-                  <div>
-                    <p className="font-semibold">REGISTER NAME</p>
-                    <p className="text-sm text-[#666]">Mint {name}.mega to your wallet</p>
-                  </div>
-                </div>
-                {step === 'register' && (
-                  <button
-                    onClick={handleRegister}
-                    disabled={isRegistering || isWaitingRegister}
-                    className="btn-primary px-6 py-2 text-sm disabled:opacity-50"
-                  >
-                    {isRegistering || isWaitingRegister ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'REGISTER'
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+        {/* Single Register Button */}
+        {hasEnoughBalance && (
+          <button
+            onClick={handleRegister}
+            disabled={isRegistering || isWriting || isWaitingRegister}
+            className="btn-primary w-full py-4 text-lg disabled:opacity-50"
+          >
+            {isRegistering || isWriting || isWaitingRegister ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {isWaitingRegister ? 'CONFIRMING...' : 'SIGNING...'}
+              </span>
+            ) : (
+              `REGISTER ${name.toUpperCase()}.MEGA FOR ${formatUSDM(price)}`
+            )}
+          </button>
         )}
 
-        {/* Success */}
-        {step === 'success' && (
-          <div className="border-2 border-black p-8 text-center">
-            <div className="w-16 h-16 bg-black text-white flex items-center justify-center mx-auto mb-6">
-              <Check className="w-8 h-8" />
-            </div>
-            <p className="font-display text-3xl mb-4">REGISTERED!</p>
-            <p className="text-[#666] mb-8">{name}.mega is now yours</p>
-            <div className="flex gap-4 justify-center">
-              <Link href="/my-names" className="btn-primary px-6 py-3">
-                MY NAMES
-              </Link>
-              <Link href="/" className="btn-secondary px-6 py-3">
-                SEARCH MORE
-              </Link>
-            </div>
-          </div>
-        )}
+        <p className="text-center text-[#666] text-sm mt-4">
+          One signature + one transaction. No separate approval needed.
+        </p>
 
         {/* Error display */}
         {error && (

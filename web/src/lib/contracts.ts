@@ -1,6 +1,6 @@
 export const CONTRACTS = {
   testnet: {
-    megaNames: '0xA3B96bEA7DD48Be2C00B2E830986a680eF657D47' as const,
+    megaNames: '0xc1e0d3C5Cc68F8b7F95252668C5ed1cBDBF82aE9' as const,
     usdm: '0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833' as const,
   },
   mainnet: {
@@ -35,6 +35,7 @@ export const MEGA_NAMES_ABI = [
   { type: 'function', name: 'commit', inputs: [{ name: 'commitment', type: 'bytes32' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'register', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'secret', type: 'bytes32' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
   { type: 'function', name: 'registerDirect', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'registerWithPermit', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'deadline', type: 'uint256' }, { name: 'v', type: 'uint8' }, { name: 'r', type: 'bytes32' }, { name: 's', type: 'bytes32' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
   { type: 'function', name: 'renew', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'setAddr', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'addr_', type: 'address' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'setText', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'key', type: 'string' }, { name: 'value', type: 'string' }], outputs: [], stateMutability: 'nonpayable' },
@@ -55,4 +56,8 @@ export const ERC20_ABI = [
   { type: 'function', name: 'symbol', inputs: [], outputs: [{ type: 'string' }], stateMutability: 'view' },
   // Mock USDM mint for testnet
   { type: 'function', name: 'mint', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
+  // ERC-2612 permit
+  { type: 'function', name: 'nonces', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'DOMAIN_SEPARATOR', inputs: [], outputs: [{ type: 'bytes32' }], stateMutability: 'view' },
+  { type: 'function', name: 'name', inputs: [], outputs: [{ type: 'string' }], stateMutability: 'view' },
 ] as const

@@ -362,6 +362,66 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
     }
 
+    /// @notice Register a name with permit (single transaction - approve + register)
+    /// @param label The name to register
+    /// @param owner Address to own the name
+    /// @param deadline Permit deadline timestamp
+    /// @param v Permit signature v
+    /// @param r Permit signature r
+    /// @param s Permit signature s
+    function registerWithPermit(
+        string calldata label,
+        address owner,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public nonReentrant returns (uint256 tokenId) {
+        bytes memory normalized = _validateAndNormalize(bytes(label));
+
+        tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
+        if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
+
+        uint256 fee = registrationFee(normalized.length);
+        
+        // Execute permit to approve spending, then transfer
+        if (fee > 0) {
+            // Call permit on the USDM token (Solady ERC20 has permit built-in)
+            (bool success,) = paymentToken.call(
+                abi.encodeWithSignature(
+                    "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)",
+                    msg.sender,
+                    address(this),
+                    fee,
+                    deadline,
+                    v,
+                    r,
+                    s
+                )
+            );
+            // Permit can fail silently if already approved - that's OK
+            // The transferFrom below will revert if not approved
+            
+            SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
+        }
+
+        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
+        uint64 newEpoch = records[tokenId].epoch + 1;
+
+        records[tokenId] = NameRecord({
+            label: string(normalized),
+            parent: 0,
+            expiresAt: expiresAt,
+            epoch: newEpoch,
+            parentEpoch: 0
+        });
+
+        recordVersion[tokenId]++;
+        _mint(owner, tokenId);
+
+        emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
+    }
+
     /*//////////////////////////////////////////////////////////////
                               RENEWAL
     //////////////////////////////////////////////////////////////*/
