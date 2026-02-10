@@ -9,7 +9,7 @@ import {
   useCallsStatus,
   useWriteContract,
   useWaitForTransactionReceipt,
-  useWalletClient
+  useSignTypedData
 } from 'wagmi'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI, ERC20_ABI } from '@/lib/contracts'
@@ -107,7 +107,7 @@ function RegisterContent() {
     isPending: isRegisteringWithPermit 
   } = useWriteContract()
 
-  const { data: walletClient, isLoading: isWalletLoading } = useWalletClient()
+  const { signTypedDataAsync } = useSignTypedData()
 
   const { isLoading: isConfirming, isSuccess: isDirectSuccess } = useWaitForTransactionReceipt({
     hash: registerHash || permitHash,
@@ -269,21 +269,16 @@ function RegisterContent() {
         deadline,
       }
 
-      console.log('Signing permit with:', { domain, message, nonce: nonce.toString(), deadline: deadline.toString() })
-      console.log('Wallet client:', walletClient)
+      console.log('Signing permit with:', { domain, message, nonce: nonce.toString(), deadline: deadline.toString(), price: price.toString() })
 
-      if (!walletClient) {
-        setError('Wallet client not ready. Please try again.')
-        return
-      }
-
-      const signature = await walletClient.signTypedData({
-        account: address,
+      const signature = await signTypedDataAsync({
         domain,
         types,
         primaryType: 'Permit',
         message,
       })
+      
+      console.log('Signature:', signature)
 
       const r = signature.slice(0, 66) as `0x${string}`
       const s = `0x${signature.slice(66, 130)}` as `0x${string}`
@@ -401,7 +396,7 @@ function RegisterContent() {
             </div>
             <button
               onClick={useFallback ? handlePermitRegister : handleRegister}
-              disabled={isPending || !hasBalance || (useFallback && isWalletLoading)}
+              disabled={isPending || !hasBalance}
               className="btn-primary w-full py-5 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
               {isPending ? (
