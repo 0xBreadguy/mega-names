@@ -7,7 +7,7 @@ import { encodeFunctionData, isAddress, type Hash, erc20Abi } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice } from '@/lib/utils'
 import { useMegaName, useResolveMegaName } from '@/lib/hooks'
-import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign, RefreshCw } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign, RefreshCw, FileText, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 const MEGAETH_TESTNET_CHAIN_ID = 6343
@@ -808,6 +808,292 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
   )
 }
 
+// Common text record keys
+const COMMON_TEXT_KEYS = [
+  { key: 'avatar', label: 'Avatar', placeholder: 'https://...' },
+  { key: 'url', label: 'Website', placeholder: 'https://...' },
+  { key: 'description', label: 'Description', placeholder: 'A short bio...' },
+  { key: 'com.twitter', label: 'Twitter', placeholder: '@handle' },
+  { key: 'com.github', label: 'GitHub', placeholder: 'username' },
+  { key: 'email', label: 'Email', placeholder: 'you@example.com' },
+]
+
+// Text Records Modal
+interface TextRecordsModalProps {
+  name: OwnedName
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
+  const [records, setRecords] = useState<Record<string, string>>({})
+  const [editingKey, setEditingKey] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
+
+  const displayName = name.isSubdomain ? `${name.label}.parent.mega` : `${name.label}.mega`
+
+  // Fetch existing text records
+  useEffect(() => {
+    async function fetchRecords() {
+      if (!publicClient) return
+      
+      const fetchedRecords: Record<string, string> = {}
+      
+      for (const { key } of COMMON_TEXT_KEYS) {
+        try {
+          const value = await publicClient.readContract({
+            address: CONTRACTS.testnet.megaNames,
+            abi: MEGA_NAMES_ABI,
+            functionName: 'text',
+            args: [name.tokenId, key],
+          })
+          if (value && value !== '') {
+            fetchedRecords[key] = value
+          }
+        } catch {
+          // Ignore errors for individual keys
+        }
+      }
+      
+      setRecords(fetchedRecords)
+    }
+    
+    fetchRecords()
+  }, [name.tokenId, publicClient])
+
+  const handleEdit = (key: string) => {
+    setEditingKey(key)
+    setEditValue(records[key] || '')
+    setError(null)
+    setSuccessMessage(null)
+  }
+
+  const handleSave = async () => {
+    if (!walletClient || !publicClient || !editingKey) return
+    
+    setError(null)
+    setSuccessMessage(null)
+    setIsPending(true)
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'setText',
+        args: [name.tokenId, editingKey, editValue],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.megaNames,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      await publicClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30_000,
+      })
+
+      // Update local state
+      if (editValue) {
+        setRecords(prev => ({ ...prev, [editingKey]: editValue }))
+      } else {
+        setRecords(prev => {
+          const newRecords = { ...prev }
+          delete newRecords[editingKey]
+          return newRecords
+        })
+      }
+      
+      setSuccessMessage(`${editingKey} updated!`)
+      setEditingKey(null)
+      setEditValue('')
+    } catch (err: any) {
+      console.error('setText error:', err)
+      setError(err.shortMessage || err.message || 'Failed to update record')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleDelete = async (key: string) => {
+    setEditingKey(key)
+    setEditValue('')
+    // Save empty string to delete
+    if (!walletClient || !publicClient) return
+    
+    setError(null)
+    setSuccessMessage(null)
+    setIsPending(true)
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'setText',
+        args: [name.tokenId, key, ''],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.megaNames,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      await publicClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30_000,
+      })
+
+      setRecords(prev => {
+        const newRecords = { ...prev }
+        delete newRecords[key]
+        return newRecords
+      })
+      
+      setSuccessMessage(`${key} deleted!`)
+      setEditingKey(null)
+    } catch (err: any) {
+      console.error('setText error:', err)
+      setError(err.shortMessage || err.message || 'Failed to delete record')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-6 border-b-2 border-black flex items-center justify-between">
+        <h2 className="font-display text-2xl">TEXT RECORDS</h2>
+        <button onClick={onClose} className="p-1 hover:bg-gray-100">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="mb-4">
+          <p className="font-label text-xs text-[#666] mb-1">NAME</p>
+          <p className="font-display text-xl">{displayName}</p>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border-2 border-red-400">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-50 border-2 border-green-400">
+            <p className="text-sm text-green-700 flex items-center gap-2">
+              <Check className="w-4 h-4" /> {successMessage}
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {COMMON_TEXT_KEYS.map(({ key, label, placeholder }) => (
+            <div key={key} className="border-2 border-black">
+              <div className="px-4 py-2 bg-[#F8F8F8] border-b-2 border-black flex items-center justify-between">
+                <span className="font-label text-xs">{label.toUpperCase()}</span>
+                <span className="text-xs text-[#666] font-mono">{key}</span>
+              </div>
+              
+              {editingKey === key ? (
+                <div className="p-4">
+                  <input
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    placeholder={placeholder}
+                    className="w-full p-2 border-2 border-black font-mono text-sm focus:outline-none mb-3"
+                    disabled={isPending}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSave}
+                      disabled={isPending}
+                      className="flex-1 py-2 bg-black text-white font-label text-sm disabled:opacity-50"
+                    >
+                      {isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'SAVE'}
+                    </button>
+                    <button
+                      onClick={() => setEditingKey(null)}
+                      disabled={isPending}
+                      className="px-4 py-2 border-2 border-black font-label text-sm"
+                    >
+                      CANCEL
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-4 py-3 flex items-center justify-between">
+                  {records[key] ? (
+                    <>
+                      <span className="font-mono text-sm truncate flex-1 mr-4">{records[key]}</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(key)}
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(key)}
+                          className="text-sm text-red-600 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm text-[#999]">Not set</span>
+                      <button
+                        onClick={() => handleEdit(key)}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Add
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 p-4 bg-blue-50 border-2 border-blue-400">
+          <p className="text-sm text-blue-800">
+            💡 Text records are ENS-compatible. Apps and dApps can read these to show your profile info.
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="btn-secondary w-full py-4 text-lg font-label border-t-2 border-black"
+      >
+        DONE
+      </button>
+    </Modal>
+  )
+}
+
 // Name Card Component
 interface NameCardProps {
   name: OwnedName
@@ -817,10 +1103,11 @@ interface NameCardProps {
   onCreateSubdomain: () => void
   onSetAddr: () => void
   onRenew: () => void
+  onTextRecords: () => void
   isSettingPrimary: boolean
 }
 
-function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, isSettingPrimary }: NameCardProps) {
+function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, onTextRecords, isSettingPrimary }: NameCardProps) {
   const [showSubdomains, setShowSubdomains] = useState(false)
   
   const formatExpiry = (expiresAt: bigint) => {
@@ -886,6 +1173,13 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
               title="Set Address Resolution"
             >
               <AtSign className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onTextRecords}
+              className="p-2 hover:bg-orange-100 transition-colors border-2 border-black"
+              title="Text Records"
+            >
+              <FileText className="w-5 h-5" />
             </button>
             <button
               onClick={onCreateSubdomain}
@@ -977,6 +1271,7 @@ export default function MyNamesPage() {
   const [creatingSubdomainFor, setCreatingSubdomainFor] = useState<OwnedName | null>(null)
   const [settingAddrFor, setSettingAddrFor] = useState<OwnedName | null>(null)
   const [renewingName, setRenewingName] = useState<OwnedName | null>(null)
+  const [editingTextRecordsFor, setEditingTextRecordsFor] = useState<OwnedName | null>(null)
   const [settingPrimaryFor, setSettingPrimaryFor] = useState<bigint | null>(null)
 
   // Get primary name using getName
@@ -1252,6 +1547,7 @@ export default function MyNamesPage() {
                 onCreateSubdomain={() => setCreatingSubdomainFor(name)}
                 onSetAddr={() => setSettingAddrFor(name)}
                 onRenew={() => setRenewingName(name)}
+                onTextRecords={() => setEditingTextRecordsFor(name)}
                 isSettingPrimary={settingPrimaryFor === name.tokenId}
               />
             ))}
@@ -1320,6 +1616,14 @@ export default function MyNamesPage() {
         <RenewModal
           name={renewingName}
           onClose={() => setRenewingName(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {editingTextRecordsFor && (
+        <TextRecordsModal
+          name={editingTextRecordsFor}
+          onClose={() => setEditingTextRecordsFor(null)}
           onSuccess={handleSuccess}
         />
       )}
