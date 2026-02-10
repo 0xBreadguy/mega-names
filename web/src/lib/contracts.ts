@@ -1,0 +1,57 @@
+export const CONTRACTS = {
+  testnet: {
+    megaNames: '0xaa63b6535c7e8aa887764da86295e72116dfe52f' as const,
+    usdm: '0x36c9b178b7d34c1a3582369e5bca42c4dc5e95ff' as const,
+  },
+  mainnet: {
+    megaNames: '' as const, // TBD
+    usdm: '0x078D782b760474a361dDA0AF3839290b0EF57AD6' as const,
+  },
+} as const
+
+export const MEGA_NAMES_ABI = [
+  // Read functions
+  { type: 'function', name: 'name', inputs: [], outputs: [{ type: 'string' }], stateMutability: 'pure' },
+  { type: 'function', name: 'symbol', inputs: [], outputs: [{ type: 'string' }], stateMutability: 'pure' },
+  { type: 'function', name: 'registrationFee', inputs: [{ name: 'labelLength', type: 'uint256' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'ownerOf', inputs: [{ name: 'id', type: 'uint256' }], outputs: [{ type: 'address' }], stateMutability: 'view' },
+  { type: 'function', name: 'getName', inputs: [{ name: 'addr_', type: 'address' }], outputs: [{ type: 'string' }], stateMutability: 'view' },
+  { type: 'function', name: 'addr', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ type: 'address' }], stateMutability: 'view' },
+  { type: 'function', name: 'records', inputs: [{ name: '', type: 'uint256' }], outputs: [
+    { name: 'label', type: 'string' },
+    { name: 'parent', type: 'uint256' },
+    { name: 'expiresAt', type: 'uint64' },
+    { name: 'epoch', type: 'uint64' },
+    { name: 'parentEpoch', type: 'uint64' },
+  ], stateMutability: 'view' },
+  { type: 'function', name: 'commitments', inputs: [{ name: '', type: 'bytes32' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'primaryName', inputs: [{ name: '', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'text', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'key', type: 'string' }], outputs: [{ type: 'string' }], stateMutability: 'view' },
+  { type: 'function', name: 'contenthash', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ type: 'bytes' }], stateMutability: 'view' },
+  { type: 'function', name: 'balanceOf', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  
+  // Write functions
+  { type: 'function', name: 'makeCommitment', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'secret', type: 'bytes32' }], outputs: [{ type: 'bytes32' }], stateMutability: 'pure' },
+  { type: 'function', name: 'commit', inputs: [{ name: 'commitment', type: 'bytes32' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'register', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'secret', type: 'bytes32' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'renew', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'setAddr', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'addr_', type: 'address' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'setText', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'key', type: 'string' }, { name: 'value', type: 'string' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'setContenthash', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'hash', type: 'bytes' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'setPrimaryName', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'registerSubdomain', inputs: [{ name: 'parentId', type: 'uint256' }, { name: 'label', type: 'string' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
+  
+  // Events
+  { type: 'event', name: 'NameRegistered', inputs: [{ name: 'tokenId', type: 'uint256', indexed: true }, { name: 'label', type: 'string' }, { name: 'owner', type: 'address', indexed: true }, { name: 'expiresAt', type: 'uint256' }] },
+  { type: 'event', name: 'Transfer', inputs: [{ name: 'from', type: 'address', indexed: true }, { name: 'to', type: 'address', indexed: true }, { name: 'id', type: 'uint256', indexed: true }] },
+] as const
+
+export const ERC20_ABI = [
+  { type: 'function', name: 'approve', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ type: 'bool' }], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'allowance', inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'balanceOf', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'decimals', inputs: [], outputs: [{ type: 'uint8' }], stateMutability: 'view' },
+  { type: 'function', name: 'symbol', inputs: [], outputs: [{ type: 'string' }], stateMutability: 'view' },
+  // Mock USDM mint for testnet
+  { type: 'function', name: 'mint', inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
+] as const
