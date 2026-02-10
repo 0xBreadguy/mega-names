@@ -6,6 +6,7 @@ import { useReadContract } from 'wagmi'
 import { encodeFunctionData, isAddress, type Hash } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice } from '@/lib/utils'
+import { useMegaName } from '@/lib/hooks'
 import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 
@@ -48,6 +49,11 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
   
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
+  
+  // Resolve recipient's mega name
+  const { name: recipientMegaName } = useMegaName(
+    isAddress(recipient) ? recipient as `0x${string}` : undefined
+  )
 
   const isValidRecipient = isAddress(recipient) && recipient.toLowerCase() !== address.toLowerCase()
   const displayName = name.isSubdomain ? `${name.label}.${name.parent}` : `${name.label}.mega`
@@ -152,6 +158,11 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
               )}
               {recipient && recipient.toLowerCase() === address.toLowerCase() && (
                 <p className="text-red-600 text-xs mt-1">Cannot transfer to yourself</p>
+              )}
+              {recipientMegaName && isValidRecipient && (
+                <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> {recipientMegaName}
+                </p>
               )}
             </div>
 

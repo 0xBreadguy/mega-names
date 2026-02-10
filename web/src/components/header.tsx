@@ -2,12 +2,14 @@
 
 import Link from 'next/link'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { shortenAddress } from '@/lib/utils'
+import { useResolvedName } from '@/lib/hooks'
+import { Loader2 } from 'lucide-react'
 
 export function Header() {
   const { address, isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
+  const { displayName, isLoading, hasMegaName } = useResolvedName(address)
 
   return (
     <header className="border-b-2 border-black sticky top-0 z-50 bg-[#E8E8E8]">
@@ -49,9 +51,14 @@ export function Header() {
             {isConnected ? (
               <button
                 onClick={() => disconnect()}
-                className="px-5 py-2 border-2 border-black font-bold text-sm uppercase tracking-wide hover:bg-black hover:text-[#E8E8E8] transition-colors"
+                className={`px-5 py-2 border-2 border-black font-bold text-sm uppercase tracking-wide hover:bg-black hover:text-[#E8E8E8] transition-colors ${hasMegaName ? 'bg-black text-[#E8E8E8]' : ''}`}
+                title={address}
               >
-                {shortenAddress(address!)}
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  displayName
+                )}
               </button>
             ) : (
               <button
