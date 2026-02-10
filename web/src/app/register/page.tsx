@@ -6,25 +6,36 @@ import {
   useAccount, 
   useReadContract, 
   useWriteContract,
-  useWaitForTransactionReceipt
+  useSwitchChain,
+  usePublicClient,
+  useWalletClient
 } from 'wagmi'
-import { erc20Abi } from 'viem'
+import { erc20Abi, encodeFunctionData, type Hash } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
-import { Loader2, Check, ArrowLeft } from 'lucide-react'
+import { Loader2, Check, ArrowLeft, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
-type Step = 'check' | 'connect' | 'approve' | 'register' | 'pending' | 'success'
+const MEGAETH_TESTNET_CHAIN_ID = 6343
+
+type Step = 'check' | 'connect' | 'wrong-chain' | 'approve' | 'register' | 'pending' | 'success'
 
 function RegisterContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const name = searchParams.get('name')?.toLowerCase()
   
-  const { address, isConnected } = useAccount()
+  const { address, isConnected, chainId } = useAccount()
+  const { switchChain, isPending: isSwitching } = useSwitchChain()
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
+  
   const [step, setStep] = useState<Step>('check')
   const [error, setError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<Hash | null>(null)
+  const [isPending, setIsPending] = useState(false)
 
+  const isWrongChain = isConnected && chainId !== MEGAETH_TESTNET_CHAIN_ID
   const tokenId = name ? getTokenId(name) : BigInt(0)
   const price = name ? getPrice(name.length) : BigInt(0)
 
@@ -59,28 +70,41 @@ function RegisterContent() {
   const hasBalance = balance && balance >= price
   const hasAllowance = allowance && allowance >= price
 
-  // Approve USDM
-  const { 
-    writeContract: approve, 
-    data: approveHash,
-    isPending: isApproving,
-    reset: resetApprove
-  } = useWriteContract()
+  // Send transaction using MegaETH realtime API (eth_sendRawTransactionSync)
+  const sendRealtimeTransaction = async (
+    to: `0x${string}`,
+    data: `0x${string}`
+  ): Promise<{ hash: Hash; success: boolean }> => {
+    if (!walletClient || !publicClient) {
+      throw new Error('Wallet not connected')
+    }
 
-  const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({
-    hash: approveHash,
-  })
+    // Prepare and send transaction - wallet signs it
+    const hash = await walletClient.sendTransaction({
+      to,
+      data,
+      chain: {
+        id: MEGAETH_TESTNET_CHAIN_ID,
+        name: 'MegaETH Testnet',
+        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+        rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+      },
+    })
 
-  // Register name
-  const { 
-    writeContract: register, 
-    data: registerHash,
-    isPending: isRegistering,
-  } = useWriteContract()
+    // Use realtime API to get receipt immediately
+    const receipt = await publicClient.request({
+      method: 'eth_getTransactionReceipt' as any,
+      params: [hash],
+    })
 
-  const { isLoading: isRegisterConfirming, isSuccess: isRegisterSuccess } = useWaitForTransactionReceipt({
-    hash: registerHash,
-  })
+    // If receipt not immediately available, poll briefly (fallback)
+    if (!receipt) {
+      const finalReceipt = await publicClient.waitForTransactionReceipt({ hash })
+      return { hash, success: finalReceipt.status === 'success' }
+    }
+
+    return { hash, success: (receipt as any).status === '0x1' }
+  }
 
   // Redirect if invalid name
   useEffect(() => {
@@ -91,10 +115,14 @@ function RegisterContent() {
 
   // Update step based on state
   useEffect(() => {
+    if (isPending) return // Don't change step while pending
+    
     if (checkingAvailability) {
       setStep('check')
     } else if (!isConnected) {
       setStep('connect')
+    } else if (isWrongChain) {
+      setStep('wrong-chain')
     } else if (isAvailable === false) {
       setStep('check') // Will show "not available" message
     } else if (!hasAllowance) {
@@ -102,62 +130,80 @@ function RegisterContent() {
     } else {
       setStep('register')
     }
-  }, [checkingAvailability, isConnected, isAvailable, hasAllowance])
+  }, [checkingAvailability, isConnected, isWrongChain, isAvailable, hasAllowance, isPending])
 
-  // After approval succeeds, refetch allowance and move to register
-  useEffect(() => {
-    if (isApproveSuccess) {
-      refetchAllowance()
-      resetApprove()
-    }
-  }, [isApproveSuccess, refetchAllowance, resetApprove])
-
-  // After registration succeeds
-  useEffect(() => {
-    if (isRegisterSuccess) {
-      setStep('success')
-    }
-  }, [isRegisterSuccess])
-
-  // Handle pending states
-  useEffect(() => {
-    if (isApproving || isApproveConfirming) {
-      setStep('pending')
-    }
-    if (isRegistering || isRegisterConfirming) {
-      setStep('pending')
-    }
-  }, [isApproving, isApproveConfirming, isRegistering, isRegisterConfirming])
-
-  const handleApprove = () => {
-    setError(null)
-    approve({
-      address: CONTRACTS.testnet.usdm,
-      abi: erc20Abi,
-      functionName: 'approve',
-      args: [CONTRACTS.testnet.megaNames, price],
-    }, {
-      onError: (err) => {
-        setError(err.message)
-        setStep('approve')
-      }
-    })
+  const handleSwitchChain = () => {
+    switchChain({ chainId: MEGAETH_TESTNET_CHAIN_ID })
   }
 
-  const handleRegister = () => {
+  const handleApprove = async () => {
+    setError(null)
+    setIsPending(true)
+    setStep('pending')
+
+    try {
+      const data = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [CONTRACTS.testnet.megaNames, price],
+      })
+
+      const { hash, success } = await sendRealtimeTransaction(
+        CONTRACTS.testnet.usdm,
+        data
+      )
+
+      setTxHash(hash)
+
+      if (success) {
+        await refetchAllowance()
+        setStep('register')
+      } else {
+        setError('Approval transaction failed')
+        setStep('approve')
+      }
+    } catch (err: any) {
+      console.error('Approval error:', err)
+      setError(err.shortMessage || err.message || 'Approval failed')
+      setStep('approve')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleRegister = async () => {
     if (!address || !name) return
     setError(null)
-    register({
-      address: CONTRACTS.testnet.megaNames,
-      abi: MEGA_NAMES_ABI,
-      functionName: 'registerDirect',
-      args: [name, address],
-    }, {
-      onError: (err) => {
-        setError(err.message)
+    setIsPending(true)
+    setStep('pending')
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'registerDirect',
+        args: [name, address],
+      })
+
+      const { hash, success } = await sendRealtimeTransaction(
+        CONTRACTS.testnet.megaNames,
+        data
+      )
+
+      setTxHash(hash)
+
+      if (success) {
+        setStep('success')
+      } else {
+        setError('Registration transaction failed')
         setStep('register')
       }
-    })
+    } catch (err: any) {
+      console.error('Registration error:', err)
+      setError(err.shortMessage || err.message || 'Registration failed')
+      setStep('register')
+    } finally {
+      setIsPending(false)
+    }
   }
 
   if (!name) return null
@@ -232,6 +278,32 @@ function RegisterContent() {
           </div>
         )}
 
+        {step === 'wrong-chain' && (
+          <div className="border-2 border-black">
+            <div className="p-8 text-center">
+              <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-yellow-600" />
+              <p className="font-label text-sm mb-2">WRONG NETWORK</p>
+              <p className="text-[#666] mb-6">
+                Please switch to MegaETH Testnet to continue
+              </p>
+            </div>
+            <button
+              onClick={handleSwitchChain}
+              disabled={isSwitching}
+              className="btn-primary w-full py-5 text-lg font-label disabled:opacity-50"
+            >
+              {isSwitching ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+                  SWITCHING...
+                </>
+              ) : (
+                'SWITCH TO MEGAETH'
+              )}
+            </button>
+          </div>
+        )}
+
         {step === 'approve' && (
           <div className="border-2 border-black">
             <div className="p-8">
@@ -298,10 +370,8 @@ function RegisterContent() {
         {step === 'pending' && (
           <div className="border-2 border-black p-8 text-center">
             <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-            <p className="font-label text-sm mb-2">
-              {isApproving || isApproveConfirming ? 'APPROVING USDM...' : 'REGISTERING...'}
-            </p>
-            <p className="text-[#666]">Waiting for transaction confirmation</p>
+            <p className="font-label text-sm mb-2">PROCESSING...</p>
+            <p className="text-[#666]">Confirming transaction on MegaETH</p>
           </div>
         )}
 
@@ -314,9 +384,9 @@ function RegisterContent() {
             <p className="text-[#666] mb-6">
               You are now the owner of <strong>{name}.mega</strong>
             </p>
-            {registerHash && (
+            {txHash && (
               <a 
-                href={`https://megaeth-testnet.explorer.caldera.xyz/tx/${registerHash}`}
+                href={`https://megaeth-testnet.explorer.caldera.xyz/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mb-4 inline-block"
