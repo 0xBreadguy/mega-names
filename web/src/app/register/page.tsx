@@ -3,12 +3,14 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Check, Loader2, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, AlertTriangle, FileSignature, Send, X } from 'lucide-react'
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useChainId, useSignTypedData } from 'wagmi'
 import { CONTRACTS, MEGA_NAMES_ABI, ERC20_ABI } from '@/lib/contracts'
 import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
 
 const REQUIRED_CHAIN_ID = 6343 // MegaETH Testnet
+
+type FlowStep = 'idle' | 'confirm' | 'signing' | 'transacting' | 'success'
 
 function RegisterContent() {
   const searchParams = useSearchParams()
@@ -20,7 +22,7 @@ function RegisterContent() {
   const isWrongChain = chainId !== REQUIRED_CHAIN_ID
   
   const [error, setError] = useState<string | null>(null)
-  const [isRegistering, setIsRegistering] = useState(false)
+  const [flowStep, setFlowStep] = useState<FlowStep>('idle')
 
   const tokenId = name ? getTokenId(name) : BigInt(0)
   const price = name ? getPrice(name.length) : BigInt(0)
@@ -72,17 +74,33 @@ function RegisterContent() {
   })
 
   useEffect(() => {
+    if (registerSuccess) {
+      setFlowStep('success')
+    }
+  }, [registerSuccess])
+
+  useEffect(() => {
     if (registerError) {
       setError(registerError.message)
-      setIsRegistering(false)
+      setFlowStep('idle')
     }
   }, [registerError])
 
-  const handleRegister = async () => {
+  const startRegistration = () => {
+    setError(null)
+    setFlowStep('confirm')
+  }
+
+  const cancelRegistration = () => {
+    setFlowStep('idle')
+    setError(null)
+  }
+
+  const executeRegistration = async () => {
     if (!address || !name || nonce === undefined) return
     
     setError(null)
-    setIsRegistering(true)
+    setFlowStep('signing')
 
     try {
       // Create permit deadline (1 hour from now)
@@ -115,6 +133,8 @@ function RegisterContent() {
         },
       })
 
+      setFlowStep('transacting')
+
       // Parse signature
       const r = signature.slice(0, 66) as `0x${string}`
       const s = `0x${signature.slice(66, 130)}` as `0x${string}`
@@ -129,7 +149,7 @@ function RegisterContent() {
       })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to sign permit')
-      setIsRegistering(false)
+      setFlowStep('idle')
     }
   }
 
@@ -207,7 +227,7 @@ function RegisterContent() {
   }
 
   // Success state
-  if (registerSuccess) {
+  if (flowStep === 'success') {
     return (
       <div className="min-h-[calc(100vh-64px)]">
         <div className="max-w-2xl mx-auto px-4 py-16">
@@ -269,27 +289,110 @@ function RegisterContent() {
           </div>
         )}
 
-        {/* Single Register Button */}
-        {hasEnoughBalance && (
-          <button
-            onClick={handleRegister}
-            disabled={isRegistering || isWriting || isWaitingRegister}
-            className="btn-primary w-full py-4 text-lg disabled:opacity-50"
-          >
-            {isRegistering || isWriting || isWaitingRegister ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {isWaitingRegister ? 'CONFIRMING...' : 'SIGNING...'}
-              </span>
-            ) : (
-              `REGISTER ${name.toUpperCase()}.MEGA FOR ${formatUSDM(price)}`
-            )}
-          </button>
+        {/* Confirmation Modal */}
+        {flowStep === 'confirm' && (
+          <div className="border-2 border-black p-6 mb-8 bg-white">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="font-display text-xl">CONFIRM REGISTRATION</h3>
+              <button onClick={cancelRegistration} className="text-[#666] hover:text-black">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <p className="text-[#666]">You will be asked to:</p>
+              
+              <div className="flex gap-4 items-start p-4 border border-[#ccc]">
+                <div className="w-8 h-8 border-2 border-black flex items-center justify-center font-bold shrink-0">
+                  1
+                </div>
+                <div>
+                  <p className="font-semibold flex items-center gap-2">
+                    <FileSignature className="w-4 h-4" /> Sign Spending Permit
+                  </p>
+                  <p className="text-sm text-[#666] mt-1">
+                    Authorize MegaNames to spend <strong>{formatUSDM(price)}</strong> from your wallet.
+                    This is a gasless signature — no transaction fee.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex gap-4 items-start p-4 border border-[#ccc]">
+                <div className="w-8 h-8 border-2 border-black flex items-center justify-center font-bold shrink-0">
+                  2
+                </div>
+                <div>
+                  <p className="font-semibold flex items-center gap-2">
+                    <Send className="w-4 h-4" /> Confirm Transaction
+                  </p>
+                  <p className="text-sm text-[#666] mt-1">
+                    Register <strong>{name}.mega</strong> to your wallet.
+                    This transfers {formatUSDM(price)} and mints your name NFT.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={cancelRegistration}
+                className="btn-secondary flex-1 py-3"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={executeRegistration}
+                className="btn-primary flex-1 py-3"
+              >
+                CONTINUE
+              </button>
+            </div>
+          </div>
         )}
 
-        <p className="text-center text-[#666] text-sm mt-4">
-          One signature + one transaction. No separate approval needed.
-        </p>
+        {/* Signing State */}
+        {flowStep === 'signing' && (
+          <div className="border-2 border-black p-6 mb-8 text-center">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+            <p className="font-display text-xl mb-2">AWAITING SIGNATURE</p>
+            <p className="text-[#666]">
+              Please sign the spending permit in your wallet.
+              <br />
+              <span className="text-sm">This authorizes the payment — no gas fee required.</span>
+            </p>
+          </div>
+        )}
+
+        {/* Transacting State */}
+        {flowStep === 'transacting' && (
+          <div className="border-2 border-black p-6 mb-8 text-center">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+            <p className="font-display text-xl mb-2">
+              {isWaitingRegister ? 'CONFIRMING...' : 'CONFIRM TRANSACTION'}
+            </p>
+            <p className="text-[#666]">
+              {isWaitingRegister 
+                ? 'Waiting for transaction confirmation...'
+                : 'Please confirm the registration transaction in your wallet.'
+              }
+            </p>
+          </div>
+        )}
+
+        {/* Register Button (only in idle state) */}
+        {flowStep === 'idle' && hasEnoughBalance && (
+          <>
+            <button
+              onClick={startRegistration}
+              className="btn-primary w-full py-4 text-lg"
+            >
+              REGISTER {name.toUpperCase()}.MEGA FOR {formatUSDM(price)}
+            </button>
+            <p className="text-center text-[#666] text-sm mt-4">
+              One signature + one transaction
+            </p>
+          </>
+        )}
 
         {/* Error display */}
         {error && (
