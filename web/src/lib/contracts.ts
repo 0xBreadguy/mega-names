@@ -43,6 +43,10 @@ export const MEGA_NAMES_ABI = [
   { type: 'function', name: 'setPrimaryName', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'registerSubdomain', inputs: [{ name: 'parentId', type: 'uint256' }, { name: 'label', type: 'string' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
   
+  // ERC721 Transfer
+  { type: 'function', name: 'transferFrom', inputs: [{ name: 'from', type: 'address' }, { name: 'to', type: 'address' }, { name: 'id', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'safeTransferFrom', inputs: [{ name: 'from', type: 'address' }, { name: 'to', type: 'address' }, { name: 'id', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
+  
   // Events
   { type: 'event', name: 'NameRegistered', inputs: [{ name: 'tokenId', type: 'uint256', indexed: true }, { name: 'label', type: 'string' }, { name: 'owner', type: 'address', indexed: true }, { name: 'expiresAt', type: 'uint256' }] },
   { type: 'event', name: 'Transfer', inputs: [{ name: 'from', type: 'address', indexed: true }, { name: 'to', type: 'address', indexed: true }, { name: 'id', type: 'uint256', indexed: true }] },
