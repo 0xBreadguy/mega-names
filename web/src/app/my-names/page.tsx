@@ -7,7 +7,7 @@ import { encodeFunctionData, isAddress, type Hash } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice } from '@/lib/utils'
 import { useMegaName, useResolveMegaName } from '@/lib/hooks'
-import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign } from 'lucide-react'
 import Link from 'next/link'
 
 const MEGAETH_TESTNET_CHAIN_ID = 6343
@@ -397,6 +397,177 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
   )
 }
 
+// Set Address Modal
+interface SetAddrModalProps {
+  name: OwnedName
+  onClose: () => void
+  onSuccess: () => void
+  currentAddress?: string
+}
+
+function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModalProps) {
+  const [targetAddress, setTargetAddress] = useState(currentAddress || '')
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<Hash | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
+  
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
+  const { address: userAddress } = useAccount()
+
+  const isValidAddress = isAddress(targetAddress)
+  const displayName = name.isSubdomain ? `${name.label}.parent.mega` : `${name.label}.mega`
+
+  const handleSetAddr = async () => {
+    if (!walletClient || !publicClient || !isValidAddress) return
+    
+    setError(null)
+    setIsPending(true)
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'setAddr',
+        args: [name.tokenId, targetAddress as `0x${string}`],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.megaNames,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      setTxHash(hash)
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30_000,
+      })
+
+      if (receipt.status === 'success') {
+        setIsSuccess(true)
+        setTimeout(() => {
+          onSuccess()
+          onClose()
+        }, 2000)
+      } else {
+        setError('Transaction failed')
+      }
+    } catch (err: any) {
+      console.error('SetAddr error:', err)
+      setError(err.shortMessage || err.message || 'Failed to set address')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleUseMyAddress = () => {
+    if (userAddress) {
+      setTargetAddress(userAddress)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-6 border-b-2 border-black flex items-center justify-between">
+        <h2 className="font-display text-2xl">SET ADDRESS</h2>
+        <button onClick={onClose} className="p-1 hover:bg-gray-100">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="p-6">
+        {isSuccess ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <p className="font-label text-sm mb-2">ADDRESS SET!</p>
+            <p className="text-[#666]">{displayName} now resolves to</p>
+            <p className="font-mono text-sm mt-1">{targetAddress.slice(0, 10)}...{targetAddress.slice(-8)}</p>
+            {txHash && (
+              <a
+                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline mt-4 inline-block"
+              >
+                View on Explorer →
+              </a>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <p className="font-label text-xs text-[#666] mb-2">NAME</p>
+              <p className="font-display text-2xl">{displayName}</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="font-label text-xs text-[#666] mb-2 block">
+                RESOLVES TO
+              </label>
+              <input
+                type="text"
+                value={targetAddress}
+                onChange={(e) => setTargetAddress(e.target.value)}
+                placeholder="0x..."
+                className="w-full p-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                disabled={isPending}
+              />
+              {targetAddress && !isValidAddress && (
+                <p className="text-red-600 text-xs mt-1">Invalid address</p>
+              )}
+            </div>
+
+            <button
+              onClick={handleUseMyAddress}
+              className="text-sm text-blue-600 hover:underline mb-6 block"
+            >
+              Use my address ({userAddress?.slice(0, 6)}...{userAddress?.slice(-4)})
+            </button>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="p-4 bg-blue-50 border-2 border-blue-400 mb-6">
+              <p className="text-sm text-blue-800">
+                💡 This sets where {displayName} resolves to. You can point it to any address — a wallet, multisig, or contract.
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+
+      {!isSuccess && (
+        <button
+          onClick={handleSetAddr}
+          disabled={!isValidAddress || isPending}
+          className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+              SETTING...
+            </>
+          ) : (
+            'SET ADDRESS'
+          )}
+        </button>
+      )}
+    </Modal>
+  )
+}
+
 // Name Card Component
 interface NameCardProps {
   name: OwnedName
@@ -404,10 +575,11 @@ interface NameCardProps {
   onTransfer: () => void
   onSetPrimary: () => void
   onCreateSubdomain: () => void
+  onSetAddr: () => void
   isSettingPrimary: boolean
 }
 
-function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, isSettingPrimary }: NameCardProps) {
+function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, isSettingPrimary }: NameCardProps) {
   const [showSubdomains, setShowSubdomains] = useState(false)
   
   const formatExpiry = (expiresAt: bigint) => {
@@ -467,6 +639,13 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                 )}
               </button>
             )}
+            <button
+              onClick={onSetAddr}
+              className="p-2 hover:bg-purple-100 transition-colors border-2 border-black"
+              title="Set Address Resolution"
+            >
+              <AtSign className="w-5 h-5" />
+            </button>
             <button
               onClick={onCreateSubdomain}
               className="p-2 hover:bg-blue-100 transition-colors border-2 border-black"
@@ -549,6 +728,7 @@ export default function MyNamesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [transferringName, setTransferringName] = useState<OwnedName | null>(null)
   const [creatingSubdomainFor, setCreatingSubdomainFor] = useState<OwnedName | null>(null)
+  const [settingAddrFor, setSettingAddrFor] = useState<OwnedName | null>(null)
   const [settingPrimaryFor, setSettingPrimaryFor] = useState<bigint | null>(null)
 
   // Get primary name using getName
@@ -822,6 +1002,7 @@ export default function MyNamesPage() {
                 onTransfer={() => setTransferringName(name)}
                 onSetPrimary={() => handleSetPrimary(name)}
                 onCreateSubdomain={() => setCreatingSubdomainFor(name)}
+                onSetAddr={() => setSettingAddrFor(name)}
                 isSettingPrimary={settingPrimaryFor === name.tokenId}
               />
             ))}
@@ -874,6 +1055,14 @@ export default function MyNamesPage() {
         <SubdomainModal
           parentName={creatingSubdomainFor}
           onClose={() => setCreatingSubdomainFor(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {settingAddrFor && (
+        <SetAddrModal
+          name={settingAddrFor}
+          onClose={() => setSettingAddrFor(null)}
           onSuccess={handleSuccess}
         />
       )}
