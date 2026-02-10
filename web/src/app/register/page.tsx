@@ -70,7 +70,7 @@ function RegisterContent() {
   const hasBalance = balance && balance >= price
   const hasAllowance = allowance && allowance >= price
 
-  // Send transaction using MegaETH realtime API (eth_sendRawTransactionSync)
+  // Send transaction using MegaETH realtime API
   const sendRealtimeTransaction = async (
     to: `0x${string}`,
     data: `0x${string}`
@@ -79,7 +79,9 @@ function RegisterContent() {
       throw new Error('Wallet not connected')
     }
 
-    // Prepare and send transaction - wallet signs it
+    console.log('Sending transaction to:', to)
+
+    // Send transaction - wallet signs it
     const hash = await walletClient.sendTransaction({
       to,
       data,
@@ -91,19 +93,17 @@ function RegisterContent() {
       },
     })
 
-    // Use realtime API to get receipt immediately
-    const receipt = await publicClient.request({
-      method: 'eth_getTransactionReceipt' as any,
-      params: [hash],
+    console.log('Transaction hash:', hash)
+
+    // Wait for receipt - MegaETH is fast so this should be near-instant
+    const receipt = await publicClient.waitForTransactionReceipt({ 
+      hash,
+      timeout: 30_000, // 30 second timeout
     })
 
-    // If receipt not immediately available, poll briefly (fallback)
-    if (!receipt) {
-      const finalReceipt = await publicClient.waitForTransactionReceipt({ hash })
-      return { hash, success: finalReceipt.status === 'success' }
-    }
+    console.log('Receipt:', receipt)
 
-    return { hash, success: (receipt as any).status === '0x1' }
+    return { hash, success: receipt.status === 'success' }
   }
 
   // Redirect if invalid name
@@ -115,7 +115,8 @@ function RegisterContent() {
 
   // Update step based on state
   useEffect(() => {
-    if (isPending) return // Don't change step while pending
+    // Don't change step while pending or after success
+    if (isPending || step === 'success') return
     
     if (checkingAvailability) {
       setStep('check')
@@ -130,7 +131,7 @@ function RegisterContent() {
     } else {
       setStep('register')
     }
-  }, [checkingAvailability, isConnected, isWrongChain, isAvailable, hasAllowance, isPending])
+  }, [checkingAvailability, isConnected, isWrongChain, isAvailable, hasAllowance, isPending, step])
 
   const handleSwitchChain = () => {
     switchChain({ chainId: MEGAETH_TESTNET_CHAIN_ID })
