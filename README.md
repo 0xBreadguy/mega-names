@@ -99,3 +99,9 @@ This is a fork of [wei-names](https://github.com/z0r0z/wei-names) with minimal c
 ## License
 
 MIT
+
+## Deployments
+
+| Network | Address | Explorer |
+|---------|---------|----------|
+| MegaETH Testnet | `0xE71b35a3af52A02CE62EfAEA43B9a1eCad680902` | [View](https://megaeth-testnet.explorer.caldera.xyz/address/0xE71b35a3af52A02CE62EfAEA43B9a1eCad680902) |
