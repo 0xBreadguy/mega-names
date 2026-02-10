@@ -3,12 +3,15 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Check, Loader2 } from 'lucide-react'
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { ArrowLeft, Check, Loader2, AlertTriangle } from 'lucide-react'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useChainId } from 'wagmi'
 import { CONTRACTS, MEGA_NAMES_ABI, ERC20_ABI } from '@/lib/contracts'
 import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
+import { megaethTestnet } from '@/lib/wagmi'
 
 type Step = 'check' | 'approve' | 'register' | 'success'
+
+const REQUIRED_CHAIN_ID = 6343 // MegaETH Testnet
 
 function RegisterContent() {
   const searchParams = useSearchParams()
@@ -16,6 +19,9 @@ function RegisterContent() {
   const name = searchParams.get('name')?.toLowerCase() || ''
   
   const { address, isConnected } = useAccount()
+  const chainId = useChainId()
+  const { switchChain, isPending: isSwitching } = useSwitchChain()
+  const isWrongChain = chainId !== REQUIRED_CHAIN_ID
   const [step, setStep] = useState<Step>('check')
   const [error, setError] = useState<string | null>(null)
 
@@ -168,6 +174,31 @@ function RegisterContent() {
           <Link href="/" className="btn-secondary px-6 py-3 inline-block">
             ← BACK
           </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (isWrongChain) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertTriangle className="w-16 h-16 mx-auto mb-6" />
+          <p className="font-display text-2xl mb-4">WRONG NETWORK</p>
+          <p className="text-[#666] mb-8">
+            Please switch to MegaETH Testnet to register {name}.mega
+          </p>
+          <button
+            onClick={() => switchChain({ chainId: REQUIRED_CHAIN_ID })}
+            disabled={isSwitching}
+            className="btn-primary px-8 py-3"
+          >
+            {isSwitching ? (
+              <Loader2 className="w-5 h-5 animate-spin inline" />
+            ) : (
+              'SWITCH TO MEGAETH TESTNET'
+            )}
+          </button>
         </div>
       </div>
     )
