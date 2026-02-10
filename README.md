@@ -1,12 +1,13 @@
 # MegaNames
 
-> `.mega` naming service for MegaETH — ENS-style names with Warren protocol integration
+> `.mega` naming service for MegaETH — ENS-style names with USDM payments
 
 ## Overview
 
 MegaNames is a fork of [wei-names](https://github.com/z0r0z/wei-names) adapted for MegaETH's `.mega` TLD. It provides:
 
 - **ERC-721 Name Ownership** — Names are NFTs you own and can transfer
+- **USDM Payments** — Stable USD pricing, no ETH volatility
 - **Commit-Reveal Registration** — Front-running protection
 - **Forward Resolution** — `bread.mega` → `0x...`
 - **Reverse Resolution** — `0x...` → `bread.mega`
@@ -17,30 +18,35 @@ MegaNames is a fork of [wei-names](https://github.com/z0r0z/wei-names) adapted f
 
 ## Fee Structure
 
-100% of registration fees go to the [Warren Protocol](https://github.com/megaeth-labs/warren) for on-chain website infrastructure:
+100% of registration fees go to the [Warren Protocol](https://github.com/megaeth-labs/warren) for on-chain website infrastructure.
+
+**All prices in USDM (6 decimals):**
 
 | Length | Annual Fee |
 |--------|-----------|
-| 1 char | 0.5 ETH |
-| 2 char | 0.1 ETH |
-| 3 char | 0.05 ETH |
-| 4 char | 0.01 ETH |
-| 5+ char | 0.0005 ETH |
+| 1 char | $1,000 |
+| 2 char | $500 |
+| 3 char | $100 |
+| 4 char | $10 |
+| 5+ char | $1 |
 
 ## Usage
 
 ### Register a Name
 
 ```solidity
-// 1. Create commitment (off-chain: normalize with ens-normalize first)
+// 1. Approve USDM spending
+IERC20(usdm).approve(address(meganames), fee);
+
+// 2. Create commitment (off-chain: normalize with ens-normalize first)
 bytes32 secret = keccak256("your-secret");
 bytes32 commitment = names.makeCommitment("yourname", yourAddress, secret);
 
-// 2. Commit (wait 60 seconds)
+// 3. Commit (wait 60 seconds)
 names.commit(commitment);
 
-// 3. Register (within 24 hours of commit)
-uint256 tokenId = names.register{value: fee}("yourname", yourAddress, secret);
+// 4. Register (within 24 hours of commit)
+uint256 tokenId = names.register("yourname", yourAddress, secret);
 ```
 
 ### Set Records
@@ -76,10 +82,10 @@ forge build
 # Test
 forge test
 
-# Deploy (testnet)
+# Deploy (testnet - deploys MockUSDM)
 forge script script/Deploy.s.sol --rpc-url megaeth_testnet --broadcast
 
-# Deploy (mainnet)
+# Deploy (mainnet - uses real USDM)
 forge script script/Deploy.s.sol --rpc-url megaeth --broadcast
 ```
 
@@ -88,20 +94,27 @@ forge script script/Deploy.s.sol --rpc-url megaeth --broadcast
 | Contract | Description |
 |----------|-------------|
 | `MegaNames.sol` | Main registry + resolver |
+| `MockUSDM.sol` | Test token (6 decimals) |
+
+## Addresses
+
+### MegaETH Mainnet
+| Contract | Address |
+|----------|---------|
+| USDM | `0x078D782b760474a361dDA0AF3839290b0EF57AD6` |
+| MegaNames | TBD |
+
+### MegaETH Testnet
+No canonical USDM on testnet. Deploy script creates MockUSDM.
 
 ## Security
 
-This is a fork of [wei-names](https://github.com/z0r0z/wei-names) with minimal changes:
+This is a fork of [wei-names](https://github.com/z0r0z/wei-names) with these changes:
 - TLD: `wei` → `mega`
+- Payment: ETH → USDM (ERC20)
 - Fee recipient: hardcoded to Warren Safe
-- Pricing: adjusted for MegaETH
+- Pricing: USD-denominated
 
 ## License
 
 MIT
-
-## Deployments
-
-| Network | Address | Explorer |
-|---------|---------|----------|
-| MegaETH Testnet | `0xE71b35a3af52A02CE62EfAEA43B9a1eCad680902` | [View](https://megaeth-testnet.explorer.caldera.xyz/address/0xE71b35a3af52A02CE62EfAEA43B9a1eCad680902) |

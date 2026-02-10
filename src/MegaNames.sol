@@ -10,11 +10,12 @@ import {ReentrancyGuard} from "soledge/utils/ReentrancyGuard.sol";
 
 /// @title MegaNames
 /// @notice ENS-style naming system for .mega TLD on MegaETH
-/// @dev Fork of wei-names/NameNFT.sol adapted for MegaETH
+/// @dev Fork of wei-names/NameNFT.sol adapted for MegaETH with USDM payments
 /// @author MegaETH Labs (fork of z0r0z/wei-names)
 ///
 /// Features:
 /// - ERC-721 name ownership with commit-reveal registration
+/// - USDM stablecoin payments (stable USD pricing)
 /// - Address resolution (forward + reverse)
 /// - Contenthash for IPFS/Warren on-chain websites
 /// - Free subdomains (parent-controlled)
@@ -42,6 +43,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     error AlreadyRegistered();
     error CommitmentNotFound();
     error DecayPeriodTooLong();
+    error InvalidPaymentToken();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -67,6 +69,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     event LengthFeeCleared(uint256 indexed length);
     event PremiumSettingsChanged(uint256 maxPremium, uint256 decayPeriod);
     event FeeRecipientChanged(address newRecipient);
+    event PaymentTokenChanged(address newToken);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -85,9 +88,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     uint256 constant GRACE_PERIOD = 90 days;
     uint256 constant MAX_SUBDOMAIN_DEPTH = 10;
     uint256 constant COIN_TYPE_ETH = 60;
-    uint256 constant MAX_PREMIUM_CAP = 10000 ether;
+    uint256 constant MAX_PREMIUM_CAP = 100_000e6; // 100k USDM
     uint256 constant MAX_DECAY_PERIOD = 3650 days;
-    uint256 constant DEFAULT_FEE = 0.0005 ether; // 5+ char default
+    
+    // Default fees in USDM (6 decimals)
+    uint256 constant DEFAULT_FEE = 1e6; // $1 for 5+ chars
 
     /*//////////////////////////////////////////////////////////////
                                  STORAGE
@@ -100,6 +105,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         uint64 epoch;
         uint64 parentEpoch;
     }
+
+    /// @notice Payment token (USDM)
+    address public paymentToken;
 
     /// @notice Fee recipient (Warren protocol safe)
     address public feeRecipient;
@@ -125,23 +133,27 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
+    /// @param _paymentToken USDM token address
     /// @param _feeRecipient Address to receive all registration fees (Warren safe)
-    constructor(address _feeRecipient) payable {
+    constructor(address _paymentToken, address _feeRecipient) payable {
         _initializeOwner(tx.origin);
+        paymentToken = _paymentToken;
         feeRecipient = _feeRecipient;
         defaultFee = DEFAULT_FEE;
-        maxPremium = 100 ether;
+        maxPremium = 10_000e6; // 10k USDM max premium
         premiumDecayPeriod = 21 days;
 
-        // Set length-based fees (WNS pricing)
-        lengthFees[1] = 0.5 ether;
+        // Set length-based fees in USDM (6 decimals)
+        // Pricing: premium short names, cheap long names
+        lengthFees[1] = 1000e6;  // $1000/year for 1 char
         lengthFeeSet[1] = true;
-        lengthFees[2] = 0.1 ether;
+        lengthFees[2] = 500e6;   // $500/year for 2 char
         lengthFeeSet[2] = true;
-        lengthFees[3] = 0.05 ether;
+        lengthFees[3] = 100e6;   // $100/year for 3 char
         lengthFeeSet[3] = true;
-        lengthFees[4] = 0.01 ether;
+        lengthFees[4] = 10e6;    // $10/year for 4 char
         lengthFeeSet[4] = true;
+        // 5+ chars = $1/year (defaultFee)
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -251,9 +263,12 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                             REGISTRATION
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Register a name (must approve USDM first)
+    /// @param label The name to register
+    /// @param owner Address to own the name
+    /// @param secret Secret used in commitment
     function register(string calldata label, address owner, bytes32 secret)
         public
-        payable
         nonReentrant
         returns (uint256 tokenId)
     {
@@ -271,7 +286,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
         uint256 fee = registrationFee(normalized.length);
-        if (msg.value < fee) revert InsufficientFee();
+        
+        // Transfer USDM from caller
+        if (fee > 0) {
+            SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
+        }
 
         uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
 
@@ -292,17 +311,6 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         _mint(owner, tokenId);
 
         emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
-
-        // Send fees to Warren protocol
-        if (fee > 0) {
-            SafeTransferLib.safeTransferETH(feeRecipient, fee);
-        }
-
-        // Refund excess
-        uint256 excess = msg.value - fee;
-        if (excess > 0) {
-            SafeTransferLib.safeTransferETH(msg.sender, excess);
-        }
     }
 
     function registrationFee(uint256 labelLength) public view returns (uint256) {
@@ -316,14 +324,19 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                               RENEWAL
     //////////////////////////////////////////////////////////////*/
 
-    function renew(uint256 tokenId) public payable nonReentrant {
+    /// @notice Renew a name (must approve USDM first)
+    function renew(uint256 tokenId) public nonReentrant {
         NameRecord storage record = records[tokenId];
         if (record.parent != 0) revert InvalidName();
         if (!_recordExists(tokenId)) revert InvalidName();
 
         uint256 labelLen = bytes(record.label).length;
         uint256 fee = registrationFee(labelLen);
-        if (msg.value < fee) revert InsufficientFee();
+
+        // Transfer USDM from caller
+        if (fee > 0) {
+            SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
+        }
 
         uint64 currentExpiry = record.expiresAt;
         uint64 newExpiry;
@@ -341,15 +354,6 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
         record.expiresAt = newExpiry;
         emit NameRenewed(tokenId, newExpiry);
-
-        if (fee > 0) {
-            SafeTransferLib.safeTransferETH(feeRecipient, fee);
-        }
-
-        uint256 excess = msg.value - fee;
-        if (excess > 0) {
-            SafeTransferLib.safeTransferETH(msg.sender, excess);
-        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -392,11 +396,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                               RESOLVER
     //////////////////////////////////////////////////////////////*/
 
-    function setAddr(uint256 tokenId, address addr) public {
+    function setAddr(uint256 tokenId, address addr_) public {
         _requireOwner(tokenId);
         uint256 version = recordVersion[tokenId];
-        _resolvedAddress[tokenId][version] = addr;
-        emit AddrChanged(bytes32(tokenId), addr);
+        _resolvedAddress[tokenId][version] = addr_;
+        emit AddrChanged(bytes32(tokenId), addr_);
     }
 
     function setContenthash(uint256 tokenId, bytes calldata hash) public {
@@ -455,6 +459,12 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /*//////////////////////////////////////////////////////////////
                                ADMIN
     //////////////////////////////////////////////////////////////*/
+
+    function setPaymentToken(address newToken) public onlyOwner {
+        if (newToken == address(0)) revert InvalidPaymentToken();
+        paymentToken = newToken;
+        emit PaymentTokenChanged(newToken);
+    }
 
     function setFeeRecipient(address newRecipient) public onlyOwner {
         feeRecipient = newRecipient;

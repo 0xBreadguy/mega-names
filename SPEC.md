@@ -74,23 +74,31 @@ The naming layer for MegaETH that:
 
 ## 3. Economics
 
-### 3.1 Pricing Model (WNS-style)
+### 3.1 Pricing Model (USDM)
+All fees paid in USDM stablecoin (6 decimals):
+
 | Length | Fee (per year) |
 |--------|----------------|
-| 1 char | 0.5 ETH |
-| 2 char | 0.1 ETH |
-| 3 char | 0.05 ETH |
-| 4 char | 0.01 ETH |
-| 5+ char | 0.0005 ETH |
+| 1 char | $1,000 |
+| 2 char | $500 |
+| 3 char | $100 |
+| 4 char | $10 |
+| 5+ char | $1 |
 
 ### 3.2 Fee Flow
 ```
-User pays registration fee
+User approves USDM
         ↓
-MegaNames contract
+User calls register()
         ↓
-100% to Warren protocol
+USDM transferred to Warren Safe
+        ↓
+Name NFT minted to user
 ```
+
+### 3.3 Token Addresses
+- **USDM Mainnet:** `0x078D782b760474a361dDA0AF3839290b0EF57AD6`
+- **Warren Safe:** `0xd4aE3973244592ef06dfdf82470329aCfA62C187`
 
 ---
 
