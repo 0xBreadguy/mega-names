@@ -6,7 +6,7 @@ import { useReadContract } from 'wagmi'
 import { encodeFunctionData, isAddress, type Hash } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice } from '@/lib/utils'
-import { useMegaName } from '@/lib/hooks'
+import { useMegaName, useResolveMegaName } from '@/lib/hooks'
 import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 
@@ -50,16 +50,29 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
   
-  // Resolve recipient's mega name
+  // Check if input is an address or a name
+  const isAddressInput = recipient.startsWith('0x')
+  
+  // Resolve recipient's mega name (when input is an address)
   const { name: recipientMegaName } = useMegaName(
-    isAddress(recipient) ? recipient as `0x${string}` : undefined
+    isAddressInput && isAddress(recipient) ? recipient as `0x${string}` : undefined
+  )
+  
+  // Resolve name to address (when input is a name like "elden.mega")
+  const { address: resolvedFromName, label: resolvedLabel, isLoading: isResolvingName } = useResolveMegaName(
+    !isAddressInput ? recipient : ''
   )
 
-  const isValidRecipient = isAddress(recipient) && recipient.toLowerCase() !== address.toLowerCase()
+  // Determine the final recipient address
+  const finalRecipientAddress = isAddressInput 
+    ? (isAddress(recipient) ? recipient as `0x${string}` : null)
+    : resolvedFromName
+    
+  const isValidRecipient = finalRecipientAddress && finalRecipientAddress.toLowerCase() !== address.toLowerCase()
   const displayName = name.isSubdomain ? `${name.label}.${name.parent}` : `${name.label}.mega`
 
   const handleTransfer = async () => {
-    if (!walletClient || !publicClient || !isValidRecipient) return
+    if (!walletClient || !publicClient || !isValidRecipient || !finalRecipientAddress) return
     
     setError(null)
     setIsPending(true)
@@ -68,7 +81,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
       const data = encodeFunctionData({
         abi: MEGA_NAMES_ABI,
         functionName: 'transferFrom',
-        args: [address, recipient as `0x${string}`, name.tokenId],
+        args: [address, finalRecipientAddress, name.tokenId],
       })
 
       const hash = await walletClient.sendTransaction({
@@ -143,26 +156,48 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
 
             <div className="mb-6">
               <label className="font-label text-xs text-[#666] mb-2 block">
-                RECIPIENT ADDRESS
+                RECIPIENT (ADDRESS OR .MEGA NAME)
               </label>
               <input
                 type="text"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
-                placeholder="0x..."
+                placeholder="0x... or name.mega"
                 className="w-full p-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 disabled={isPending}
               />
-              {recipient && !isAddress(recipient) && (
+              {/* Address input validation */}
+              {isAddressInput && recipient && !isAddress(recipient) && (
                 <p className="text-red-600 text-xs mt-1">Invalid address</p>
               )}
-              {recipient && recipient.toLowerCase() === address.toLowerCase() && (
+              {isAddressInput && finalRecipientAddress?.toLowerCase() === address.toLowerCase() && (
                 <p className="text-red-600 text-xs mt-1">Cannot transfer to yourself</p>
               )}
-              {recipientMegaName && isValidRecipient && (
+              {isAddressInput && recipientMegaName && isValidRecipient && (
                 <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
                   <Check className="w-3 h-3" /> {recipientMegaName}
                 </p>
+              )}
+              {/* Name input resolution */}
+              {!isAddressInput && recipient && (
+                <>
+                  {isResolvingName ? (
+                    <p className="text-[#666] text-xs mt-1 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Resolving {resolvedLabel}.mega...
+                    </p>
+                  ) : resolvedFromName ? (
+                    <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> {resolvedLabel}.mega → {resolvedFromName.slice(0, 6)}...{resolvedFromName.slice(-4)}
+                    </p>
+                  ) : resolvedLabel ? (
+                    <p className="text-red-600 text-xs mt-1">{resolvedLabel}.mega not found or has no address set</p>
+                  ) : (
+                    <p className="text-red-600 text-xs mt-1">Invalid name format</p>
+                  )}
+                  {resolvedFromName?.toLowerCase() === address.toLowerCase() && (
+                    <p className="text-red-600 text-xs mt-1">Cannot transfer to yourself</p>
+                  )}
+                </>
               )}
             </div>
 

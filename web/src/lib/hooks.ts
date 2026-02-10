@@ -1,5 +1,6 @@
 import { useReadContract } from 'wagmi'
 import { CONTRACTS, MEGA_NAMES_ABI } from './contracts'
+import { getTokenId } from './utils'
 
 /**
  * Hook to resolve an address to its primary .mega name
@@ -20,6 +21,56 @@ export function useMegaName(address: `0x${string}` | undefined) {
   return {
     name: name && name !== '' ? name : null,
     isLoading,
+  }
+}
+
+/**
+ * Parse a .mega name input (handles "name.mega" or just "name")
+ */
+function parseMegaName(input: string): string | null {
+  const trimmed = input.trim().toLowerCase()
+  if (!trimmed) return null
+  
+  // Remove .mega suffix if present
+  const label = trimmed.endsWith('.mega') 
+    ? trimmed.slice(0, -5) 
+    : trimmed
+  
+  // Validate label
+  if (!label || label.includes('.') || !/^[a-z0-9]+$/.test(label)) {
+    return null
+  }
+  
+  return label
+}
+
+/**
+ * Hook to resolve a .mega name to an address
+ * Accepts "elden.mega" or "elden"
+ */
+export function useResolveMegaName(nameInput: string) {
+  const label = parseMegaName(nameInput)
+  const tokenId = label ? getTokenId(label) : BigInt(0)
+  
+  const { data: resolvedAddress, isLoading } = useReadContract({
+    address: CONTRACTS.testnet.megaNames,
+    abi: MEGA_NAMES_ABI,
+    functionName: 'addr',
+    args: [tokenId],
+    query: { 
+      enabled: !!label,
+      staleTime: 30_000,
+    },
+  })
+
+  // addr returns zero address if not set or expired
+  const isValidAddress = resolvedAddress && resolvedAddress !== '0x0000000000000000000000000000000000000000'
+
+  return {
+    address: isValidAddress ? resolvedAddress : null,
+    label,
+    isLoading,
+    isValid: !!label,
   }
 }
 
