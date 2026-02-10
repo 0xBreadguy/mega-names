@@ -40,6 +40,8 @@ export const MEGA_NAMES_ABI = [
   { type: 'function', name: 'setAddr', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'addr_', type: 'address' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'setText', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'key', type: 'string' }, { name: 'value', type: 'string' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'setContenthash', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'hash', type: 'bytes' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'setWarrenContenthash', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'warrenTokenId', type: 'uint32' }, { name: 'isMaster', type: 'bool' }], outputs: [], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'warren', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ name: 'warrenTokenId', type: 'uint32' }, { name: 'isMaster', type: 'bool' }, { name: 'isWarren', type: 'bool' }], stateMutability: 'view' },
   { type: 'function', name: 'setPrimaryName', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'registerSubdomain', inputs: [{ name: 'parentId', type: 'uint256' }, { name: 'label', type: 'string' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
   

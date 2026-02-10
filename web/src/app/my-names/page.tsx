@@ -7,7 +7,7 @@ import { encodeFunctionData, isAddress, type Hash, erc20Abi } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice } from '@/lib/utils'
 import { useMegaName, useResolveMegaName } from '@/lib/hooks'
-import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign, RefreshCw, FileText, Trash2 } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign, RefreshCw, FileText, Trash2, Globe } from 'lucide-react'
 import Link from 'next/link'
 
 const MEGAETH_TESTNET_CHAIN_ID = 6343
@@ -808,6 +808,204 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
   )
 }
 
+// Warren NFT contract address (testnet)
+const WARREN_NFT_CONTRACT = '0xd1591a060BB8933869b16A248C77d1375389842B' as const
+
+// Warren Contenthash Modal
+interface WarrenModalProps {
+  name: OwnedName
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
+  const [warrenTokenId, setWarrenTokenId] = useState('')
+  const [isMaster, setIsMaster] = useState(true)
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<Hash | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
+  
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
+
+  const displayName = name.isSubdomain ? `${name.label}.parent.mega` : `${name.label}.mega`
+  const isValidTokenId = warrenTokenId !== '' && !isNaN(Number(warrenTokenId)) && Number(warrenTokenId) >= 0
+
+  const handleSetWarren = async () => {
+    if (!walletClient || !publicClient || !isValidTokenId) return
+    
+    setError(null)
+    setIsPending(true)
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'setWarrenContenthash',
+        args: [name.tokenId, Number(warrenTokenId), isMaster],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.megaNames,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      setTxHash(hash)
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30_000,
+      })
+
+      if (receipt.status === 'success') {
+        setIsSuccess(true)
+        setTimeout(() => {
+          onSuccess()
+          onClose()
+        }, 2000)
+      } else {
+        setError('Transaction failed')
+      }
+    } catch (err: any) {
+      console.error('setWarrenContenthash error:', err)
+      setError(err.shortMessage || err.message || 'Failed to set Warren site')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-6 border-b-2 border-black flex items-center justify-between">
+        <h2 className="font-display text-2xl">LINK WARREN SITE</h2>
+        <button onClick={onClose} className="p-1 hover:bg-gray-100">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="p-6">
+        {isSuccess ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <p className="font-label text-sm mb-2">WARREN SITE LINKED!</p>
+            <p className="text-[#666]">{displayName} now points to Warren #{warrenTokenId}</p>
+            {txHash && (
+              <a
+                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline mt-4 inline-block"
+              >
+                View on Explorer →
+              </a>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <p className="font-label text-xs text-[#666] mb-2">NAME</p>
+              <p className="font-display text-2xl">{displayName}</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="font-label text-xs text-[#666] mb-2 block">
+                WARREN NFT TOKEN ID
+              </label>
+              <input
+                type="number"
+                value={warrenTokenId}
+                onChange={(e) => setWarrenTokenId(e.target.value)}
+                placeholder="e.g., 42"
+                className="w-full p-3 border-2 border-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                disabled={isPending}
+                min="0"
+              />
+              {warrenTokenId && !isValidTokenId && (
+                <p className="text-red-600 text-xs mt-1">Enter a valid token ID</p>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <label className="font-label text-xs text-[#666] mb-2 block">
+                NFT TYPE
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={isMaster}
+                    onChange={() => setIsMaster(true)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Master NFT</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={!isMaster}
+                    onChange={() => setIsMaster(false)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Container NFT</span>
+                </label>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="p-4 bg-purple-50 border-2 border-purple-400 mb-6">
+              <p className="text-sm text-purple-800">
+                🌐 Warren sites are fully on-chain websites. Your .mega name will resolve to the content stored in your Warren NFT.
+              </p>
+            </div>
+
+            <div className="text-xs text-[#666] mb-4">
+              <p>Warren NFT Contract:</p>
+              <a 
+                href={`https://megaeth-testnet-v2.blockscout.com/address/${WARREN_NFT_CONTRACT}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-blue-600 hover:underline break-all"
+              >
+                {WARREN_NFT_CONTRACT}
+              </a>
+            </div>
+          </>
+        )}
+      </div>
+
+      {!isSuccess && (
+        <button
+          onClick={handleSetWarren}
+          disabled={!isValidTokenId || isPending}
+          className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
+              LINKING...
+            </>
+          ) : (
+            'LINK WARREN SITE'
+          )}
+        </button>
+      )}
+    </Modal>
+  )
+}
+
 // Common text record keys
 const COMMON_TEXT_KEYS = [
   { key: 'avatar', label: 'Avatar', placeholder: 'https://...' },
@@ -1104,10 +1302,11 @@ interface NameCardProps {
   onSetAddr: () => void
   onRenew: () => void
   onTextRecords: () => void
+  onWarren: () => void
   isSettingPrimary: boolean
 }
 
-function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, onTextRecords, isSettingPrimary }: NameCardProps) {
+function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, onTextRecords, onWarren, isSettingPrimary }: NameCardProps) {
   const [showSubdomains, setShowSubdomains] = useState(false)
   
   const formatExpiry = (expiresAt: bigint) => {
@@ -1180,6 +1379,13 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
               title="Text Records"
             >
               <FileText className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onWarren}
+              className="p-2 hover:bg-purple-100 transition-colors border-2 border-black"
+              title="Link Warren Site"
+            >
+              <Globe className="w-5 h-5" />
             </button>
             <button
               onClick={onCreateSubdomain}
@@ -1272,6 +1478,7 @@ export default function MyNamesPage() {
   const [settingAddrFor, setSettingAddrFor] = useState<OwnedName | null>(null)
   const [renewingName, setRenewingName] = useState<OwnedName | null>(null)
   const [editingTextRecordsFor, setEditingTextRecordsFor] = useState<OwnedName | null>(null)
+  const [settingWarrenFor, setSettingWarrenFor] = useState<OwnedName | null>(null)
   const [settingPrimaryFor, setSettingPrimaryFor] = useState<bigint | null>(null)
 
   // Get primary name using getName
@@ -1548,6 +1755,7 @@ export default function MyNamesPage() {
                 onSetAddr={() => setSettingAddrFor(name)}
                 onRenew={() => setRenewingName(name)}
                 onTextRecords={() => setEditingTextRecordsFor(name)}
+                onWarren={() => setSettingWarrenFor(name)}
                 isSettingPrimary={settingPrimaryFor === name.tokenId}
               />
             ))}
@@ -1624,6 +1832,14 @@ export default function MyNamesPage() {
         <TextRecordsModal
           name={editingTextRecordsFor}
           onClose={() => setEditingTextRecordsFor(null)}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {settingWarrenFor && (
+        <WarrenModal
+          name={settingWarrenFor}
+          onClose={() => setSettingWarrenFor(null)}
           onSuccess={handleSuccess}
         />
       )}
