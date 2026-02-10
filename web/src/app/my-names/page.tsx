@@ -810,6 +810,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
 
 // Warren NFT contract address (testnet)
 const WARREN_NFT_CONTRACT = '0xd1591a060BB8933869b16A248C77d1375389842B' as const
+const WARREN_APP_URL = 'https://thewarren.app'
 
 // Warren Contenthash Modal
 interface WarrenModalProps {
@@ -825,6 +826,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<Hash | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [showLinkForm, setShowLinkForm] = useState(false)
   
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
@@ -883,7 +885,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
   return (
     <Modal onClose={onClose}>
       <div className="p-6 border-b-2 border-black flex items-center justify-between">
-        <h2 className="font-display text-2xl">LINK WARREN SITE</h2>
+        <h2 className="font-display text-2xl">WARREN ON-CHAIN SITE</h2>
         <button onClick={onClose} className="p-1 hover:bg-gray-100">
           <X className="w-5 h-5" />
         </button>
@@ -908,10 +910,64 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
               </a>
             )}
           </div>
-        ) : (
+        ) : !showLinkForm ? (
           <>
+            {/* Warren Intro */}
             <div className="mb-6">
               <p className="font-label text-xs text-[#666] mb-2">NAME</p>
+              <p className="font-display text-2xl mb-4">{displayName}</p>
+              
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 mb-4">
+                <p className="text-sm text-purple-900 font-medium mb-2">
+                  🌐 What is Warren?
+                </p>
+                <p className="text-sm text-purple-800 mb-3">
+                  Warren is MegaETH&apos;s on-chain storage protocol. Store websites, images, and content permanently on-chain — immune to link rot and server shutdowns.
+                </p>
+                <ul className="text-sm text-purple-700 space-y-1">
+                  <li>• <strong>Direct Injector</strong> — Upload HTML, images, video</li>
+                  <li>• <strong>AI Architect</strong> — Generate sites with AI prompts</li>
+                  <li>• <strong>Identity Node</strong> — On-chain identity cards</li>
+                  <li>• <strong>Containers</strong> — Bundle assets as NFTs</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Primary CTA - Create on Warren */}
+            <a
+              href={WARREN_APP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary w-full py-4 text-lg font-label flex items-center justify-center gap-2 mb-4"
+            >
+              CREATE ON WARREN
+              <ExternalLink className="w-5 h-5" />
+            </a>
+
+            <p className="text-center text-sm text-[#666] mb-4">
+              Create your on-chain content, then come back with your token ID
+            </p>
+
+            <div className="border-t-2 border-gray-200 pt-4">
+              <button
+                onClick={() => setShowLinkForm(true)}
+                className="w-full text-center text-sm text-blue-600 hover:underline"
+              >
+                I already have a Warren NFT →
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Link Existing Warren NFT */}
+            <div className="mb-6">
+              <button 
+                onClick={() => setShowLinkForm(false)}
+                className="text-sm text-[#666] hover:text-black flex items-center gap-1 mb-4"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <p className="font-label text-xs text-[#666] mb-2">LINKING TO</p>
               <p className="font-display text-2xl">{displayName}</p>
             </div>
 
@@ -945,7 +1001,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                     onChange={() => setIsMaster(true)}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm">Master NFT</span>
+                  <span className="text-sm">Master NFT (site)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -954,7 +1010,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                     onChange={() => setIsMaster(false)}
                     className="w-4 h-4"
                   />
-                  <span className="text-sm">Container NFT</span>
+                  <span className="text-sm">Container NFT (bundle)</span>
                 </label>
               </div>
             </div>
@@ -964,12 +1020,6 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
-
-            <div className="p-4 bg-purple-50 border-2 border-purple-400 mb-6">
-              <p className="text-sm text-purple-800">
-                🌐 Warren sites are fully on-chain websites. Your .mega name will resolve to the content stored in your Warren NFT.
-              </p>
-            </div>
 
             <div className="text-xs text-[#666] mb-4">
               <p>Warren NFT Contract:</p>
@@ -986,7 +1036,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
         )}
       </div>
 
-      {!isSuccess && (
+      {!isSuccess && showLinkForm && (
         <button
           onClick={handleSetWarren}
           disabled={!isValidTokenId || isPending}
