@@ -9,7 +9,7 @@ import {
   useCallsStatus,
   useWriteContract,
   useWaitForTransactionReceipt,
-  useSignTypedData
+  useWalletClient
 } from 'wagmi'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI, ERC20_ABI } from '@/lib/contracts'
@@ -107,7 +107,7 @@ function RegisterContent() {
     isPending: isRegisteringWithPermit 
   } = useWriteContract()
 
-  const { signTypedDataAsync } = useSignTypedData()
+  const { data: walletClient } = useWalletClient()
 
   const { isLoading: isConfirming, isSuccess: isDirectSuccess } = useWaitForTransactionReceipt({
     hash: registerHash || permitHash,
@@ -221,7 +221,7 @@ function RegisterContent() {
     try {
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
       
-      // Get nonce
+      // Get nonce from USDM contract
       const nonceResponse = await fetch(`https://carrot.megaeth.com/rpc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -230,20 +230,26 @@ function RegisterContent() {
           method: 'eth_call',
           params: [{
             to: CONTRACTS.testnet.usdm,
-            data: `0x7ecebe00000000000000000000000000${address.slice(2)}`
+            data: `0x7ecebe00000000000000000000000000${address.slice(2).toLowerCase()}`
           }, 'latest'],
           id: 1
         })
       })
       const nonceData = await nonceResponse.json()
-      const nonce = BigInt(nonceData.result)
+      console.log('Nonce response:', nonceData)
+      
+      if (nonceData.error) {
+        throw new Error(`Failed to get nonce: ${nonceData.error.message}`)
+      }
+      
+      const nonce = BigInt(nonceData.result || '0')
 
       const domain = {
         name: 'Mock USDM',
         version: '1',
         chainId: 6343,
-        verifyingContract: CONTRACTS.testnet.usdm,
-      }
+        verifyingContract: CONTRACTS.testnet.usdm as `0x${string}`,
+      } as const
 
       const types = {
         Permit: [
@@ -253,17 +259,24 @@ function RegisterContent() {
           { name: 'nonce', type: 'uint256' },
           { name: 'deadline', type: 'uint256' },
         ],
-      }
+      } as const
 
       const message = {
-        owner: address,
-        spender: CONTRACTS.testnet.megaNames,
+        owner: address as `0x${string}`,
+        spender: CONTRACTS.testnet.megaNames as `0x${string}`,
         value: price,
         nonce,
         deadline,
       }
 
-      const signature = await signTypedDataAsync({
+      console.log('Signing permit with:', { domain, message, nonce: nonce.toString(), deadline: deadline.toString() })
+
+      if (!walletClient) {
+        throw new Error('Wallet not connected')
+      }
+
+      const signature = await walletClient.signTypedData({
+        account: address,
         domain,
         types,
         primaryType: 'Permit',
