@@ -4,11 +4,15 @@ import "./globals.css"
 import { Providers } from "@/lib/providers"
 import { Header } from "@/components/header"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ 
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
+})
 
 export const metadata: Metadata = {
-  title: "MegaNames - Your Identity on MegaETH",
-  description: "Register your .mega name on MegaETH",
+  title: "MEGANAMES",
+  description: ".mega names on MegaETH",
 }
 
 export default function RootLayout({
@@ -18,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-gray-950 text-white min-h-screen`}>
+      <body className={`${inter.className} min-h-screen`}>
         <Providers>
           <Header />
           <main>{children}</main>

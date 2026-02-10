@@ -1,34 +1,153 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  --background: #E8E8E8;
+  --foreground: #000000;
+  --accent: #000000;
+  --muted: #666666;
+  --border: #000000;
+}
+
+@font-face {
+  font-family: 'MonumentExtended';
+  src: local('Monument Extended'), local('ABCDiatype'), local('Inter');
+  font-weight: 400 900;
+  font-display: swap;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+/* Brutalist typography */
+.font-display {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.02em;
 }
 
-/* Custom scrollbar */
+.font-label {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Barcode stripes */
+.barcode {
+  display: flex;
+  gap: 2px;
+  height: 40px;
+  align-items: flex-end;
+}
+
+.barcode-bar {
+  width: 3px;
+  background: #000;
+}
+
+/* Alternating bar heights for visual rhythm */
+.barcode-bar:nth-child(odd) { height: 100%; }
+.barcode-bar:nth-child(even) { height: 70%; }
+.barcode-bar:nth-child(3n) { height: 85%; }
+.barcode-bar:nth-child(5n) { height: 60%; }
+.barcode-bar:nth-child(7n) { height: 90%; }
+
+/* Custom scrollbar - minimal */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1f2937;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 4px;
+  background: #000;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+/* Selection */
+::selection {
+  background: #000;
+  color: #fff;
+}
+
+/* Dividers */
+.divider {
+  height: 1px;
+  background: #000;
+  width: 100%;
+}
+
+/* Dense data grid */
+.data-cell {
+  border: 1px solid #000;
+  padding: 1rem;
+}
+
+/* Input brutalist */
+input[type="text"], 
+input[type="search"] {
+  background: transparent;
+  border: 2px solid #000;
+  color: #000;
+  font-weight: 600;
+}
+
+input::placeholder {
+  color: #666;
+  font-weight: 400;
+}
+
+input:focus {
+  outline: none;
+  border-color: #000;
+  box-shadow: 4px 4px 0 #000;
+}
+
+/* Button brutalist */
+.btn-primary {
+  background: #000;
+  color: #E8E8E8;
+  border: 2px solid #000;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: #E8E8E8;
+  color: #000;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #000;
+  border: 2px solid #000;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #000;
+  color: #E8E8E8;
+}
+
+/* Status indicators */
+.status-available {
+  color: #000;
+  border: 2px solid #000;
+  background: transparent;
+}
+
+.status-taken {
+  color: #666;
+  border: 2px dashed #666;
+  background: transparent;
 }

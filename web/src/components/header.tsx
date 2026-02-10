@@ -10,25 +10,38 @@ export function Header() {
   const { disconnect } = useDisconnect()
 
   return (
-    <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
+    <header className="border-b-2 border-black sticky top-0 z-50 bg-[#E8E8E8]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              MegaNames
+          <Link href="/" className="flex items-center gap-3">
+            <span className="text-2xl font-black italic tracking-tight">
+              MEGANAMES
             </span>
-            <span className="text-gray-500">.mega</span>
           </Link>
 
           {/* Nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-gray-400 hover:text-white transition-colors">
-              Search
+          <nav className="hidden md:flex items-center gap-8">
+            <Link 
+              href="/" 
+              className="font-label text-sm hover:underline underline-offset-4"
+            >
+              SEARCH
             </Link>
-            <Link href="/my-names" className="text-gray-400 hover:text-white transition-colors">
-              My Names
+            <Link 
+              href="/my-names" 
+              className="font-label text-sm hover:underline underline-offset-4"
+            >
+              MY NAMES
             </Link>
+            <a 
+              href="https://megaeth.com" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-label text-sm text-[#666] hover:text-black hover:underline underline-offset-4"
+            >
+              MEGAETH ↗
+            </a>
           </nav>
 
           {/* Connect Button */}
@@ -36,16 +49,16 @@ export function Header() {
             {isConnected ? (
               <button
                 onClick={() => disconnect()}
-                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors font-medium"
+                className="px-5 py-2 border-2 border-black font-bold text-sm uppercase tracking-wide hover:bg-black hover:text-[#E8E8E8] transition-colors"
               >
                 {shortenAddress(address!)}
               </button>
             ) : (
               <button
                 onClick={() => connect({ connector: connectors[0] })}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-colors font-medium"
+                className="btn-primary px-5 py-2 text-sm"
               >
-                Connect Wallet
+                CONNECT
               </button>
             )}
           </div>

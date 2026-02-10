@@ -61,7 +61,27 @@ The naming layer for MegaETH that:
 - [ ] Implement standard resolver interface (WNS already has this)
 
 ### 2.4 Warren Integration
-- Contenthash format: TBD (waiting on Warren team)
+
+#### Contenthash Format (7 bytes)
+```
+[codec 2B] [type 1B] [tokenId 4B]
+```
+
+| Field | Bytes | Value | Description |
+|-------|-------|-------|-------------|
+| **Codec** | 2 | `0xe9` | Warren namespace (pending multicodec registration) |
+| **Type** | 1 | `0x01` or `0x02` | `0x01` = Master NFT, `0x02` = Container NFT |
+| **TokenId** | 4 | uint32 | Up to ~4.2B sites |
+
+**Fallback:** If multicodec registration doesn't get approved, use private-use range `0x300000` (8 bytes total).
+
+#### Example
+```
+bread.mega → contenthash: 0xe9 01 00000001
+                          ^^^^ ^^ ^^^^^^^^
+                          codec type tokenId
+```
+
 - Deployment flow: TBD
 - SDK/CLI: TBD
 
@@ -121,9 +141,9 @@ Name NFT minted to user
 ## 5. Dependencies
 
 - [x] Warren protocol fee recipient address: `0xd4aE3973244592ef06dfdf82470329aCfA62C187`
-- [ ] Warren contenthash format spec (can start without)
+- [x] Warren contenthash format spec (7-byte format with 0xe9 codec)
 - [x] Gateway domain: `meganame.market`
 
 ---
 
-*Last updated: 2026-02-09*
+*Last updated: 2026-02-10*
