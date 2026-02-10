@@ -24,11 +24,26 @@ function RegisterContent() {
   const router = useRouter()
   const name = searchParams.get('name')?.toLowerCase()
   
-  const { address, isConnected } = useAccount()
+  const { address, isConnected, connector } = useAccount()
   const [step, setStep] = useState<Step>('check')
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
-  const [useFallback, setUseFallback] = useState(false)
+  const [useFallback, setUseFallback] = useState(true) // Default to permit flow
+  
+  // Wallets known to support EIP-5792 sendCalls
+  const EIP5792_WALLETS = ['MetaMask', 'Coinbase Wallet']
+  
+  // Detect wallet and set flow
+  useEffect(() => {
+    if (connector?.name) {
+      const walletName = connector.name
+      const supportsAtomicBatch = EIP5792_WALLETS.some(w => 
+        walletName.toLowerCase().includes(w.toLowerCase())
+      )
+      setUseFallback(!supportsAtomicBatch)
+      console.log(`Wallet: ${walletName}, EIP-5792 support: ${supportsAtomicBatch}`)
+    }
+  }, [connector?.name])
 
   const tokenId = name ? getTokenId(name) : BigInt(0)
   const price = name ? getPrice(name.length) : BigInt(0)
