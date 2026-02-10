@@ -107,7 +107,7 @@ function RegisterContent() {
     isPending: isRegisteringWithPermit 
   } = useWriteContract()
 
-  const { data: walletClient } = useWalletClient()
+  const { data: walletClient, isLoading: isWalletLoading } = useWalletClient()
 
   const { isLoading: isConfirming, isSuccess: isDirectSuccess } = useWaitForTransactionReceipt({
     hash: registerHash || permitHash,
@@ -270,9 +270,11 @@ function RegisterContent() {
       }
 
       console.log('Signing permit with:', { domain, message, nonce: nonce.toString(), deadline: deadline.toString() })
+      console.log('Wallet client:', walletClient)
 
       if (!walletClient) {
-        throw new Error('Wallet not connected')
+        setError('Wallet client not ready. Please try again.')
+        return
       }
 
       const signature = await walletClient.signTypedData({
@@ -399,7 +401,7 @@ function RegisterContent() {
             </div>
             <button
               onClick={useFallback ? handlePermitRegister : handleRegister}
-              disabled={isPending || !hasBalance}
+              disabled={isPending || !hasBalance || (useFallback && isWalletLoading)}
               className="btn-primary w-full py-5 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
               {isPending ? (
