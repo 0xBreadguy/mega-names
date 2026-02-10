@@ -8,7 +8,8 @@ import {
   useSendCalls,
   useCallsStatus,
   useWriteContract,
-  useWaitForTransactionReceipt
+  useWaitForTransactionReceipt,
+  useSignTypedData
 } from 'wagmi'
 import { encodeFunctionData, erc20Abi } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI, ERC20_ABI } from '@/lib/contracts'
@@ -27,6 +28,7 @@ function RegisterContent() {
   const [step, setStep] = useState<Step>('check')
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
+  const [useFallback, setUseFallback] = useState(false)
 
   const tokenId = name ? getTokenId(name) : BigInt(0)
   const price = name ? getPrice(name.length) : BigInt(0)
@@ -83,12 +85,21 @@ function RegisterContent() {
     isPending: isRegisteringDirect 
   } = useWriteContract()
 
+  // Permit-based registration (fallback for wallets without sendCalls)
+  const { 
+    writeContract: registerWithPermit, 
+    data: permitHash,
+    isPending: isRegisteringWithPermit 
+  } = useWriteContract()
+
+  const { signTypedDataAsync } = useSignTypedData()
+
   const { isLoading: isConfirming, isSuccess: isDirectSuccess } = useWaitForTransactionReceipt({
-    hash: registerHash,
+    hash: registerHash || permitHash,
   })
 
   // Combined pending state
-  const isPending = isSendingCalls || isRegisteringDirect || isConfirming
+  const isPending = isSendingCalls || isRegisteringDirect || isRegisteringWithPermit || isConfirming
 
   useEffect(() => {
     if (!name || !isValidName(name)) {
@@ -139,13 +150,7 @@ function RegisterContent() {
     if (!address || !name) return
     setError(null)
 
-    const registerCalldata = encodeFunctionData({
-      abi: MEGA_NAMES_ABI,
-      functionName: 'registerDirect',
-      args: [name, address],
-    })
-
-    // If already approved, just register
+    // If already approved, just register directly
     if (hasAllowance) {
       try {
         registerDirect({
@@ -160,15 +165,21 @@ function RegisterContent() {
       return
     }
 
-    // Otherwise, batch approve + register (EIP-5792)
+    // Try EIP-5792 batched calls first
     const approveCalldata = encodeFunctionData({
       abi: erc20Abi,
       functionName: 'approve',
       args: [CONTRACTS.testnet.megaNames, price],
     })
 
+    const registerCalldata = encodeFunctionData({
+      abi: MEGA_NAMES_ABI,
+      functionName: 'registerDirect',
+      args: [name, address],
+    })
+
     try {
-      sendCalls({
+      await sendCalls({
         calls: [
           {
             to: CONTRACTS.testnet.usdm,
@@ -181,9 +192,82 @@ function RegisterContent() {
         ],
       })
     } catch (err: any) {
-      // Fallback: if sendCalls not supported, do sequential
-      console.warn('sendCalls not supported, falling back to sequential')
-      setError('Your wallet may not support batched transactions. Please approve USDM first.')
+      // Fallback: wallet doesn't support sendCalls, use permit flow
+      console.warn('sendCalls not supported, falling back to permit flow:', err.message)
+      setUseFallback(true)
+    }
+  }
+
+  // Fallback: permit-based registration
+  const handlePermitRegister = async () => {
+    if (!address || !name) return
+    setError(null)
+
+    try {
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
+      
+      // Get nonce
+      const nonceResponse = await fetch(`https://carrot.megaeth.com/rpc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_call',
+          params: [{
+            to: CONTRACTS.testnet.usdm,
+            data: `0x7ecebe00000000000000000000000000${address.slice(2)}`
+          }, 'latest'],
+          id: 1
+        })
+      })
+      const nonceData = await nonceResponse.json()
+      const nonce = BigInt(nonceData.result)
+
+      const domain = {
+        name: 'Mock USDM',
+        version: '1',
+        chainId: 6343,
+        verifyingContract: CONTRACTS.testnet.usdm,
+      }
+
+      const types = {
+        Permit: [
+          { name: 'owner', type: 'address' },
+          { name: 'spender', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+        ],
+      }
+
+      const message = {
+        owner: address,
+        spender: CONTRACTS.testnet.megaNames,
+        value: price,
+        nonce,
+        deadline,
+      }
+
+      const signature = await signTypedDataAsync({
+        domain,
+        types,
+        primaryType: 'Permit',
+        message,
+      })
+
+      const r = signature.slice(0, 66) as `0x${string}`
+      const s = `0x${signature.slice(66, 130)}` as `0x${string}`
+      const v = parseInt(signature.slice(130, 132), 16)
+
+      registerWithPermit({
+        address: CONTRACTS.testnet.megaNames,
+        abi: MEGA_NAMES_ABI,
+        functionName: 'registerWithPermit',
+        args: [name, address, deadline, v, r, s],
+      })
+    } catch (err: any) {
+      console.error('Permit registration error:', err)
+      setError(err.shortMessage || err.message || 'Failed to register')
     }
   }
 
@@ -215,13 +299,23 @@ function RegisterContent() {
         </div>
 
         {/* Single-click badge */}
-        <div className="mb-6 p-4 bg-green-50 border-2 border-green-400 flex items-center gap-3">
-          <Zap className="w-5 h-5 text-green-600" />
-          <div>
-            <p className="font-label text-sm text-green-800">SINGLE-CLICK REGISTRATION</p>
-            <p className="text-sm text-green-700">One confirmation - no separate approval needed</p>
+        {!useFallback ? (
+          <div className="mb-6 p-4 bg-green-50 border-2 border-green-400 flex items-center gap-3">
+            <Zap className="w-5 h-5 text-green-600" />
+            <div>
+              <p className="font-label text-sm text-green-800">SINGLE-CLICK REGISTRATION</p>
+              <p className="text-sm text-green-700">One confirmation - no separate approval needed</p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-400 flex items-center gap-3">
+            <Zap className="w-5 h-5 text-blue-600" />
+            <div>
+              <p className="font-label text-sm text-blue-800">PERMIT-BASED REGISTRATION</p>
+              <p className="text-sm text-blue-700">Sign once, then confirm transaction</p>
+            </div>
+          </div>
+        )}
 
         {step === 'check' && (
           <div className="border-2 border-black p-8 text-center">
@@ -270,11 +364,13 @@ function RegisterContent() {
               <p className="text-[#666] mb-6">
                 {hasAllowance 
                   ? 'USDM already approved. Click to register your name.'
-                  : 'Click to approve USDM and register in a single transaction.'}
+                  : useFallback
+                    ? 'Sign the permit message, then confirm the transaction.'
+                    : 'Click to approve USDM and register in a single transaction.'}
               </p>
             </div>
             <button
-              onClick={handleRegister}
+              onClick={useFallback ? handlePermitRegister : handleRegister}
               disabled={isPending || !hasBalance}
               className="btn-primary w-full py-5 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
