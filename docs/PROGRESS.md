@@ -3,24 +3,25 @@
 ## Project Overview
 - **Domain:** meganame.market (Cloudflare)
 - **TLD:** `.mega`
-- **Payment:** USDM stablecoin (18 decimals)
+- **Payment:** USDM stablecoin (18 decimals, OFT)
 - **Fee Recipient:** Warren Safe (`0xd4aE3973244592ef06dfdf82470329aCfA62C187`)
 
 ---
 
-## Phase 1: Smart Contracts ✅
+## Phase 1: Smart Contracts ✅ COMPLETE
 
 ### Completed (2026-02-09)
 
 **MegaNames.sol** - ENS-style naming for MegaETH
-- Fork of z0r0z/wei-names
-- USDM payments (not ETH)
-- Commit-reveal registration
-- Forward + reverse resolution
-- Contenthash (IPFS/Warren)
-- Text records
-- Free subdomains
-- 14 tests passing
+- [x] Fork of z0r0z/wei-names
+- [x] USDM payments (18 decimals)
+- [x] Commit-reveal registration (60s min, 24h max)
+- [x] Forward resolution (name → address)
+- [x] Reverse resolution (address → name)
+- [x] Contenthash support (IPFS/Warren)
+- [x] Text records
+- [x] Free subdomains (parent-controlled)
+- [x] 14 tests passing
 
 **Pricing (per year):**
 | Length | Fee |
@@ -31,34 +32,129 @@
 | 4 char | $10 |
 | 5+ char | $1 |
 
-### Testnet Deployment
+### Testnet Deployment ✅
 | Contract | Address |
 |----------|---------|
 | MegaNames | `0xaa63b6535c7e8aa887764da86295e72116dfe52f` |
 | MockUSDM | `0x36c9b178b7d34c1a3582369e5bca42c4dc5e95ff` |
 
-**Test:** `bread.mega` registered successfully
+**Test Registration:** `bread.mega` ✅
+
+### Mainnet Deployment
+- [ ] Pending (after website ready)
+- USDM Mainnet: `0x078D782b760474a361dDA0AF3839290b0EF57AD6`
 
 ---
 
-## Phase 2: Infrastructure 🔄
+## Phase 2: Infrastructure ✅ COMPLETE
 
-### Domain: meganame.market
-- [x] Purchased from Cloudflare
-- [ ] Cloudflare Pages project created
-- [ ] API token for crumb
-- [ ] Custom domain configured
+### Domain Setup ✅
+- [x] Domain purchased: meganame.market (Cloudflare)
+- [x] Cloudflare Pages project: `meganame-market`
+- [x] API token for crumb (Workers Edit template)
+- [x] Custom domain configured
+- [x] SSL active
+- [x] Test deployment successful
+
+### Deployment Info
+| Resource | Value |
+|----------|-------|
+| Pages Project | `meganame-market` |
+| Preview URL | `meganame-market.pages.dev` |
+| Production URL | `https://meganame.market` |
+| Account ID | `a685746a969555465bb163932b8bc616` |
+| Zone ID | `27966738bbf5ade9a128a58cbde8939e` |
+
+### Credentials (in secrets/)
+- [x] `cloudflare_token.txt` - API token (Workers Edit)
+- [x] `cloudflare_config.json` - Account/Zone IDs
+- [x] `testnet_faucet_key.txt` - Deploy key
 
 ---
 
-## Phase 3: Website 📋
+## Phase 3: Website 📋 NEXT UP
 
-### Stack (Planned)
+### Stack (Confirmed)
 - Next.js 14 (App Router)
-- wagmi/viem
 - Tailwind CSS
-- Cloudflare Pages
+- wagmi + viem (Web3)
+- shadcn/ui (components)
+- Framer Motion (animations)
+
+### Design Skills Available
+- `superdesign` - Theme systems, oklch colors, animations
+- `frontend` - UX patterns, loading states, accessibility
+
+### Pages Needed
+- [ ] Landing / Home
+- [ ] Search (check name availability)
+- [ ] Register (commit → wait → reveal flow)
+- [ ] My Names (dashboard)
+- [ ] Name Detail (set records, manage)
+- [ ] Subdomain Management
+
+### Features (MVP)
+- [ ] Wallet connection (wagmi)
+- [ ] Name search/availability
+- [ ] USDM approval flow
+- [ ] Registration (commit-reveal)
+- [ ] View owned names
+- [ ] Set address record
+- [ ] Set primary name
+
+### Features (v2)
+- [ ] Text records editor
+- [ ] Contenthash (IPFS upload)
+- [ ] Subdomain creation
+- [ ] Renewal management
+- [ ] Transfer names
+- [ ] Warren integration (on-chain websites)
 
 ---
 
-*Last updated: 2026-02-09*
+## Phase 4: Launch 📋 FUTURE
+
+- [ ] Mainnet contract deployment
+- [ ] Security review
+- [ ] Documentation
+- [ ] Announcement
+
+---
+
+## Repository Structure
+
+```
+mega-names/
+├── src/
+│   ├── MegaNames.sol          # Main contract
+│   └── MockUSDM.sol           # Test token
+├── test/
+│   └── MegaNames.t.sol        # 14 tests
+├── script/
+│   └── Deploy.s.sol           # Deployment
+├── docs/
+│   └── PROGRESS.md            # This file
+├── web/                       # [TODO] Next.js app
+│   ├── app/
+│   ├── components/
+│   └── lib/
+├── SPEC.md                    # Technical spec
+├── DEPLOYMENTS.md             # Contract addresses
+└── README.md                  # Usage docs
+```
+
+---
+
+## Timeline
+
+| Date | Milestone | Status |
+|------|-----------|--------|
+| 2026-02-09 | Contracts complete | ✅ |
+| 2026-02-09 | Testnet deployed | ✅ |
+| 2026-02-09 | Infrastructure setup | ✅ |
+| TBD | Website MVP | 📋 |
+| TBD | Mainnet launch | 📋 |
+
+---
+
+*Last updated: 2026-02-09 19:57 PST*
