@@ -47,12 +47,14 @@ function parseMegaName(input: string): string | null {
 /**
  * Hook to resolve a .mega name to an address
  * Accepts "elden.mega" or "elden"
+ * First tries addr() (explicit resolution), then falls back to ownerOf()
  */
 export function useResolveMegaName(nameInput: string) {
   const label = parseMegaName(nameInput)
   const tokenId = label ? getTokenId(label) : BigInt(0)
   
-  const { data: resolvedAddress, isLoading } = useReadContract({
+  // Try explicit address resolution first
+  const { data: resolvedAddress, isLoading: isLoadingAddr } = useReadContract({
     address: CONTRACTS.testnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'addr',
@@ -62,15 +64,35 @@ export function useResolveMegaName(nameInput: string) {
       staleTime: 30_000,
     },
   })
+  
+  // Fall back to owner if no explicit resolution
+  const { data: ownerAddress, isLoading: isLoadingOwner } = useReadContract({
+    address: CONTRACTS.testnet.megaNames,
+    abi: MEGA_NAMES_ABI,
+    functionName: 'ownerOf',
+    args: [tokenId],
+    query: { 
+      enabled: !!label,
+      staleTime: 30_000,
+    },
+  })
 
-  // addr returns zero address if not set or expired
-  const isValidAddress = resolvedAddress && resolvedAddress !== '0x0000000000000000000000000000000000000000'
+  const zeroAddress = '0x0000000000000000000000000000000000000000'
+  
+  // Prefer explicit resolution, fall back to owner
+  const hasExplicitAddr = resolvedAddress && resolvedAddress !== zeroAddress
+  const hasOwner = ownerAddress && ownerAddress !== zeroAddress
+  
+  const finalAddress = hasExplicitAddr ? resolvedAddress : (hasOwner ? ownerAddress : null)
+  const isLoading = isLoadingAddr || isLoadingOwner
 
   return {
-    address: isValidAddress ? resolvedAddress : null,
+    address: finalAddress,
     label,
     isLoading,
     isValid: !!label,
+    // Indicate if we're using owner vs explicit resolution
+    isOwnerFallback: !hasExplicitAddr && hasOwner,
   }
 }
 

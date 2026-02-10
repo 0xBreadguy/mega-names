@@ -59,7 +59,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
   )
   
   // Resolve name to address (when input is a name like "elden.mega")
-  const { address: resolvedFromName, label: resolvedLabel, isLoading: isResolvingName } = useResolveMegaName(
+  const { address: resolvedFromName, label: resolvedLabel, isLoading: isResolvingName, isOwnerFallback } = useResolveMegaName(
     !isAddressInput ? recipient : ''
   )
 
@@ -188,9 +188,10 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
                   ) : resolvedFromName ? (
                     <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
                       <Check className="w-3 h-3" /> {resolvedLabel}.mega → {resolvedFromName.slice(0, 6)}...{resolvedFromName.slice(-4)}
+                      {isOwnerFallback && <span className="text-[#666]">(owner)</span>}
                     </p>
                   ) : resolvedLabel ? (
-                    <p className="text-red-600 text-xs mt-1">{resolvedLabel}.mega not found or has no address set</p>
+                    <p className="text-red-600 text-xs mt-1">{resolvedLabel}.mega not found</p>
                   ) : (
                     <p className="text-red-600 text-xs mt-1">Invalid name format</p>
                   )}
