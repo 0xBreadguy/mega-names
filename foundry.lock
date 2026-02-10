@@ -10,5 +10,8 @@
       "name": "v0.1.26",
       "rev": "acd959aa4bd04720d640bf4e6a5c71037510cc4b"
     }
+  },
+  "lib/wei-names": {
+    "rev": "c6da82a185f99246825b03ef57deb613aefd36ad"
   }
 }

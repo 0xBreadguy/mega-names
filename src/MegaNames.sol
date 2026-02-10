@@ -7,6 +7,7 @@ import {Ownable} from "solady/auth/Ownable.sol";
 import {LibString} from "solady/utils/LibString.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "soledge/utils/ReentrancyGuard.sol";
+import {WarrenLib} from "./WarrenLib.sol";
 
 /// @title MegaNames
 /// @notice ENS-style naming system for .mega TLD on MegaETH
@@ -410,6 +411,18 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         emit ContenthashChanged(bytes32(tokenId), hash);
     }
 
+    /// @notice Set contenthash to point to a Warren on-chain website
+    /// @param tokenId The name token ID
+    /// @param warrenTokenId The Warren NFT token ID
+    /// @param isMaster True for Master NFT, false for Container NFT
+    function setWarrenContenthash(uint256 tokenId, uint32 warrenTokenId, bool isMaster) public {
+        _requireOwner(tokenId);
+        bytes memory hash = WarrenLib.encode(warrenTokenId, isMaster);
+        uint256 version = recordVersion[tokenId];
+        _contenthash[tokenId][version] = hash;
+        emit ContenthashChanged(bytes32(tokenId), hash);
+    }
+
     function setText(uint256 tokenId, string calldata key, string calldata value) public {
         _requireOwner(tokenId);
         uint256 version = recordVersion[tokenId];
@@ -425,6 +438,21 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     function contenthash(uint256 tokenId) public view returns (bytes memory) {
         if (!_isActive(tokenId)) return "";
         return _contenthash[tokenId][recordVersion[tokenId]];
+    }
+
+    /// @notice Get Warren site info if contenthash points to Warren
+    /// @param tokenId The name token ID
+    /// @return warrenTokenId The Warren NFT token ID (0 if not Warren)
+    /// @return isMaster True if Master NFT type
+    /// @return isWarren True if contenthash is Warren format
+    function warren(uint256 tokenId) public view returns (uint32 warrenTokenId, bool isMaster, bool isWarren) {
+        bytes memory hash = contenthash(tokenId);
+        if (hash.length == 0) return (0, false, false);
+        
+        isWarren = WarrenLib.isWarren(hash);
+        if (!isWarren) return (0, false, false);
+        
+        (warrenTokenId, isMaster) = WarrenLib.decode(hash);
     }
 
     function text(uint256 tokenId, string calldata key) public view returns (string memory) {
