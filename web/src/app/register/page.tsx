@@ -17,6 +17,7 @@ import { Loader2, Check, ArrowLeft, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
 const MEGAETH_TESTNET_CHAIN_ID = 6343
+const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
 
 type Step = 'check' | 'connect' | 'wrong-chain' | 'approve' | 'register' | 'pending' | 'success'
 
@@ -57,13 +58,17 @@ function RegisterContent() {
     query: { enabled: !!address },
   })
 
-  // Check existing USDM allowance
+  // Check existing USDM allowance (always fetch fresh)
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: CONTRACTS.testnet.usdm,
     abi: erc20Abi,
     functionName: 'allowance',
     args: [address!, CONTRACTS.testnet.megaNames],
-    query: { enabled: !!address },
+    query: { 
+      enabled: !!address,
+      staleTime: 0,  // Always refetch - allowances can change externally
+      refetchOnMount: true,
+    },
   })
 
   const isAvailable = records && records[0] === ''
@@ -143,10 +148,11 @@ function RegisterContent() {
     setStep('pending')
 
     try {
+      // Approve unlimited so user only needs to approve once
       const data = encodeFunctionData({
         abi: erc20Abi,
         functionName: 'approve',
-        args: [CONTRACTS.testnet.megaNames, price],
+        args: [CONTRACTS.testnet.megaNames, MAX_UINT256],
       })
 
       const { hash, success } = await sendRealtimeTransaction(
@@ -329,7 +335,8 @@ function RegisterContent() {
                 <strong>Step 1:</strong> Approve USDM spending
               </p>
               <p className="text-sm text-[#999]">
-                This allows the MegaNames contract to spend {formatUSDM(price)} USDM for this registration.
+                This is a one-time approval that allows MegaNames to use your USDM for registrations.
+                You won&apos;t need to approve again for future names.
               </p>
             </div>
             <button
