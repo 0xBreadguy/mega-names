@@ -387,7 +387,7 @@ function RegisterContent() {
             </p>
             {txHash && (
               <a 
-                href={`https://megaeth-testnet.explorer.caldera.xyz/tx/${txHash}`}
+                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mb-4 inline-block"

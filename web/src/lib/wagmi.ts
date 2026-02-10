@@ -10,7 +10,7 @@ export const megaethTestnet = {
     default: { http: ['https://carrot.megaeth.com/rpc'] },
   },
   blockExplorers: {
-    default: { name: 'Explorer', url: 'https://megaeth-testnet.explorer.caldera.xyz' },
+    default: { name: 'Blockscout', url: 'https://megaeth-testnet-v2.blockscout.com' },
   },
 } as const
 
