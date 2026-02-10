@@ -321,6 +321,47 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return defaultFee;
     }
 
+    /// @notice Register a name directly without commit-reveal (simpler flow for fast chains)
+    /// @param label The name to register
+    /// @param owner Address to own the name
+    function registerDirect(string calldata label, address owner)
+        public
+        nonReentrant
+        returns (uint256 tokenId)
+    {
+        bytes memory normalized = _validateAndNormalize(bytes(label));
+
+        tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
+        if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
+
+        uint256 fee = registrationFee(normalized.length);
+        
+        // Transfer USDM from caller
+        if (fee > 0) {
+            SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
+        }
+
+        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
+
+        // Increment epoch if re-registering expired name
+        uint64 newEpoch = records[tokenId].epoch + 1;
+
+        records[tokenId] = NameRecord({
+            label: string(normalized),
+            parent: 0,
+            expiresAt: expiresAt,
+            epoch: newEpoch,
+            parentEpoch: 0
+        });
+
+        // Clear resolver data on new registration
+        recordVersion[tokenId]++;
+
+        _mint(owner, tokenId);
+
+        emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
+    }
+
     /*//////////////////////////////////////////////////////////////
                               RENEWAL
     //////////////////////////////////////////////////////////////*/

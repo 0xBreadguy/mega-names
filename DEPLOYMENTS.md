@@ -1,54 +1,36 @@
 # MegaNames Deployments
 
-## MegaETH Testnet (Chain 6343)
-
-| Contract | Address | Verified |
-|----------|---------|----------|
-| MegaNames | `0xaa63b6535c7e8aa887764da86295e72116dfe52f` | ✅ |
-| MockUSDM | `0x36c9b178b7d34c1a3582369e5bca42c4dc5e95ff` | ✅ |
-
-**RPC:** `https://carrot.megaeth.com/rpc`
-
-**Test Registrations:**
-- `bread.mega` → `0x531eFfB68DC618A41bAecf320eD5caC218e969aE`
-
----
-
-## MegaETH Mainnet (Chain 4326)
+## Testnet (Chain ID: 6343)
 
 | Contract | Address |
 |----------|---------|
-| USDM | `0x078D782b760474a361dDA0AF3839290b0EF57AD6` |
-| MegaNames | TBD |
+| **MegaNames** | `0xA3B96bEA7DD48Be2C00B2E830986a680eF657D47` |
+| **MockUSDM** | `0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833` |
+| Fee Recipient | `0xd4aE3973244592ef06dfdf82470329aCfA62C187` (Warren Safe) |
 
-**RPC:** `https://rpc.megaeth.com`
+**RPC:** `https://carrot.megaeth.com/rpc`
+**Explorer:** `https://megaeth-testnet-v2.blockscout.com`
 
----
+### Features
+- `registerDirect(label, owner)` - Direct registration without commit-reveal
+- USDM payments (18 decimals)
+- Warren contenthash support
 
-## Fee Recipient
-
-Warren Protocol Safe: `0xd4aE3973244592ef06dfdf82470329aCfA62C187`
-
-All registration and renewal fees go to this address.
-
----
-
-## Website
-
-| Environment | URL |
-|-------------|-----|
-| Production | https://meganame.market |
-| Preview | https://meganame-market.pages.dev |
-
-**Hosting:** Cloudflare Pages (`meganame-market`)
+### Pricing
+| Length | Fee/year |
+|--------|----------|
+| 1 char | $1,000 |
+| 2 char | $500 |
+| 3 char | $100 |
+| 4 char | $10 |
+| 5+ char | $1 |
 
 ---
 
-## Contract Verification
+## Mainnet (Chain ID: 4326)
 
-To verify on explorer:
-```bash
-forge verify-contract <ADDRESS> src/MegaNames.sol:MegaNames \
-  --chain-id 6343 \
-  --constructor-args $(cast abi-encode "constructor(address,address)" <USDM> <WARREN_SAFE>)
-```
+*Not deployed yet*
+
+---
+
+*Last updated: 2026-02-10*
