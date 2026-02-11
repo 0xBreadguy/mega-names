@@ -388,13 +388,13 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
             <div className="py-6 sm:py-10 pr-4 sm:pr-8">
-              <p className="font-label text-[var(--muted)] mb-2">registered</p>
+              <p className="font-label text-[var(--muted)] mb-2">total registered</p>
               <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">
                 {statsLoading ? '—' : namesRegistered.toLocaleString()}
               </p>
             </div>
             <div className="py-6 sm:py-10 px-4 sm:px-8">
-              <p className="font-label text-[var(--muted)] mb-2">volume</p>
+              <p className="font-label text-[var(--muted)] mb-2">total purchased</p>
               <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">
                 {statsLoading ? '—' : formatUSDM(totalVolume)}
               </p>

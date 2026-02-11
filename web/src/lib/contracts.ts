@@ -1,6 +1,6 @@
 export const CONTRACTS = {
   testnet: {
-    megaNames: '0x51b87f02a09ee809a305a2b48970ba5600032e80' as const,
+    megaNames: '0xb1b94f1878b4ce8b26a7a4d9b8444bbb7a01cab0' as const,
     usdm: '0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833' as const,
   },
   mainnet: {

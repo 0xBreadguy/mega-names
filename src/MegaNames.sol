@@ -306,6 +306,24 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return baseFee - (baseFee * discount / 10000);
     }
 
+    /// @notice Calculate current premium for an expired name (Dutch auction after grace period)
+    /// @param tokenId The name token ID
+    /// @return premium The current premium in USDM (0 if not expired or fully decayed)
+    function currentPremium(uint256 tokenId) public view returns (uint256 premium) {
+        if (!_recordExists(tokenId)) return 0;
+        if (_isActive(tokenId)) return 0;
+        if (maxPremium == 0 || premiumDecayPeriod == 0) return 0;
+        
+        uint256 graceEnd = uint256(records[tokenId].expiresAt) + GRACE_PERIOD;
+        if (block.timestamp <= graceEnd) return 0; // still in grace period
+        
+        uint256 elapsed = block.timestamp - graceEnd;
+        if (elapsed >= premiumDecayPeriod) return 0; // fully decayed
+        
+        // Linear decay: maxPremium * (remaining / total)
+        return maxPremium * (premiumDecayPeriod - elapsed) / premiumDecayPeriod;
+    }
+
     /// @notice Register a name (must approve USDM first)
     /// @param label The name to register
     /// @param owner Address to own the name
@@ -322,7 +340,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
-        uint256 fee = calculateFee(normalized.length, numYears);
+        uint256 fee = calculateFee(normalized.length, numYears) + currentPremium(tokenId);
         
         // Transfer USDM from caller
         if (fee > 0) {
@@ -378,7 +396,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
-        uint256 fee = calculateFee(normalized.length, numYears);
+        uint256 fee = calculateFee(normalized.length, numYears) + currentPremium(tokenId);
         
         // Execute permit to approve spending, then transfer
         if (fee > 0) {
