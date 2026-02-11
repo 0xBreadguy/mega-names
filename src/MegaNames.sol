@@ -631,6 +631,48 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return _contenthash[tokenId][recordVersion[tokenId]];
     }
 
+    /// @notice Get ERC-7930 Interoperable Address for a name
+    /// @dev Binary format: Version(2) | ChainType(2) | ChainRefLen(1) | ChainRef(var) | AddrLen(1) | Address(20)
+    /// @param tokenId The name token ID
+    /// @return The ERC-7930 encoded interoperable address (empty if unresolvable)
+    function interopAddress(uint256 tokenId) public view returns (bytes memory) {
+        address resolved = addr(tokenId);
+        if (resolved == address(0)) return "";
+
+        uint256 chainId = block.chainid;
+        
+        // Encode chain ID as minimal big-endian bytes
+        uint8 chainRefLen;
+        if (chainId <= 0xFF) chainRefLen = 1;
+        else if (chainId <= 0xFFFF) chainRefLen = 2;
+        else if (chainId <= 0xFFFFFF) chainRefLen = 3;
+        else chainRefLen = 4;
+
+        bytes memory result = new bytes(6 + chainRefLen + 20);
+        
+        // Version 1
+        result[0] = 0x00;
+        result[1] = 0x01;
+        // ChainType 0x0000 (EVM/eip155)
+        result[2] = 0x00;
+        result[3] = 0x00;
+        // ChainReferenceLength
+        result[4] = bytes1(chainRefLen);
+        // ChainReference (big-endian)
+        for (uint8 i = 0; i < chainRefLen; i++) {
+            result[5 + chainRefLen - 1 - i] = bytes1(uint8(chainId >> (8 * i)));
+        }
+        // AddressLength (20)
+        result[5 + chainRefLen] = 0x14;
+        // Address
+        bytes20 addrBytes = bytes20(resolved);
+        for (uint8 i = 0; i < 20; i++) {
+            result[6 + chainRefLen + i] = addrBytes[i];
+        }
+        
+        return result;
+    }
+
     /// @notice Get Warren site info if contenthash points to Warren
     /// @param tokenId The name token ID
     /// @return warrenTokenId The Warren NFT token ID (0 if not Warren)
