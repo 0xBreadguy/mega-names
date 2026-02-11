@@ -124,10 +124,16 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     mapping(bytes32 => uint256) public commitments;
     mapping(address => uint256) public primaryName;
 
-    /// @notice Total number of names registered (including renewals as new registrations)
+    /// @notice Total number of names registered
     uint256 public totalRegistrations;
     
-    /// @notice Total volume in USDM (18 decimals) from registrations
+    /// @notice Total number of renewals
+    uint256 public totalRenewals;
+    
+    /// @notice Total number of subdomains created
+    uint256 public totalSubdomains;
+    
+    /// @notice Total volume in USDM (18 decimals) from registrations + renewals
     uint256 public totalVolume;
 
     // Versioned resolver data
@@ -458,6 +464,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
             SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
         }
 
+        // Update counters
+        totalRenewals++;
+        totalVolume += fee;
+
         uint64 currentExpiry = record.expiresAt;
         uint64 newExpiry;
 
@@ -495,6 +505,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
         tokenId = uint256(keccak256(abi.encodePacked(bytes32(parentId), keccak256(normalized))));
         if (_recordExists(tokenId) && _isSubdomainValid(tokenId)) revert AlreadyRegistered();
+
+        // Update counter
+        totalSubdomains++;
 
         uint64 newEpoch = records[tokenId].epoch + 1;
 

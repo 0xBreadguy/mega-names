@@ -150,12 +150,24 @@ export function useResolveMegaName(input: string) {
   }
 }
 
-// Hook to get contract stats (names registered, total volume)
+// Hook to get contract stats (names registered, renewals, subdomains, volume)
 export function useContractStats() {
   const { data: totalRegistrations, isLoading: loadingRegistrations } = useReadContract({
     address: CONTRACTS.testnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'totalRegistrations',
+  })
+
+  const { data: totalRenewals, isLoading: loadingRenewals } = useReadContract({
+    address: CONTRACTS.testnet.megaNames,
+    abi: MEGA_NAMES_ABI,
+    functionName: 'totalRenewals',
+  })
+
+  const { data: totalSubdomains, isLoading: loadingSubdomains } = useReadContract({
+    address: CONTRACTS.testnet.megaNames,
+    abi: MEGA_NAMES_ABI,
+    functionName: 'totalSubdomains',
   })
 
   const { data: totalVolume, isLoading: loadingVolume } = useReadContract({
@@ -166,7 +178,9 @@ export function useContractStats() {
 
   return {
     namesRegistered: totalRegistrations ? Number(totalRegistrations) : 0,
+    renewals: totalRenewals ? Number(totalRenewals) : 0,
+    subdomains: totalSubdomains ? Number(totalSubdomains) : 0,
     totalVolume: totalVolume ?? BigInt(0),
-    isLoading: loadingRegistrations || loadingVolume,
+    isLoading: loadingRegistrations || loadingRenewals || loadingSubdomains || loadingVolume,
   }
 }
