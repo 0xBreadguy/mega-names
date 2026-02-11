@@ -53,6 +53,29 @@ export function getPrice(length: number): bigint {
   return parseUSDM(1)
 }
 
+// Multi-year discount (matches contract constants)
+export function getDiscount(numYears: number): number {
+  if (numYears >= 10) return 2500  // 25%
+  if (numYears >= 5) return 1500   // 15%
+  if (numYears >= 3) return 1000   // 10%
+  if (numYears >= 2) return 500    // 5%
+  return 0
+}
+
+export function getDiscountLabel(numYears: number): string | null {
+  const d = getDiscount(numYears)
+  if (d === 0) return null
+  return `${d / 100}% off`
+}
+
+// Calculate total fee with multi-year discount (mirrors contract calculateFee)
+export function calculateFee(labelLength: number, numYears: number): bigint {
+  const yearlyFee = getPrice(labelLength)
+  const baseFee = yearlyFee * BigInt(numYears)
+  const discount = BigInt(getDiscount(numYears))
+  return baseFee - (baseFee * discount / BigInt(10000))
+}
+
 // Validate name
 export function isValidName(name: string): boolean {
   if (!name || name.length === 0 || name.length > 255) return false

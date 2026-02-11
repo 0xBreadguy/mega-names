@@ -6,6 +6,7 @@ import {ERC721} from "solady/tokens/ERC721.sol";
 import {Ownable} from "solady/auth/Ownable.sol";
 import {LibString} from "solady/utils/LibString.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {EnumerableSetLib} from "solady/utils/EnumerableSetLib.sol";
 import {ReentrancyGuard} from "soledge/utils/ReentrancyGuard.sol";
 import {WarrenLib} from "./WarrenLib.sol";
 
@@ -24,6 +25,7 @@ import {WarrenLib} from "./WarrenLib.sol";
 /// - 100% of fees go to Warren protocol
 contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     using LibString for uint256;
+    using EnumerableSetLib for EnumerableSetLib.Uint256Set;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -95,6 +97,12 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     uint256 constant MIN_YEARS = 1;
     uint256 constant MAX_YEARS = 10;
     
+    // Multi-year discount basis points (100 = 1%)
+    uint256 constant DISCOUNT_2Y = 500;   // 5%
+    uint256 constant DISCOUNT_3Y = 1000;  // 10%
+    uint256 constant DISCOUNT_5Y = 1500;  // 15%
+    uint256 constant DISCOUNT_10Y = 2500; // 25%
+    
     // Default fees in USDM (18 decimals)
     uint256 constant DEFAULT_FEE = 1e18; // $1 for 5+ chars
 
@@ -138,6 +146,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     
     /// @notice Total volume in USDM (18 decimals) from registrations + renewals
     uint256 public totalVolume;
+
+    /// @notice Enumerable set of token IDs owned by each address
+    mapping(address => EnumerableSetLib.Uint256Set) internal _ownedTokens;
 
     // Versioned resolver data
     mapping(uint256 => mapping(uint256 => address)) internal _resolvedAddress;
@@ -184,7 +195,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return "MEGA";
     }
 
-    /// @dev Blocks transfers of inactive tokens
+    /// @dev Blocks transfers of inactive tokens and maintains enumerable ownership
     function _beforeTokenTransfer(address from, address to, uint256 tokenId)
         internal
         virtual
@@ -193,6 +204,26 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         if (from != address(0) && to != address(0)) {
             if (!_isActive(tokenId)) revert Expired();
         }
+        // Maintain enumerable set
+        if (from != address(0)) {
+            _ownedTokens[from].remove(tokenId);
+        }
+        if (to != address(0)) {
+            _ownedTokens[to].add(tokenId);
+        }
+    }
+
+    /// @notice Get all token IDs owned by an address
+    /// @param owner Address to query
+    /// @return tokenIds Array of token IDs owned by the address
+    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+        return _ownedTokens[owner].values();
+    }
+
+    /// @notice Get number of unique tokens owned by an address
+    /// @dev More gas-efficient than tokensOfOwner().length for just the count
+    function tokensOfOwnerCount(address owner) external view returns (uint256) {
+        return _ownedTokens[owner].length();
     }
 
     function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
@@ -304,7 +335,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
-        uint256 fee = registrationFee(normalized.length) * numYears;
+        uint256 fee = calculateFee(normalized.length, numYears);
         
         // Transfer USDM from caller
         if (fee > 0) {
@@ -343,6 +374,28 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return defaultFee;
     }
 
+    /// @notice Calculate total fee with multi-year discount
+    /// @param labelLength Length of the name label
+    /// @param numYears Number of years (1-10)
+    /// @return Total fee after discount
+    function calculateFee(uint256 labelLength, uint256 numYears) public view returns (uint256) {
+        uint256 yearlyFee = registrationFee(labelLength);
+        uint256 baseFee = yearlyFee * numYears;
+        
+        uint256 discount;
+        if (numYears >= 10) {
+            discount = DISCOUNT_10Y;
+        } else if (numYears >= 5) {
+            discount = DISCOUNT_5Y;
+        } else if (numYears >= 3) {
+            discount = DISCOUNT_3Y;
+        } else if (numYears >= 2) {
+            discount = DISCOUNT_2Y;
+        }
+        
+        return baseFee - (baseFee * discount / 10000);
+    }
+
     /// @notice Register a name directly without commit-reveal (simpler flow for fast chains)
     /// @param label The name to register
     /// @param owner Address to own the name
@@ -359,7 +412,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
-        uint256 fee = registrationFee(normalized.length) * numYears;
+        uint256 fee = calculateFee(normalized.length, numYears);
         
         // Transfer USDM from caller
         if (fee > 0) {
@@ -415,7 +468,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
-        uint256 fee = registrationFee(normalized.length) * numYears;
+        uint256 fee = calculateFee(normalized.length, numYears);
         
         // Execute permit to approve spending, then transfer
         if (fee > 0) {
@@ -474,7 +527,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         if (!_recordExists(tokenId)) revert InvalidName();
 
         uint256 labelLen = bytes(record.label).length;
-        uint256 fee = registrationFee(labelLen) * numYears;
+        uint256 fee = calculateFee(labelLen, numYears);
 
         // Transfer USDM from caller
         if (fee > 0) {

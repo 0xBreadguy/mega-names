@@ -1,11 +1,11 @@
 export const CONTRACTS = {
   testnet: {
-    megaNames: '0xc1e0d3C5Cc68F8b7F95252668C5ed1cBDBF82aE9' as const,
+    megaNames: '0x84443E5aC049636561f1A70FCAa8C8d776aA26f0' as const,
     usdm: '0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833' as const,
   },
   mainnet: {
-    megaNames: '' as const, // TBD
-    usdm: '0x078D782b760474a361dDA0AF3839290b0EF57AD6' as const,
+    megaNames: '0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad' as const,
+    usdm: '0xbB4E6d2F0f1C65a180D8aA57acF22eF8397f6c62' as const,
   },
 } as const
 
@@ -33,6 +33,8 @@ export const MEGA_NAMES_ABI = [
   { type: 'function', name: 'totalRenewals', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
   { type: 'function', name: 'totalSubdomains', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
   { type: 'function', name: 'totalVolume', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'tokensOfOwner', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ type: 'uint256[]' }], stateMutability: 'view' },
+  { type: 'function', name: 'tokensOfOwnerCount', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
   
   // Write functions
   { type: 'function', name: 'makeCommitment', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'secret', type: 'bytes32' }], outputs: [{ type: 'bytes32' }], stateMutability: 'pure' },

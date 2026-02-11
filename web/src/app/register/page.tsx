@@ -12,7 +12,7 @@ import {
 } from 'wagmi'
 import { erc20Abi, encodeFunctionData, type Hash } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
-import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
+import { getTokenId, formatUSDM, getPrice, isValidName, calculateFee, getDiscountLabel } from '@/lib/utils'
 import { Loader2, Check, ArrowLeft, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -40,7 +40,8 @@ function RegisterContent() {
   const isWrongChain = isConnected && chainId !== MEGAETH_TESTNET_CHAIN_ID
   const tokenId = name ? getTokenId(name) : BigInt(0)
   const pricePerYear = name ? getPrice(name.length) : BigInt(0)
-  const price = pricePerYear * BigInt(numYears)
+  const price = name ? calculateFee(name.length, numYears) : BigInt(0)
+  const discountLabel = getDiscountLabel(numYears)
 
   // Check if name is available
   const { data: records, isLoading: checkingAvailability } = useReadContract({
@@ -220,25 +221,25 @@ function RegisterContent() {
   return (
     <div className="min-h-[calc(100vh-64px)]">
       <div className="max-w-2xl mx-auto px-4 py-16">
-        <Link href="/" className="inline-flex items-center gap-2 text-[#666] hover:text-black mb-8">
+        <Link href="/" className="inline-flex items-center gap-2 text-[#5a5766] hover:text-black mb-8">
           <ArrowLeft className="w-4 h-4" />
           <span className="font-label text-sm">BACK TO SEARCH</span>
         </Link>
 
         {/* Name card */}
-        <div className="border-2 border-black mb-8">
-          <div className="p-8 border-b-2 border-black">
-            <p className="font-label text-sm text-[#666] mb-2">REGISTERING</p>
+        <div className="border border-[#1e1b2e] mb-8">
+          <div className="p-8 border-b border-[#1e1b2e]">
+            <p className="font-label text-sm text-[#5a5766] mb-2">REGISTERING</p>
             <h1 className="font-display text-5xl lg:text-6xl">{name}.mega</h1>
           </div>
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <p className="font-label text-xs text-[#666]">PRICE / YEAR</p>
+                <p className="font-label text-xs text-[#5a5766]">PRICE / YEAR</p>
                 <p className="font-display text-3xl">{formatUSDM(pricePerYear)}</p>
               </div>
               <div className="text-right">
-                <p className="font-label text-xs text-[#666] mb-2">DURATION</p>
+                <p className="font-label text-xs text-[#5a5766] mb-2">DURATION</p>
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 5, 10].map((y) => (
                     <button
@@ -246,8 +247,8 @@ function RegisterContent() {
                       onClick={() => setNumYears(y)}
                       className={`px-4 py-2 border-2 font-label text-sm transition-colors ${
                         numYears === y 
-                          ? 'border-black bg-black text-white' 
-                          : 'border-black hover:bg-gray-100'
+                          ? 'border-black bg-[#3A3632] text-[#E8E4DE]' 
+                          : 'border-[#1e1b2e] hover:border-[#3A3632]'
                       }`}
                     >
                       {y}Y
@@ -256,9 +257,19 @@ function RegisterContent() {
                 </div>
               </div>
             </div>
-            <div className="border-t-2 border-black pt-4 flex items-center justify-between">
-              <p className="font-label text-sm text-[#666]">TOTAL</p>
-              <p className="font-display text-4xl">{formatUSDM(price)}</p>
+            <div className="border-t border-[#1e1b2e] pt-4 flex items-center justify-between">
+              <div>
+                <p className="font-label text-sm text-[#5a5766]">TOTAL</p>
+                {discountLabel && (
+                  <p className="text-xs text-[#4ade80] font-bold">{discountLabel}</p>
+                )}
+              </div>
+              <div className="text-right">
+                {discountLabel && (
+                  <p className="text-sm text-[#5a5766] line-through">{formatUSDM(pricePerYear * BigInt(numYears))}</p>
+                )}
+                <p className="font-display text-4xl">{formatUSDM(price)}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -266,7 +277,7 @@ function RegisterContent() {
         {/* Step indicator */}
         {isAvailable && isConnected && step !== 'success' && step !== 'pending' && (
           <div className="mb-6 flex items-center gap-4">
-            <div className={`flex items-center gap-2 ${hasAllowance ? 'text-green-600' : 'text-black'}`}>
+            <div className={`flex items-center gap-2 ${hasAllowance ? 'text-[#4ade80]' : 'text-black'}`}>
               <div className={`w-8 h-8 flex items-center justify-center border-2 ${hasAllowance ? 'border-green-600 bg-green-600 text-white' : 'border-black'}`}>
                 {hasAllowance ? <Check className="w-4 h-4" /> : '1'}
               </div>
@@ -284,16 +295,16 @@ function RegisterContent() {
 
         {/* Status messages */}
         {step === 'check' && checkingAvailability && (
-          <div className="border-2 border-black p-8 text-center">
+          <div className="border border-[#1e1b2e] p-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
             <p className="font-label text-sm">CHECKING AVAILABILITY...</p>
           </div>
         )}
 
         {step === 'check' && !checkingAvailability && isAvailable === false && (
-          <div className="border-2 border-black p-8 text-center">
+          <div className="border border-[#1e1b2e] p-8 text-center">
             <p className="font-label text-sm text-red-600 mb-4">NAME NOT AVAILABLE</p>
-            <p className="text-[#666]">This name has already been registered</p>
+            <p className="text-[#5a5766]">This name has already been registered</p>
             <Link href="/" className="btn-secondary inline-block mt-4 px-6 py-3">
               SEARCH ANOTHER NAME
             </Link>
@@ -301,18 +312,18 @@ function RegisterContent() {
         )}
 
         {step === 'connect' && (
-          <div className="border-2 border-black p-8 text-center">
+          <div className="border border-[#1e1b2e] p-8 text-center">
             <p className="font-label text-sm mb-4">CONNECT YOUR WALLET TO CONTINUE</p>
-            <p className="text-[#666]">Use the connect button in the header</p>
+            <p className="text-[#5a5766]">Use the connect button in the header</p>
           </div>
         )}
 
         {step === 'wrong-chain' && (
-          <div className="border-2 border-black">
+          <div className="border border-[#1e1b2e]">
             <div className="p-8 text-center">
               <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-yellow-600" />
               <p className="font-label text-sm mb-2">WRONG NETWORK</p>
-              <p className="text-[#666] mb-6">
+              <p className="text-[#5a5766] mb-6">
                 Please switch to MegaETH Testnet to continue
               </p>
             </div>
@@ -334,7 +345,7 @@ function RegisterContent() {
         )}
 
         {step === 'approve' && (
-          <div className="border-2 border-black">
+          <div className="border border-[#1e1b2e]">
             <div className="p-8">
               {!hasBalance && (
                 <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-400">
@@ -353,10 +364,10 @@ function RegisterContent() {
                 </div>
               )}
 
-              <p className="text-[#666] mb-2">
+              <p className="text-[#5a5766] mb-2">
                 <strong>Step 1:</strong> Approve USDM spending
               </p>
-              <p className="text-sm text-[#999]">
+              <p className="text-sm text-[#5a5766]">
                 This is a one-time approval that allows MegaNames to use your USDM for registrations.
                 You won&apos;t need to approve again for future names.
               </p>
@@ -372,7 +383,7 @@ function RegisterContent() {
         )}
 
         {step === 'register' && (
-          <div className="border-2 border-black">
+          <div className="border border-[#1e1b2e]">
             <div className="p-8">
               {error && (
                 <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
@@ -381,10 +392,10 @@ function RegisterContent() {
                 </div>
               )}
 
-              <p className="text-[#666] mb-2">
+              <p className="text-[#5a5766] mb-2">
                 <strong>Step 2:</strong> Register your name
               </p>
-              <p className="text-sm text-[#999]">
+              <p className="text-sm text-[#5a5766]">
                 USDM approved! Click below to complete registration.
               </p>
             </div>
@@ -398,20 +409,20 @@ function RegisterContent() {
         )}
 
         {step === 'pending' && (
-          <div className="border-2 border-black p-8 text-center">
+          <div className="border border-[#1e1b2e] p-8 text-center">
             <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
             <p className="font-label text-sm mb-2">PROCESSING...</p>
-            <p className="text-[#666]">Confirming transaction on MegaETH</p>
+            <p className="text-[#5a5766]">Confirming transaction on MegaETH</p>
           </div>
         )}
 
         {step === 'success' && (
-          <div className="border-2 border-black p-8 text-center">
+          <div className="border border-[#1e1b2e] p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
               <Check className="w-8 h-8 text-white" />
             </div>
             <p className="font-label text-sm mb-2">SUCCESS!</p>
-            <p className="text-[#666] mb-6">
+            <p className="text-[#5a5766] mb-6">
               You are now the owner of <strong>{name}.mega</strong>
             </p>
             {txHash && (
