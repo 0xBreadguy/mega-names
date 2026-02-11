@@ -513,6 +513,85 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*//////////////////////////////////////////////////////////////
+                           ADMIN REGISTRATION
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Admin-only free registration (no payment, no commit-reveal)
+    /// @param label The name to register
+    /// @param owner Address to own the name
+    /// @param numYears Number of years to register (1-10)
+    function adminRegister(string calldata label, address owner, uint256 numYears)
+        external
+        onlyOwner
+        returns (uint256 tokenId)
+    {
+        if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
+
+        bytes memory normalized = _validateAndNormalize(bytes(label));
+
+        tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
+        if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
+
+        totalRegistrations++;
+
+        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD * numYears);
+        uint64 newEpoch = records[tokenId].epoch + 1;
+
+        records[tokenId] = NameRecord({
+            label: string(normalized),
+            parent: 0,
+            expiresAt: expiresAt,
+            epoch: newEpoch,
+            parentEpoch: 0
+        });
+
+        recordVersion[tokenId]++;
+
+        _mint(owner, tokenId);
+
+        emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
+    }
+
+    /// @notice Batch admin registration
+    /// @param labels Array of names to register
+    /// @param owners Array of owner addresses
+    /// @param numYears Number of years for all names
+    function adminRegisterBatch(
+        string[] calldata labels,
+        address[] calldata owners,
+        uint256 numYears
+    ) external onlyOwner {
+        if (labels.length != owners.length) revert LengthMismatch();
+        if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
+
+        for (uint256 i; i < labels.length; ++i) {
+            bytes memory normalized = _validateAndNormalize(bytes(labels[i]));
+
+            uint256 tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
+            if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
+
+            totalRegistrations++;
+
+            uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD * numYears);
+            uint64 newEpoch = records[tokenId].epoch + 1;
+
+            records[tokenId] = NameRecord({
+                label: string(normalized),
+                parent: 0,
+                expiresAt: expiresAt,
+                epoch: newEpoch,
+                parentEpoch: 0
+            });
+
+            recordVersion[tokenId]++;
+
+            _mint(owners[i], tokenId);
+
+            emit NameRegistered(tokenId, string(normalized), owners[i], expiresAt);
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
                               RENEWAL
     //////////////////////////////////////////////////////////////*/
 
