@@ -21,7 +21,7 @@ export function Header() {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="flex items-center gap-3 sm:gap-6">
             <Link href="/" className="font-label text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
               search
             </Link>
@@ -29,7 +29,7 @@ export function Header() {
               my names
             </Link>
             <a href="https://rabbithole.megaeth.com" target="_blank" rel="noopener noreferrer"
-              className="font-label text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+              className="font-label text-[var(--muted)] hover:text-[var(--foreground)] transition-colors hidden sm:inline">
               megaeth ↗
             </a>
           </nav>

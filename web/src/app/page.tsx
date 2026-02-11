@@ -1,23 +1,76 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, ArrowRight } from 'lucide-react'
 import { useReadContract } from 'wagmi'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
-import { useContractStats } from '@/lib/hooks'
+import { useContractStats, useRecentRegistrations } from '@/lib/hooks'
 import Link from 'next/link'
 import Image from 'next/image'
 
+/* ── Helpers ── */
+
+function AnimatedSection({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  const { ref, visible } = useInView(0.1)
+  return (
+    <section
+      ref={ref}
+      className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(20px)',
+        transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+      }}
+    >
+      {children}
+    </section>
+  )
+}
+
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect() } }, { threshold })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return { ref, visible }
+}
+
+function useMouseParallax(strength = 0.02) {
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  useEffect(() => {
+    let rafId: number
+    const handleMove = (e: MouseEvent) => {
+      rafId = requestAnimationFrame(() => {
+        const cx = window.innerWidth / 2
+        const cy = window.innerHeight / 2
+        setOffset({
+          x: (e.clientX - cx) * strength,
+          y: (e.clientY - cy) * strength,
+        })
+      })
+    }
+    window.addEventListener('mousemove', handleMove)
+    return () => { window.removeEventListener('mousemove', handleMove); cancelAnimationFrame(rafId) }
+  }, [strength])
+  return offset
+}
+
+/* ── Interop Typewriter ── */
+
 function InteropTypewriter() {
-  const chains = ['megaeth', 'ethereum']
+  const chains = ['megaeth', 'ethereum', 'base', 'arbitrum', 'lighter']
   const [chainIndex, setChainIndex] = useState(0)
   const [displayed, setDisplayed] = useState('')
   const [phase, setPhase] = useState<'typing' | 'pause' | 'deleting'>('typing')
 
   useEffect(() => {
     const target = chains[chainIndex]
-
     if (phase === 'typing') {
       if (displayed.length < target.length) {
         const t = setTimeout(() => setDisplayed(target.slice(0, displayed.length + 1)), 80)
@@ -27,12 +80,10 @@ function InteropTypewriter() {
         return () => clearTimeout(t)
       }
     }
-
     if (phase === 'pause') {
       const t = setTimeout(() => setPhase('deleting'), 0)
       return () => clearTimeout(t)
     }
-
     if (phase === 'deleting') {
       if (displayed.length > 0) {
         const t = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 40)
@@ -54,10 +105,74 @@ function InteropTypewriter() {
   )
 }
 
+/* ── Staggered Pricing Card ── */
+
+function PricingCard({ length, price, index }: { length: string; price: string; index: number }) {
+  const { ref, visible } = useInView(0.1)
+  return (
+    <div
+      ref={ref}
+      className="panel py-6 text-center hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(16px)',
+        transition: `opacity 0.4s ease-out ${index * 0.08}s, transform 0.4s ease-out ${index * 0.08}s`,
+      }}
+    >
+      <p className="font-label text-[var(--muted)] text-[0.5rem] sm:text-[0.6rem] mb-2">{length} char</p>
+      <p className="font-display text-2xl sm:text-3xl text-[var(--foreground)]">{price}</p>
+    </div>
+  )
+}
+
+/* ── Recently Registered Ticker ── */
+
+function RecentTicker({ names }: { names: string[] }) {
+  if (names.length === 0) return null
+  // Double the list for seamless loop
+  const doubled = [...names, ...names]
+  return (
+    <div className="overflow-hidden bg-[var(--foreground)] py-3">
+      <div className="ticker-track">
+        {doubled.map((name, i) => (
+          <span key={i} className="inline-flex items-center mx-6 whitespace-nowrap">
+            <span className="font-mono text-xs text-[var(--background-light)]">{name}</span>
+            <span className="font-mono text-xs text-[var(--muted)]">.mega</span>
+            <span className="ml-3 w-1 h-1 rounded-full bg-[var(--muted-dark)]" />
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Live Name Preview ── */
+
+function NamePreview({ name }: { name: string }) {
+  if (!name) return null
+  return (
+    <div className="mt-3 flex items-center gap-3 px-4 py-3 bg-[var(--surface)] border border-[var(--border-light)] rounded-sm animate-fade-in-up" style={{ animationDuration: '0.3s' }}>
+      <div className="w-8 h-8 rounded-full bg-[var(--border)] flex items-center justify-center flex-shrink-0">
+        <span className="font-display text-sm text-[var(--muted-dark)]">{name[0]?.toUpperCase()}</span>
+      </div>
+      <div className="min-w-0">
+        <p className="font-mono text-sm text-[var(--foreground)] truncate">{name.toLowerCase()}.mega</p>
+        <p className="font-label text-[var(--muted)] text-[0.5rem]">preview</p>
+      </div>
+    </div>
+  )
+}
+
+/* ── Main Page ── */
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchedName, setSearchedName] = useState('')
-  
+  const [searchFocused, setSearchFocused] = useState(false)
+  const [megaPulse, setMegaPulse] = useState(false)
+  const parallax = useMouseParallax(0.02)
+  const recentNames = useRecentRegistrations()
+
   const { namesRegistered, totalVolume, isLoading: statsLoading } = useContractStats()
 
   const tokenId = searchedName ? getTokenId(searchedName) : BigInt(0)
@@ -89,34 +204,50 @@ export default function Home() {
       <section className="relative overflow-hidden min-h-[85vh] flex items-center">
         {/* Blueprint grid */}
         <div className="blueprint-grid" />
-        
-        {/* Crosshair lines */}
-        <div className="crosshair-h" />
-        <div className="crosshair-v" />
-        
-        {/* Diagonal lines */}
-        <div className="diag-line" style={{ transform: 'rotate(30deg)' }} />
-        <div className="diag-line" style={{ transform: 'rotate(-30deg)' }} />
-        <div className="diag-line" style={{ transform: 'rotate(60deg)' }} />
-        <div className="diag-line" style={{ transform: 'rotate(-60deg)' }} />
 
-        {/* Orbital rings */}
-        <div className="orbital-rings">
+        {/* Scan line */}
+        <div
+          className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--blueprint-strong)] to-transparent pointer-events-none opacity-40"
+          style={{ animation: 'scan-line 12s linear infinite' }}
+        />
+
+        {/* Crosshair lines — parallax layer 1 (subtle) */}
+        <div style={{ transform: `translate(${parallax.x * 0.3}px, ${parallax.y * 0.3}px)`, transition: 'transform 0.3s ease-out' }}>
+          <div className="crosshair-h" />
+          <div className="crosshair-v" />
+        </div>
+
+        {/* Diagonal lines — parallax layer 1 */}
+        <div style={{ transform: `translate(${parallax.x * 0.4}px, ${parallax.y * 0.4}px)`, transition: 'transform 0.3s ease-out' }}>
+          <div className="diag-line" style={{ transform: 'rotate(30deg)' }} />
+          <div className="diag-line" style={{ transform: 'rotate(-30deg)' }} />
+          <div className="diag-line" style={{ transform: 'rotate(60deg)' }} />
+          <div className="diag-line" style={{ transform: 'rotate(-60deg)' }} />
+        </div>
+
+        {/* Orbital rings — parallax layer 2 (stronger) */}
+        <div
+          className={`orbital-rings ${searchFocused ? 'search-focused' : ''}`}
+          style={{
+            transform: `translate(calc(-50% + ${parallax.x * 0.8}px), calc(-50% + ${parallax.y * 0.8}px))`,
+            transition: 'transform 0.3s ease-out',
+          }}
+        >
           <div className="orbital-ring orbital-ring-1" />
           <div className="orbital-ring orbital-ring-2" />
-          <div className="orbital-ring orbital-ring-3" />
+          <div className={`orbital-ring orbital-ring-3 ${searchFocused ? 'ring-glow' : ''}`} />
           <div className="orbital-ring orbital-ring-4" />
           <div className="orbital-ring orbital-ring-5" />
-          
-          {/* Dots on orbits */}
-          <div className="orbital-dot" style={{ top: '10%', left: '50%' }} />
-          <div className="orbital-dot-hollow" style={{ top: '22%', left: '78%' }} />
-          <div className="orbital-dot" style={{ top: '50%', left: '93%' }} />
-          <div className="orbital-dot-hollow" style={{ top: '78%', left: '72%' }} />
-          <div className="orbital-dot" style={{ top: '88%', left: '44%' }} />
-          <div className="orbital-dot-hollow" style={{ top: '68%', left: '15%' }} />
-          <div className="orbital-dot" style={{ top: '30%', left: '12%' }} />
-          
+
+          {/* Dots on orbits (staggered pulse) */}
+          <div className="orbital-dot" style={{ top: '10%', left: '50%', animationDelay: '0s' }} />
+          <div className="orbital-dot-hollow" style={{ top: '22%', left: '78%', animationDelay: '0.7s' }} />
+          <div className="orbital-dot" style={{ top: '50%', left: '93%', animationDelay: '1.4s' }} />
+          <div className="orbital-dot-hollow" style={{ top: '78%', left: '72%', animationDelay: '2.1s' }} />
+          <div className="orbital-dot" style={{ top: '88%', left: '44%', animationDelay: '2.8s' }} />
+          <div className="orbital-dot-hollow" style={{ top: '68%', left: '15%', animationDelay: '3.5s' }} />
+          <div className="orbital-dot" style={{ top: '30%', left: '12%', animationDelay: '0.3s' }} />
+
           {/* Planet-style labels */}
           <div className="orbital-label" style={{ top: '8%', left: '52%' }}>mars</div>
           <div className="orbital-label" style={{ top: '20%', left: '82%' }}>neptune</div>
@@ -127,23 +258,30 @@ export default function Home() {
           <div className="orbital-label" style={{ top: '50%', left: '97%' }}>jupiter</div>
         </div>
 
-        {/* Faint MegaETH M logo watermark */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none">
+        {/* Faint MegaETH M logo watermark — parallax layer 3 (strongest, inverted) */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          style={{
+            opacity: megaPulse ? 0.15 : 0.04,
+            transform: `translate(calc(-50% + ${parallax.x * -0.5}px), calc(-50% + ${parallax.y * -0.5}px)) scale(${megaPulse ? 1.08 : 1})`,
+            transition: megaPulse ? 'opacity 0.2s ease-out, transform 0.3s ease-out' : 'opacity 0.8s ease-in, transform 0.8s ease-in, transform 0.3s ease-out',
+          }}
+        >
           <Image src="/megaeth-icon.png" alt="" width={500} height={500} />
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="text-center mb-16">
-            <p className="font-label text-[var(--muted)] mb-6 tracking-[0.25em]">
+            <p className="font-label text-[var(--muted)] mb-6 tracking-[0.25em] animate-fade-in-up">
               on-chain identity
             </p>
-            <h1 className="font-display text-8xl lg:text-[10rem] leading-[0.8] mb-4 text-[var(--foreground)]">
+            <h1 className="font-display text-6xl sm:text-8xl lg:text-[10rem] leading-[0.8] mb-4 text-[var(--foreground)] animate-fade-in-up delay-100">
               MEGA
             </h1>
-            <h2 className="font-display text-5xl lg:text-7xl leading-[0.85] text-[var(--muted-dark)] mb-8">
+            <h2 className="font-display text-4xl sm:text-5xl lg:text-7xl leading-[0.85] text-[var(--muted-dark)] mb-8 animate-fade-in-up delay-200">
               NAMES
             </h2>
-            <p className="text-[var(--muted-dark)] max-w-md mx-auto text-sm leading-relaxed">
+            <p className="text-[var(--muted-dark)] max-w-md mx-auto text-sm leading-relaxed animate-fade-in-up delay-300">
               Human-readable addresses on the real-time blockchain.
               Register your .mega name today.
             </p>
@@ -156,18 +294,33 @@ export default function Home() {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '')
+                    setSearchQuery(val)
+                    // Easter egg: typing "mega" triggers M watermark pulse
+                    if (val.toLowerCase() === 'mega' && !megaPulse) {
+                      setMegaPulse(true)
+                      setTimeout(() => setMegaPulse(false), 1200)
+                    }
+                  }}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
                   placeholder="yourname"
-                  className="flex-1 px-5 py-4 text-lg font-semibold"
+                  className="flex-1 min-w-0 px-3 sm:px-5 py-4 text-base sm:text-lg font-semibold"
                 />
-                <span className="px-4 py-4 border border-l-0 border-[var(--border)] bg-[var(--surface)] text-lg font-semibold text-[var(--muted)]">
+                <span className="px-2 sm:px-4 py-4 border border-l-0 border-[var(--border)] bg-[var(--surface)] text-sm sm:text-lg font-semibold text-[var(--muted)]">
                   .mega
                 </span>
-                <button type="submit" className="btn-primary px-6">
+                <button type="submit" className="btn-primary px-4 sm:px-6 flex-shrink-0">
                   <Search className="w-4 h-4" />
                 </button>
               </div>
             </form>
+
+            {/* Live preview while typing */}
+            {searchQuery && !searchedName && isValidName(searchQuery) && (
+              <NamePreview name={searchQuery} />
+            )}
 
             {/* Search Result */}
             {searchedName && (
@@ -212,7 +365,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Corner timestamp like reference image */}
+        {/* Corner timestamp */}
         <div className="absolute bottom-6 right-8 font-label text-[var(--muted)] text-[0.5rem] tracking-[0.15em]">
           2026.
         </div>
@@ -223,64 +376,43 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Recently registered ticker */}
+      <RecentTicker names={recentNames} />
+
       {/* Stats */}
-      <section className="border-t border-[var(--border)] relative">
+      <AnimatedSection className="border-t border-[var(--border)] relative">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
-            <div className="py-10 pr-8">
+            <div className="py-6 sm:py-10 pr-4 sm:pr-8">
               <p className="font-label text-[var(--muted)] mb-2">registered</p>
-              <p className="font-display text-5xl text-[var(--foreground)]">
+              <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">
                 {statsLoading ? '—' : namesRegistered.toLocaleString()}
               </p>
             </div>
-            <div className="py-10 px-8">
+            <div className="py-6 sm:py-10 px-4 sm:px-8">
               <p className="font-label text-[var(--muted)] mb-2">volume</p>
-              <p className="font-display text-5xl text-[var(--foreground)]">
+              <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">
                 {statsLoading ? '—' : formatUSDM(totalVolume)}
               </p>
             </div>
-            <div className="py-10 pl-8">
+            <div className="py-6 sm:py-10 pl-4 sm:pl-8">
               <p className="font-label text-[var(--muted)] mb-2">chain</p>
-              <p className="font-display text-5xl text-[var(--foreground)]">MEGAETH</p>
+              <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">MEGAETH</p>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Pricing */}
-      <section className="border-t border-[var(--border)]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <p className="font-label text-[var(--muted)] mb-8 tracking-[0.2em]">pricing / year</p>
-          <div className="grid grid-cols-5 gap-2">
-            {[
-              { length: '1', price: '$1,000' },
-              { length: '2', price: '$500' },
-              { length: '3', price: '$100' },
-              { length: '4', price: '$10' },
-              { length: '5+', price: '$1' },
-            ].map((tier) => (
-              <div key={tier.length} className="panel py-6 text-center hover:border-[var(--foreground)]/20 transition-colors">
-                <p className="font-label text-[var(--muted)] text-[0.6rem] mb-2">{tier.length} char</p>
-                <p className="font-display text-3xl text-[var(--foreground)]">{tier.price}</p>
-              </div>
-            ))}
-          </div>
-          <p className="font-label text-[var(--muted)] mt-6 text-center text-[0.6rem] tracking-[0.15em]">
-            multi-year discounts · 2y 5% · 3y 10% · 5y 15% · 10y 25%
-          </p>
-        </div>
-      </section>
+      </AnimatedSection>
 
       {/* Features */}
-      <section className="border-t border-[var(--border)]">
+      <AnimatedSection className="border-t border-[var(--border)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <p className="font-label text-[var(--muted)] mb-8 tracking-[0.2em]">features</p>
           <div className="grid md:grid-cols-3 gap-4">
-            <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-colors">
+            <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
               <h3 className="font-display text-xl text-[var(--foreground)] mb-2">HUMAN-READABLE</h3>
               <p className="text-[var(--muted-dark)] text-sm leading-relaxed">Replace 0x addresses with memorable names like bread.mega</p>
             </div>
-            <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-colors">
+            <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
               <h3 className="font-display text-xl text-[var(--foreground)] mb-2">CROSSCHAIN COMPLIANT</h3>
               <div className="bg-[var(--background)] border border-[var(--border-light)] px-4 py-3 mb-3 rounded-sm">
                 <InteropTypewriter />
@@ -289,13 +421,38 @@ export default function Home() {
                 Future-proof addressing built on the <a href="https://interopaddress.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--foreground)] transition-colors">interop address standard ↗</a>
               </p>
             </div>
-            <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-colors">
+            <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
               <h3 className="font-display text-xl text-[var(--foreground)] mb-2">ON-CHAIN WEBSITES</h3>
               <p className="text-[var(--muted-dark)] text-sm leading-relaxed">Host your website directly on MegaETH with Warren integration.</p>
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
+
+      {/* Pricing — staggered cards */}
+      <AnimatedSection className="border-t border-[var(--border)]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <p className="font-label text-[var(--muted)] mb-8 tracking-[0.2em]">pricing / year</p>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            {[
+              { length: '1', price: '$1,000' },
+              { length: '2', price: '$500' },
+              { length: '3', price: '$100' },
+              { length: '4', price: '$10' },
+              { length: '5+', price: '$1' },
+            ].map((tier, i) => (
+              <PricingCard key={tier.length} length={tier.length} price={tier.price} index={i} />
+            ))}
+          </div>
+          <div className="font-label text-[var(--muted)] mt-6 text-center text-[0.5rem] sm:text-[0.6rem] tracking-[0.1em] sm:tracking-[0.15em]">
+            <span className="hidden sm:inline">multi-year discounts · 2y 5% · 3y 10% · 5y 15% · 10y 25%</span>
+            <span className="sm:hidden">
+              multi-year discounts<br />
+              2y 5% · 3y 10% · 5y 15% · 10y 25%
+            </span>
+          </div>
+        </div>
+      </AnimatedSection>
 
       {/* Footer */}
       <footer className="border-t border-[var(--border)]">

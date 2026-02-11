@@ -150,6 +150,47 @@ export function useResolveMegaName(input: string) {
   }
 }
 
+// Hook to get recent name registrations from events
+export function useRecentRegistrations(count = 20) {
+  const publicClient = usePublicClient()
+  const [names, setNames] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!publicClient) return
+    const fetch = async () => {
+      try {
+        const logs = await publicClient.getLogs({
+          address: CONTRACTS.testnet.megaNames,
+          event: {
+            type: 'event',
+            name: 'NameRegistered',
+            inputs: [
+              { name: 'tokenId', type: 'uint256', indexed: true },
+              { name: 'label', type: 'string', indexed: false },
+              { name: 'owner', type: 'address', indexed: true },
+              { name: 'expiresAt', type: 'uint256', indexed: false },
+            ],
+          },
+          fromBlock: BigInt(0),
+          toBlock: 'latest',
+        })
+        const labels = logs
+          .map((log) => (log.args as any)?.label as string)
+          .filter(Boolean)
+          .slice(-count)
+          .reverse()
+        setNames(labels)
+      } catch {
+        // Fallback if getLogs fails
+        setNames([])
+      }
+    }
+    fetch()
+  }, [publicClient, count])
+
+  return names
+}
+
 // Hook to get contract stats (names registered, renewals, subdomains, volume)
 export function useContractStats() {
   const { data: totalRegistrations, isLoading: loadingRegistrations } = useReadContract({

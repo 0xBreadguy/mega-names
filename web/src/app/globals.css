@@ -109,6 +109,12 @@ body {
   pointer-events: none;
 }
 
+@media (max-width: 640px) {
+  .orbital-rings {
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+}
+
 .orbital-ring {
   position: absolute;
   border-radius: 50%;
@@ -116,13 +122,14 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  animation: ring-breathe 6s ease-in-out infinite;
 }
 
-.orbital-ring-1 { width: 200px; height: 200px; }
-.orbital-ring-2 { width: 360px; height: 360px; }
-.orbital-ring-3 { width: 520px; height: 520px; }
-.orbital-ring-4 { width: 680px; height: 680px; }
-.orbital-ring-5 { width: 840px; height: 840px; }
+.orbital-ring-1 { width: 200px; height: 200px; animation-delay: 0s; }
+.orbital-ring-2 { width: 360px; height: 360px; animation-delay: 1.2s; }
+.orbital-ring-3 { width: 520px; height: 520px; animation-delay: 2.4s; }
+.orbital-ring-4 { width: 680px; height: 680px; animation-delay: 3.6s; }
+.orbital-ring-5 { width: 840px; height: 840px; animation-delay: 4.8s; }
 
 /* Planet dots on orbits */
 .orbital-dot {
@@ -132,6 +139,7 @@ body {
   background: var(--blueprint-strong);
   border-radius: 50%;
   transform: translate(-50%, -50%);
+  animation: dot-pulse 4s ease-in-out infinite;
 }
 
 .orbital-dot-hollow {
@@ -142,6 +150,7 @@ body {
   border-radius: 50%;
   background: transparent;
   transform: translate(-50%, -50%);
+  animation: dot-hollow-pulse 5s ease-in-out infinite;
 }
 
 /* Planet labels */
@@ -210,6 +219,57 @@ body {
   to { transform: rotate(calc(var(--diag-start) + 360deg)); }
 }
 
+/* Gentle pulse on orbital dots */
+@keyframes dot-pulse {
+  0%, 100% { opacity: 0.12; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.25; transform: translate(-50%, -50%) scale(1.4); }
+}
+
+@keyframes dot-hollow-pulse {
+  0%, 100% { opacity: 0.12; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.2; transform: translate(-50%, -50%) scale(1.2); }
+}
+
+/* Ring breathing */
+@keyframes ring-breathe {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.18; }
+}
+
+/* Scan line sweeping across hero */
+@keyframes scan-line {
+  0% { top: -2px; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Fade in up for sections */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out both;
+}
+
+/* Stagger delays */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+
+/* Search focus → ring 3 glow */
+.ring-glow {
+  border-color: rgba(25, 25, 26, 0.25) !important;
+  box-shadow: 0 0 40px rgba(25, 25, 26, 0.06), inset 0 0 40px rgba(25, 25, 26, 0.03);
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.orbital-ring-3 {
+  transition: border-color 0.6s ease, box-shadow 0.6s ease;
+}
+
 /* Cursor blink */
 @keyframes blink {
   0%, 100% { opacity: 1; }
@@ -218,6 +278,22 @@ body {
 
 .animate-blink {
   animation: blink 0.8s step-end infinite;
+}
+
+/* Marquee ticker */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  display: inline-flex;
+  animation: ticker-scroll 30s linear infinite;
+  white-space: nowrap;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
 }
 
 /* Custom scrollbar */
