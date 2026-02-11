@@ -32,6 +32,9 @@ export function Header() {
             <Link href="/my-names" className="font-label text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
               my names
             </Link>
+            <Link href="/integrate" className="font-label text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+              integrate
+            </Link>
             <a href="https://rabbithole.megaeth.com" target="_blank" rel="noopener noreferrer"
               className="font-label text-[var(--muted)] hover:text-[var(--foreground)] transition-colors hidden sm:inline">
               megaeth ↗
