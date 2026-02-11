@@ -20,7 +20,7 @@ MegaNames provides ENS-style naming for MegaETH's `.mega` TLD with stable USDM p
 
 ## Fee Structure
 
-100% of fees go to the [Warren Protocol](https://github.com/megaeth-labs/warren) safe for on-chain website infrastructure.
+100% of fees go to the [Warren Protocol](https://x.com/thewarrenapp) safe for on-chain website infrastructure.
 
 | Length | Annual Fee | | Multi-Year | Discount |
 |--------|-----------|---|------------|----------|
@@ -36,15 +36,15 @@ MegaNames provides ENS-style naming for MegaETH's `.mega` TLD with stable USDM p
 
 | Contract | Address |
 |----------|---------|
-| MegaNames | [`0x84443E5aC049636561f1A70FCAa8C8d776aA26f0`](https://megaexplorer.xyz/address/0x84443E5aC049636561f1A70FCAa8C8d776aA26f0) |
-| MockUSDM | [`0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833`](https://megaexplorer.xyz/address/0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833) |
+| MegaNames | [`0x84443E5aC049636561f1A70FCAa8C8d776aA26f0`](https://megaeth.blockscout.com/address/0x84443E5aC049636561f1A70FCAa8C8d776aA26f0) |
+| MockUSDM | [`0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833`](https://megaeth.blockscout.com/address/0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833) |
 
 ### MegaETH Mainnet (Chain ID: 4326)
 
 | Contract | Address |
 |----------|---------|
-| MegaNames | [`0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad`](https://megaexplorer.xyz/address/0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad) |
-| USDM | [`0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`](https://megaexplorer.xyz/address/0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7) |
+| MegaNames | [`0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad`](https://megaeth.blockscout.com/address/0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad) |
+| USDM | [`0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`](https://megaeth.blockscout.com/address/0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7) |
 
 **Fee Recipient (Warren Safe):** `0xd4aE3973244592ef06dfdf82470329aCfA62C187`
 
