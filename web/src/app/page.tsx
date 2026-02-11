@@ -5,6 +5,7 @@ import { Search, ArrowRight } from 'lucide-react'
 import { useReadContract } from 'wagmi'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
+import { useContractStats } from '@/lib/hooks'
 import Link from 'next/link'
 
 // Generate barcode bars
@@ -21,6 +22,9 @@ function Barcode({ count = 50, className = '' }: { count?: number; className?: s
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchedName, setSearchedName] = useState('')
+  
+  // Live contract stats
+  const { namesRegistered, totalVolume, isLoading: statsLoading } = useContractStats()
 
   const tokenId = searchedName ? getTokenId(searchedName) : BigInt(0)
 
@@ -143,20 +147,25 @@ export default function Home() {
       {/* Stats Grid */}
       <section className="border-b-2 border-black">
         <div className="grid md:grid-cols-3">
-          {[
-            { label: 'NAMES REGISTERED', value: '0', sublabel: 'TESTNET' },
-            { label: 'TOTAL VOLUME', value: '$0', sublabel: 'USDM' },
-            { label: 'CHAIN', value: 'MEGA', sublabel: 'ID: 6342' },
-          ].map((stat, i) => (
-            <div 
-              key={stat.label}
-              className={`p-8 ${i < 2 ? 'border-r-2 border-black' : ''}`}
-            >
-              <p className="font-label text-sm text-[#666] mb-2">{stat.label}</p>
-              <p className="font-display text-5xl lg:text-6xl mb-1">{stat.value}</p>
-              <Barcode count={30} className="h-6" />
-            </div>
-          ))}
+          <div className="p-8 border-r-2 border-black">
+            <p className="font-label text-sm text-[#666] mb-2">NAMES REGISTERED</p>
+            <p className="font-display text-5xl lg:text-6xl mb-1">
+              {statsLoading ? '—' : namesRegistered.toLocaleString()}
+            </p>
+            <Barcode count={30} className="h-6" />
+          </div>
+          <div className="p-8 border-r-2 border-black">
+            <p className="font-label text-sm text-[#666] mb-2">TOTAL VOLUME</p>
+            <p className="font-display text-5xl lg:text-6xl mb-1">
+              {statsLoading ? '—' : formatUSDM(totalVolume)}
+            </p>
+            <Barcode count={30} className="h-6" />
+          </div>
+          <div className="p-8">
+            <p className="font-label text-sm text-[#666] mb-2">CHAIN</p>
+            <p className="font-display text-5xl lg:text-6xl mb-1">MEGA</p>
+            <Barcode count={30} className="h-6" />
+          </div>
         </div>
       </section>
 
