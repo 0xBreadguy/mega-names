@@ -367,6 +367,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         // Clear resolver data on new registration
         recordVersion[tokenId]++;
 
+        // Burn expired token if re-registering, then mint to new owner
+        if (_exists(tokenId)) {
+            _burn(tokenId);
+        }
         _mint(owner, tokenId);
 
         emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
@@ -435,6 +439,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         });
 
         recordVersion[tokenId]++;
+        if (_exists(tokenId)) {
+            _burn(tokenId);
+        }
         _mint(owner, tokenId);
 
         emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
@@ -475,6 +482,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
         recordVersion[tokenId]++;
 
+        if (_exists(tokenId)) {
+            _burn(tokenId);
+        }
         _mint(owner, tokenId);
 
         emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
@@ -513,6 +523,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
             recordVersion[tokenId]++;
 
+            if (_exists(tokenId)) {
+                _burn(tokenId);
+            }
             _mint(owners[i], tokenId);
 
             emit NameRegistered(tokenId, string(normalized), owners[i], expiresAt);

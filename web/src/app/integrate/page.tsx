@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-const CONTRACT_ADDRESS = '0xb1b94f1878b4ce8b26a7a4d9b8444bbb7a01cab0'
+const CONTRACT_ADDRESS = '0x6b55800ebc02429b7f56ebc3b6246626f393f7ae'
 const USDM_ADDRESS = '0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833'
 const CHAIN_ID = 6342
 const RPC_URL = 'https://carrot.megaeth.com/rpc'
