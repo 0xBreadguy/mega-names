@@ -124,6 +124,12 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     mapping(bytes32 => uint256) public commitments;
     mapping(address => uint256) public primaryName;
 
+    /// @notice Total number of names registered (including renewals as new registrations)
+    uint256 public totalRegistrations;
+    
+    /// @notice Total volume in USDM (18 decimals) from registrations
+    uint256 public totalVolume;
+
     // Versioned resolver data
     mapping(uint256 => mapping(uint256 => address)) internal _resolvedAddress;
     mapping(uint256 => mapping(uint256 => bytes)) internal _contenthash;
@@ -293,6 +299,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
             SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
         }
 
+        // Update counters
+        totalRegistrations++;
+        totalVolume += fee;
+
         uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
 
         // Increment epoch if re-registering expired name
@@ -340,6 +350,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         if (fee > 0) {
             SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
         }
+
+        // Update counters
+        totalRegistrations++;
+        totalVolume += fee;
 
         uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
 
@@ -404,6 +418,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
             
             SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
         }
+
+        // Update counters
+        totalRegistrations++;
+        totalVolume += fee;
 
         uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
         uint64 newEpoch = records[tokenId].epoch + 1;

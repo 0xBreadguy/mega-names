@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { usePublicClient, useReadContract } from 'wagmi'
 import { CONTRACTS, MEGA_NAMES_ABI } from './contracts'
-import { getPrice } from './utils'
 
 // Hook to get a name for an address (reverse lookup)
 export function useMegaName(address: `0x${string}` | undefined) {
@@ -153,59 +152,21 @@ export function useResolveMegaName(input: string) {
 
 // Hook to get contract stats (names registered, total volume)
 export function useContractStats() {
-  const publicClient = usePublicClient()
-  const [stats, setStats] = useState({
-    namesRegistered: 0,
-    totalVolume: BigInt(0),
-    isLoading: true,
+  const { data: totalRegistrations, isLoading: loadingRegistrations } = useReadContract({
+    address: CONTRACTS.testnet.megaNames,
+    abi: MEGA_NAMES_ABI,
+    functionName: 'totalRegistrations',
   })
 
-  useEffect(() => {
-    if (!publicClient) return
+  const { data: totalVolume, isLoading: loadingVolume } = useReadContract({
+    address: CONTRACTS.testnet.megaNames,
+    abi: MEGA_NAMES_ABI,
+    functionName: 'totalVolume',
+  })
 
-    const fetchStats = async () => {
-      try {
-        // Get all NameRegistered events
-        const logs = await publicClient.getLogs({
-          address: CONTRACTS.testnet.megaNames,
-          event: {
-            type: 'event',
-            name: 'NameRegistered',
-            inputs: [
-              { name: 'tokenId', type: 'uint256', indexed: true },
-              { name: 'label', type: 'string', indexed: false },
-              { name: 'owner', type: 'address', indexed: true },
-              { name: 'expiresAt', type: 'uint256', indexed: false },
-            ],
-          },
-          fromBlock: BigInt(0),
-          toBlock: 'latest',
-        })
-
-        const namesRegistered = logs.length
-        
-        // Calculate total volume from label lengths
-        let totalVolume = BigInt(0)
-        for (const log of logs) {
-          const label = log.args.label
-          if (label) {
-            totalVolume += getPrice(label.length)
-          }
-        }
-
-        setStats({
-          namesRegistered,
-          totalVolume,
-          isLoading: false,
-        })
-      } catch (error) {
-        console.error('Failed to fetch contract stats:', error)
-        setStats(prev => ({ ...prev, isLoading: false }))
-      }
-    }
-
-    fetchStats()
-  }, [publicClient])
-
-  return stats
+  return {
+    namesRegistered: totalRegistrations ? Number(totalRegistrations) : 0,
+    totalVolume: totalVolume ?? BigInt(0),
+    isLoading: loadingRegistrations || loadingVolume,
+  }
 }

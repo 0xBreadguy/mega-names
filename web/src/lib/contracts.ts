@@ -29,6 +29,8 @@ export const MEGA_NAMES_ABI = [
   { type: 'function', name: 'text', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'key', type: 'string' }], outputs: [{ type: 'string' }], stateMutability: 'view' },
   { type: 'function', name: 'contenthash', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ type: 'bytes' }], stateMutability: 'view' },
   { type: 'function', name: 'balanceOf', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'totalRegistrations', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
+  { type: 'function', name: 'totalVolume', inputs: [], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
   
   // Write functions
   { type: 'function', name: 'makeCommitment', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'secret', type: 'bytes32' }], outputs: [{ type: 'bytes32' }], stateMutability: 'pure' },
