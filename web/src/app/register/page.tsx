@@ -190,7 +190,7 @@ function RegisterContent() {
     try {
       const data = encodeFunctionData({
         abi: MEGA_NAMES_ABI,
-        functionName: 'registerDirect',
+        functionName: 'register',
         args: [name, address, BigInt(numYears)],
       })
 

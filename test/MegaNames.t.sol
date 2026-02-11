@@ -49,15 +49,12 @@ contract MegaNamesTest is Test {
         vm.startPrank(alice);
         usdm.approve(address(names), type(uint256).max);
 
-        bytes32 secret = keccak256("secret");
-        bytes32 commitment = names.makeCommitment("bread", alice, secret);
 
-        names.commit(commitment);
+        
         
         // Warp past MIN_COMMITMENT_AGE
-        vm.warp(block.timestamp + 61);
 
-        uint256 tokenId = names.register("bread", alice, secret, 1);
+        uint256 tokenId = names.register("bread", alice, 1);
 
         assertEq(names.ownerOf(tokenId), alice);
         assertEq(names.getName(alice), ""); // No primary set yet
@@ -72,15 +69,12 @@ contract MegaNamesTest is Test {
         vm.startPrank(alice);
         usdm.approve(address(names), type(uint256).max);
 
-        bytes32 secret = keccak256("secret");
-        bytes32 commitment = names.makeCommitment("test", alice, secret);
-        names.commit(commitment);
-        vm.warp(block.timestamp + 61);
+        
 
         uint256 warrenBefore = usdm.balanceOf(WARREN_SAFE);
         uint256 fee = names.registrationFee(4); // 4 char = $10
 
-        names.register("test", alice, secret, 1);
+        names.register("test", alice, 1);
 
         assertEq(usdm.balanceOf(WARREN_SAFE), warrenBefore + fee);
 
@@ -92,12 +86,9 @@ contract MegaNamesTest is Test {
         usdm.approve(address(names), type(uint256).max);
 
         // Register parent
-        bytes32 secret = keccak256("secret");
-        bytes32 commitment = names.makeCommitment("alice", alice, secret);
-        names.commit(commitment);
-        vm.warp(block.timestamp + 61);
+        
 
-        uint256 parentId = names.register("alice", alice, secret, 1);
+        uint256 parentId = names.register("alice", alice, 1);
 
         // Register subdomain (free!)
         uint256 subId = names.registerSubdomain(parentId, "blog");
@@ -113,12 +104,9 @@ contract MegaNamesTest is Test {
         vm.startPrank(alice);
         usdm.approve(address(names), type(uint256).max);
 
-        bytes32 secret = keccak256("secret");
-        bytes32 commitment = names.makeCommitment("myname", alice, secret);
-        names.commit(commitment);
-        vm.warp(block.timestamp + 61);
+        
 
-        uint256 tokenId = names.register("myname", alice, secret, 1);
+        uint256 tokenId = names.register("myname", alice, 1);
 
         // Set address resolution
         names.setAddr(tokenId, bob);
@@ -140,12 +128,9 @@ contract MegaNamesTest is Test {
         vm.startPrank(alice);
         usdm.approve(address(names), type(uint256).max);
 
-        bytes32 secret = keccak256("secret");
-        bytes32 commitment = names.makeCommitment("renew", alice, secret);
-        names.commit(commitment);
-        vm.warp(block.timestamp + 61);
+        
 
-        uint256 tokenId = names.register("renew", alice, secret, 1);
+        uint256 tokenId = names.register("renew", alice, 1);
 
         // Get current expiry from records
         (,, uint64 expiresAt,,) = names.records(tokenId);
@@ -169,26 +154,13 @@ contract MegaNamesTest is Test {
         assertEq(names.MEGA_NODE(), expected);
     }
 
-    function test_RevertWhen_RegisterWithoutCommit() public {
-        vm.startPrank(alice);
-        usdm.approve(address(names), type(uint256).max);
-        
-        vm.expectRevert(MegaNames.CommitmentNotFound.selector);
-        names.register("nocommit", alice, keccak256("secret"), 1);
-        
-        vm.stopPrank();
-    }
-
     function test_RevertWhen_TransferExpired() public {
         vm.startPrank(alice);
         usdm.approve(address(names), type(uint256).max);
 
-        bytes32 secret = keccak256("secret");
-        bytes32 commitment = names.makeCommitment("expiring", alice, secret);
-        names.commit(commitment);
-        vm.warp(block.timestamp + 61);
+        
 
-        uint256 tokenId = names.register("expiring", alice, secret, 1);
+        uint256 tokenId = names.register("expiring", alice, 1);
 
         // Warp past expiry + grace period
         vm.warp(block.timestamp + 366 days + 91 days);
@@ -204,14 +176,11 @@ contract MegaNamesTest is Test {
         vm.startPrank(alice);
         // Don't approve USDM
 
-        bytes32 secret = keccak256("secret");
-        bytes32 commitment = names.makeCommitment("noallowance", alice, secret);
-        names.commit(commitment);
-        vm.warp(block.timestamp + 61);
+        
 
         // Should revert due to no approval
         vm.expectRevert();
-        names.register("noallowance", alice, secret, 1);
+        names.register("noallowance", alice, 1);
 
         vm.stopPrank();
     }
@@ -221,13 +190,10 @@ contract MegaNamesTest is Test {
         usdm.approve(address(names), type(uint256).max);
 
         // Register 1-char name ($1000)
-        bytes32 secret = keccak256("secret");
-        bytes32 commitment = names.makeCommitment("x", alice, secret);
-        names.commit(commitment);
-        vm.warp(block.timestamp + 61);
+        
 
         uint256 balBefore = usdm.balanceOf(alice);
-        names.register("x", alice, secret, 1);
+        names.register("x", alice, 1);
         uint256 balAfter = usdm.balanceOf(alice);
 
         assertEq(balBefore - balAfter, 1000e18); // $1000

@@ -40,11 +40,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     error NotParentOwner();
     error PremiumTooHigh();
     error InsufficientFee();
-    error AlreadyCommitted();
-    error CommitmentTooNew();
-    error CommitmentTooOld();
     error AlreadyRegistered();
-    error CommitmentNotFound();
     error DecayPeriodTooLong();
     error InvalidPaymentToken();
     error InvalidYears();
@@ -59,8 +55,6 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     event SubdomainRegistered(uint256 indexed tokenId, uint256 indexed parentId, string label);
     event NameRenewed(uint256 indexed tokenId, uint256 newExpiresAt);
     event PrimaryNameSet(address indexed addr, uint256 indexed tokenId);
-    event Committed(bytes32 indexed commitment, address indexed committer);
-
     // ENS-compatible resolver events
     event AddrChanged(bytes32 indexed node, address addr);
     event ContenthashChanged(bytes32 indexed node, bytes contenthash);
@@ -86,8 +80,6 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
     uint256 constant MAX_LABEL_LENGTH = 255;
     uint256 constant MIN_LABEL_LENGTH = 1;
-    uint256 constant MIN_COMMITMENT_AGE = 60;
-    uint256 constant MAX_COMMITMENT_AGE = 86400;
     uint256 constant REGISTRATION_PERIOD = 365 days;
     uint256 constant GRACE_PERIOD = 90 days;
     uint256 constant MAX_SUBDOMAIN_DEPTH = 10;
@@ -132,7 +124,6 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     mapping(uint256 => bool) public lengthFeeSet;
     mapping(uint256 => NameRecord) public records;
     mapping(uint256 => uint256) public recordVersion;
-    mapping(bytes32 => uint256) public commitments;
     mapping(address => uint256) public primaryName;
 
     /// @notice Total number of names registered
@@ -283,89 +274,8 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            COMMIT-REVEAL
-    //////////////////////////////////////////////////////////////*/
-
-    function makeCommitment(string calldata label, address owner, bytes32 secret)
-        public
-        pure
-        returns (bytes32)
-    {
-        bytes memory normalized = _validateAndNormalize(bytes(label));
-        return keccak256(abi.encode(normalized, owner, secret));
-    }
-
-    function commit(bytes32 commitment) public {
-        if (
-            commitments[commitment] != 0
-                && block.timestamp <= commitments[commitment] + MAX_COMMITMENT_AGE
-        ) {
-            revert AlreadyCommitted();
-        }
-        commitments[commitment] = block.timestamp;
-        emit Committed(commitment, msg.sender);
-    }
-
-    /*//////////////////////////////////////////////////////////////
                             REGISTRATION
     //////////////////////////////////////////////////////////////*/
-
-    /// @notice Register a name (must approve USDM first)
-    /// @param label The name to register
-    /// @param owner Address to own the name
-    /// @param secret Secret used in commitment
-    /// @param numYears Number of years to register (1-10)
-    function register(string calldata label, address owner, bytes32 secret, uint256 numYears)
-        public
-        nonReentrant
-        returns (uint256 tokenId)
-    {
-        if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
-        
-        bytes memory normalized = _validateAndNormalize(bytes(label));
-        bytes32 commitment = keccak256(abi.encode(normalized, owner, secret));
-
-        uint256 commitTime = commitments[commitment];
-        if (commitTime == 0) revert CommitmentNotFound();
-        if (block.timestamp < commitTime + MIN_COMMITMENT_AGE) revert CommitmentTooNew();
-        if (block.timestamp > commitTime + MAX_COMMITMENT_AGE) revert CommitmentTooOld();
-
-        delete commitments[commitment];
-
-        tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
-        if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
-
-        uint256 fee = calculateFee(normalized.length, numYears);
-        
-        // Transfer USDM from caller
-        if (fee > 0) {
-            SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
-        }
-
-        // Update counters
-        totalRegistrations++;
-        totalVolume += fee;
-
-        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD * numYears);
-
-        // Increment epoch if re-registering expired name
-        uint64 newEpoch = records[tokenId].epoch + 1;
-
-        records[tokenId] = NameRecord({
-            label: string(normalized),
-            parent: 0,
-            expiresAt: expiresAt,
-            epoch: newEpoch,
-            parentEpoch: 0
-        });
-
-        // Clear resolver data on new registration
-        recordVersion[tokenId]++;
-
-        _mint(owner, tokenId);
-
-        emit NameRegistered(tokenId, string(normalized), owner, expiresAt);
-    }
 
     function registrationFee(uint256 labelLength) public view returns (uint256) {
         if (lengthFeeSet[labelLength]) {
@@ -396,11 +306,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return baseFee - (baseFee * discount / 10000);
     }
 
-    /// @notice Register a name directly without commit-reveal (simpler flow for fast chains)
+    /// @notice Register a name (must approve USDM first)
     /// @param label The name to register
     /// @param owner Address to own the name
     /// @param numYears Number of years to register (1-10)
-    function registerDirect(string calldata label, address owner, uint256 numYears)
+    function register(string calldata label, address owner, uint256 numYears)
         public
         nonReentrant
         returns (uint256 tokenId)

@@ -1,6 +1,6 @@
 export const CONTRACTS = {
   testnet: {
-    megaNames: '0xaf1a79b91a4e0822907b5a4674ecf948ca1a0fe7' as const,
+    megaNames: '0xed577b85a5e740a3062c5b3f840f467da0582ad8' as const,
     usdm: '0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833' as const,
   },
   mainnet: {
@@ -37,10 +37,7 @@ export const MEGA_NAMES_ABI = [
   { type: 'function', name: 'tokensOfOwnerCount', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ type: 'uint256' }], stateMutability: 'view' },
   
   // Write functions
-  { type: 'function', name: 'makeCommitment', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'secret', type: 'bytes32' }], outputs: [{ type: 'bytes32' }], stateMutability: 'pure' },
-  { type: 'function', name: 'commit', inputs: [{ name: 'commitment', type: 'bytes32' }], outputs: [], stateMutability: 'nonpayable' },
-  { type: 'function', name: 'register', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'secret', type: 'bytes32' }, { name: 'numYears', type: 'uint256' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
-  { type: 'function', name: 'registerDirect', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'numYears', type: 'uint256' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'register', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'numYears', type: 'uint256' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
   { type: 'function', name: 'registerWithPermit', inputs: [{ name: 'label', type: 'string' }, { name: 'owner', type: 'address' }, { name: 'numYears', type: 'uint256' }, { name: 'deadline', type: 'uint256' }, { name: 'v', type: 'uint8' }, { name: 'r', type: 'bytes32' }, { name: 's', type: 'bytes32' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
   { type: 'function', name: 'renew', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'numYears', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'setAddr', inputs: [{ name: 'tokenId', type: 'uint256' }, { name: 'addr_', type: 'address' }], outputs: [], stateMutability: 'nonpayable' },
