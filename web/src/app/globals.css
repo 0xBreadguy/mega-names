@@ -8,32 +8,63 @@
   --border: #000000;
 }
 
+/* MegaETH Official Fonts */
 @font-face {
-  font-family: 'MonumentExtended';
-  src: local('Monument Extended'), local('ABCDiatype'), local('Inter');
-  font-weight: 400 900;
+  font-family: 'Bebas Neue';
+  src: url('/fonts/BebasNeue-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Wudoo Mono';
+  src: url('/fonts/WudooMono-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Wudoo Mono';
+  src: url('/fonts/WudooMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Wudoo Mono';
+  src: url('/fonts/WudooMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
   font-display: swap;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-/* Brutalist typography */
+/* Display headlines - Bebas Neue */
 .font-display {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: -0.02em;
+  font-family: 'Bebas Neue', 'Impact', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
 }
 
+/* Labels/UI text - Helvetica Neue Medium */
 .font-label {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* Monospace - Wudoo Mono */
+.font-mono {
+  font-family: 'Wudoo Mono', 'SF Mono', 'Monaco', monospace;
 }
 
 /* Barcode stripes */
