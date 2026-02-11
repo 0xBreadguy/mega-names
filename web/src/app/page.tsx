@@ -170,7 +170,14 @@ export default function Home() {
   const [searchedName, setSearchedName] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
   const [megaPulse, setMegaPulse] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
   const parallax = useMouseParallax(0.02)
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
   const recentNames = useRecentRegistrations()
 
   const { namesRegistered, totalVolume, isLoading: statsLoading } = useContractStats()
@@ -199,6 +206,19 @@ export default function Home() {
     <div className="min-h-[calc(100vh-56px)]">
       {/* Paper texture overlay */}
       <div className="paper-texture" />
+
+      {/* Faint MegaETH M logo watermark — scroll parallax (moves at 0.4x speed) */}
+      <div
+        className="fixed top-1/2 left-1/2 pointer-events-none z-0"
+        style={{
+          opacity: megaPulse ? 0.15 : 0.04,
+          transform: `translate(calc(-50% + ${parallax.x * -0.5}px), calc(-50% + ${parallax.y * -0.5}px + ${scrollY * -0.3}px)) scale(${megaPulse ? 1.08 : 1})`,
+          transition: megaPulse ? 'opacity 0.2s ease-out' : 'opacity 0.8s ease-in',
+          willChange: 'transform',
+        }}
+      >
+        <Image src="/megaeth-icon.png" alt="" width={700} height={700} />
+      </div>
 
       {/* Hero */}
       <section className="relative overflow-hidden min-h-[85vh] flex items-center">
@@ -258,32 +278,20 @@ export default function Home() {
           <div className="orbital-label" style={{ top: '50%', left: '97%' }}>jupiter</div>
         </div>
 
-        {/* Faint MegaETH M logo watermark — parallax layer 3 (strongest, inverted) */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          style={{
-            opacity: megaPulse ? 0.15 : 0.04,
-            transform: `translate(calc(-50% + ${parallax.x * -0.5}px), calc(-50% + ${parallax.y * -0.5}px)) scale(${megaPulse ? 1.08 : 1})`,
-            transition: megaPulse ? 'opacity 0.2s ease-out, transform 0.3s ease-out' : 'opacity 0.8s ease-in, transform 0.8s ease-in, transform 0.3s ease-out',
-          }}
-        >
-          <Image src="/megaeth-icon.png" alt="" width={500} height={500} />
-        </div>
-
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="text-center mb-16">
             <p className="font-label text-[var(--muted)] mb-6 tracking-[0.25em] animate-fade-in-up">
               on-chain identity
             </p>
-            <h1 className="font-display text-6xl sm:text-8xl lg:text-[10rem] leading-[0.8] mb-4 text-[var(--foreground)] animate-fade-in-up delay-100">
-              MEGA
+            <h1 className="font-display text-6xl sm:text-8xl lg:text-[10rem] leading-[0.8] mb-1 text-[var(--foreground)] animate-fade-in-up delay-100">
+              MEGA NAME
             </h1>
             <h2 className="font-display text-4xl sm:text-5xl lg:text-7xl leading-[0.85] text-[var(--muted-dark)] mb-8 animate-fade-in-up delay-200">
-              NAMES
+              MARKET
             </h2>
             <p className="text-[var(--muted-dark)] max-w-md mx-auto text-sm leading-relaxed animate-fade-in-up delay-300">
               Human-readable addresses on the real-time blockchain.
-              Register your .mega name today.
+              Purchase .mega domains with USDM.
             </p>
           </div>
 
@@ -370,10 +378,6 @@ export default function Home() {
           2026.
         </div>
 
-        {/* Corner wordmark */}
-        <div className="absolute top-6 left-8 opacity-60 pointer-events-none">
-          <Image src="/megaeth-wordmark.svg" alt="MegaETH" width={120} height={20} />
-        </div>
       </section>
 
       {/* Recently registered ticker */}

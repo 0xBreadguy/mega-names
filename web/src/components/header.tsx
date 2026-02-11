@@ -1,15 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi'
 import { useResolvedName } from '@/lib/hooks'
 import { Loader2 } from 'lucide-react'
 
 export function Header() {
-  const { address, isConnected } = useAccount()
+  const { address, isConnected, chainId } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
+  const { switchChain } = useSwitchChain()
   const { displayName, isLoading, hasMegaName } = useResolvedName(address)
+  
+  const MEGAETH_TESTNET_ID = 6343
+  const isWrongChain = isConnected && chainId !== MEGAETH_TESTNET_ID
 
   return (
     <header className="border-b border-[var(--border)] sticky top-0 z-50 bg-[var(--background)]/90 backdrop-blur-md">
@@ -35,7 +39,14 @@ export function Header() {
           </nav>
 
           <div>
-            {isConnected ? (
+            {isConnected && isWrongChain ? (
+              <button
+                onClick={() => switchChain({ chainId: MEGAETH_TESTNET_ID })}
+                className="px-3 py-1.5 border border-orange-400 text-xs font-mono uppercase tracking-wider text-orange-600 hover:bg-orange-50 transition-all"
+              >
+                switch network
+              </button>
+            ) : isConnected ? (
               <button
                 onClick={() => disconnect()}
                 className={`px-3 py-1.5 border text-xs font-mono uppercase tracking-wider transition-all ${
