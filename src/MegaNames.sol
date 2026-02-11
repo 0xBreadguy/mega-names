@@ -45,6 +45,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     error CommitmentNotFound();
     error DecayPeriodTooLong();
     error InvalidPaymentToken();
+    error InvalidYears();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -91,6 +92,8 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     uint256 constant COIN_TYPE_ETH = 60;
     uint256 constant MAX_PREMIUM_CAP = 100_000e18; // 100k USDM
     uint256 constant MAX_DECAY_PERIOD = 3650 days;
+    uint256 constant MIN_YEARS = 1;
+    uint256 constant MAX_YEARS = 10;
     
     // Default fees in USDM (18 decimals)
     uint256 constant DEFAULT_FEE = 1e18; // $1 for 5+ chars
@@ -280,11 +283,14 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @param label The name to register
     /// @param owner Address to own the name
     /// @param secret Secret used in commitment
-    function register(string calldata label, address owner, bytes32 secret)
+    /// @param numYears Number of years to register (1-10)
+    function register(string calldata label, address owner, bytes32 secret, uint256 numYears)
         public
         nonReentrant
         returns (uint256 tokenId)
     {
+        if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
+        
         bytes memory normalized = _validateAndNormalize(bytes(label));
         bytes32 commitment = keccak256(abi.encode(normalized, owner, secret));
 
@@ -298,7 +304,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
-        uint256 fee = registrationFee(normalized.length);
+        uint256 fee = registrationFee(normalized.length) * numYears;
         
         // Transfer USDM from caller
         if (fee > 0) {
@@ -309,7 +315,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         totalRegistrations++;
         totalVolume += fee;
 
-        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
+        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD * numYears);
 
         // Increment epoch if re-registering expired name
         uint64 newEpoch = records[tokenId].epoch + 1;
@@ -340,17 +346,20 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @notice Register a name directly without commit-reveal (simpler flow for fast chains)
     /// @param label The name to register
     /// @param owner Address to own the name
-    function registerDirect(string calldata label, address owner)
+    /// @param numYears Number of years to register (1-10)
+    function registerDirect(string calldata label, address owner, uint256 numYears)
         public
         nonReentrant
         returns (uint256 tokenId)
     {
+        if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
+        
         bytes memory normalized = _validateAndNormalize(bytes(label));
 
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
-        uint256 fee = registrationFee(normalized.length);
+        uint256 fee = registrationFee(normalized.length) * numYears;
         
         // Transfer USDM from caller
         if (fee > 0) {
@@ -361,7 +370,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         totalRegistrations++;
         totalVolume += fee;
 
-        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
+        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD * numYears);
 
         // Increment epoch if re-registering expired name
         uint64 newEpoch = records[tokenId].epoch + 1;
@@ -385,6 +394,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @notice Register a name with permit (single transaction - approve + register)
     /// @param label The name to register
     /// @param owner Address to own the name
+    /// @param numYears Number of years to register (1-10)
     /// @param deadline Permit deadline timestamp
     /// @param v Permit signature v
     /// @param r Permit signature r
@@ -392,17 +402,20 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     function registerWithPermit(
         string calldata label,
         address owner,
+        uint256 numYears,
         uint256 deadline,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) public nonReentrant returns (uint256 tokenId) {
+        if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
+        
         bytes memory normalized = _validateAndNormalize(bytes(label));
 
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
-        uint256 fee = registrationFee(normalized.length);
+        uint256 fee = registrationFee(normalized.length) * numYears;
         
         // Execute permit to approve spending, then transfer
         if (fee > 0) {
@@ -429,7 +442,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         totalRegistrations++;
         totalVolume += fee;
 
-        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD);
+        uint64 expiresAt = uint64(block.timestamp + REGISTRATION_PERIOD * numYears);
         uint64 newEpoch = records[tokenId].epoch + 1;
 
         records[tokenId] = NameRecord({
@@ -451,13 +464,17 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Renew a name (must approve USDM first)
-    function renew(uint256 tokenId) public nonReentrant {
+    /// @param tokenId The name token ID to renew
+    /// @param numYears Number of years to renew (1-10)
+    function renew(uint256 tokenId, uint256 numYears) public nonReentrant {
+        if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
+        
         NameRecord storage record = records[tokenId];
         if (record.parent != 0) revert InvalidName();
         if (!_recordExists(tokenId)) revert InvalidName();
 
         uint256 labelLen = bytes(record.label).length;
-        uint256 fee = registrationFee(labelLen);
+        uint256 fee = registrationFee(labelLen) * numYears;
 
         // Transfer USDM from caller
         if (fee > 0) {
@@ -476,10 +493,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
             revert Expired();
         } else if (block.timestamp > currentExpiry) {
             // In grace period - extend from now
-            newExpiry = uint64(block.timestamp + REGISTRATION_PERIOD);
+            newExpiry = uint64(block.timestamp + REGISTRATION_PERIOD * numYears);
         } else {
             // Still active - extend from current expiry
-            newExpiry = currentExpiry + uint64(REGISTRATION_PERIOD);
+            newExpiry = currentExpiry + uint64(REGISTRATION_PERIOD * numYears);
         }
 
         record.expiresAt = newExpiry;

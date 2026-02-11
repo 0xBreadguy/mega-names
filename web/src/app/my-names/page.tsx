@@ -581,12 +581,14 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
   const [txHash, setTxHash] = useState<Hash | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
   const [step, setStep] = useState<'approve' | 'renew'>('approve')
+  const [numYears, setNumYears] = useState(1)
   
   const { address } = useAccount()
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
 
-  const price = getPrice(name.label.length)
+  const pricePerYear = getPrice(name.label.length)
+  const price = pricePerYear * BigInt(numYears)
   const displayName = `${name.label}.mega`
 
   // Check existing USDM allowance
@@ -653,7 +655,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
       const data = encodeFunctionData({
         abi: MEGA_NAMES_ABI,
         functionName: 'renew',
-        args: [name.tokenId],
+        args: [name.tokenId, BigInt(numYears)],
       })
 
       const hash = await walletClient.sendTransaction({
@@ -700,7 +702,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
     })
   }
 
-  const newExpiry = BigInt(Number(name.expiresAt) + 365 * 24 * 60 * 60)
+  const newExpiry = BigInt(Number(name.expiresAt) + 365 * 24 * 60 * 60 * numYears)
 
   return (
     <Modal onClose={onClose}>
@@ -718,7 +720,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
               <Check className="w-8 h-8 text-white" />
             </div>
             <p className="font-label text-sm mb-2">RENEWED!</p>
-            <p className="text-[#666]">{displayName} extended by 1 year</p>
+            <p className="text-[#666]">{displayName} extended by {numYears} year{numYears > 1 ? 's' : ''}</p>
             <p className="text-sm text-[#666] mt-2">New expiry: {formatExpiry(newExpiry)}</p>
             {txHash && (
               <a
@@ -738,6 +740,26 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
               <p className="font-display text-3xl">{displayName}</p>
             </div>
 
+            {/* Year selector */}
+            <div className="mb-6">
+              <p className="font-label text-xs text-[#666] mb-2">DURATION</p>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 5, 10].map((y) => (
+                  <button
+                    key={y}
+                    onClick={() => setNumYears(y)}
+                    className={`px-4 py-2 border-2 font-label text-sm transition-colors ${
+                      numYears === y 
+                        ? 'border-black bg-black text-white' 
+                        : 'border-black hover:bg-gray-100'
+                    }`}
+                  >
+                    {y}Y
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="mb-6 p-4 border-2 border-black">
               <div className="flex justify-between mb-2">
                 <span className="text-[#666]">Current expiry</span>
@@ -745,7 +767,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-[#666]">Extension</span>
-                <span>+1 year</span>
+                <span>+{numYears} year{numYears > 1 ? 's' : ''}</span>
               </div>
               <div className="flex justify-between font-bold border-t-2 border-black pt-2 mt-2">
                 <span>New expiry</span>
@@ -754,8 +776,11 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
             </div>
 
             <div className="mb-6 p-4 bg-[#F8F8F8] border-2 border-black">
-              <div className="flex justify-between">
-                <span className="font-label text-sm">RENEWAL COST</span>
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-label text-sm">RENEWAL COST</span>
+                  <p className="text-xs text-[#666]">{formatUSDM(pricePerYear)}/year × {numYears}</p>
+                </div>
                 <span className="font-display text-xl">{formatUSDM(price)}</span>
               </div>
             </div>

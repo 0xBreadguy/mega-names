@@ -35,10 +35,12 @@ function RegisterContent() {
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<Hash | null>(null)
   const [isPending, setIsPending] = useState(false)
+  const [numYears, setNumYears] = useState(1)
 
   const isWrongChain = isConnected && chainId !== MEGAETH_TESTNET_CHAIN_ID
   const tokenId = name ? getTokenId(name) : BigInt(0)
-  const price = name ? getPrice(name.length) : BigInt(0)
+  const pricePerYear = name ? getPrice(name.length) : BigInt(0)
+  const price = pricePerYear * BigInt(numYears)
 
   // Check if name is available
   const { data: records, isLoading: checkingAvailability } = useReadContract({
@@ -188,7 +190,7 @@ function RegisterContent() {
       const data = encodeFunctionData({
         abi: MEGA_NAMES_ABI,
         functionName: 'registerDirect',
-        args: [name, address],
+        args: [name, address, BigInt(numYears)],
       })
 
       const { hash, success } = await sendRealtimeTransaction(
@@ -229,14 +231,34 @@ function RegisterContent() {
             <p className="font-label text-sm text-[#666] mb-2">REGISTERING</p>
             <h1 className="font-display text-5xl lg:text-6xl">{name}.mega</h1>
           </div>
-          <div className="p-8 flex items-center justify-between">
-            <div>
-              <p className="font-label text-xs text-[#666]">PRICE / YEAR</p>
-              <p className="font-display text-4xl">{formatUSDM(price)}</p>
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className="font-label text-xs text-[#666]">PRICE / YEAR</p>
+                <p className="font-display text-3xl">{formatUSDM(pricePerYear)}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-label text-xs text-[#666] mb-2">DURATION</p>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 5, 10].map((y) => (
+                    <button
+                      key={y}
+                      onClick={() => setNumYears(y)}
+                      className={`px-4 py-2 border-2 font-label text-sm transition-colors ${
+                        numYears === y 
+                          ? 'border-black bg-black text-white' 
+                          : 'border-black hover:bg-gray-100'
+                      }`}
+                    >
+                      {y}Y
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="font-label text-xs text-[#666]">DURATION</p>
-              <p className="font-display text-4xl">1 YEAR</p>
+            <div className="border-t-2 border-black pt-4 flex items-center justify-between">
+              <p className="font-label text-sm text-[#666]">TOTAL</p>
+              <p className="font-display text-4xl">{formatUSDM(price)}</p>
             </div>
           </div>
         </div>

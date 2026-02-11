@@ -57,7 +57,7 @@ contract MegaNamesTest is Test {
         // Warp past MIN_COMMITMENT_AGE
         vm.warp(block.timestamp + 61);
 
-        uint256 tokenId = names.register("bread", alice, secret);
+        uint256 tokenId = names.register("bread", alice, secret, 1);
 
         assertEq(names.ownerOf(tokenId), alice);
         assertEq(names.getName(alice), ""); // No primary set yet
@@ -80,7 +80,7 @@ contract MegaNamesTest is Test {
         uint256 warrenBefore = usdm.balanceOf(WARREN_SAFE);
         uint256 fee = names.registrationFee(4); // 4 char = $10
 
-        names.register("test", alice, secret);
+        names.register("test", alice, secret, 1);
 
         assertEq(usdm.balanceOf(WARREN_SAFE), warrenBefore + fee);
 
@@ -97,7 +97,7 @@ contract MegaNamesTest is Test {
         names.commit(commitment);
         vm.warp(block.timestamp + 61);
 
-        uint256 parentId = names.register("alice", alice, secret);
+        uint256 parentId = names.register("alice", alice, secret, 1);
 
         // Register subdomain (free!)
         uint256 subId = names.registerSubdomain(parentId, "blog");
@@ -118,7 +118,7 @@ contract MegaNamesTest is Test {
         names.commit(commitment);
         vm.warp(block.timestamp + 61);
 
-        uint256 tokenId = names.register("myname", alice, secret);
+        uint256 tokenId = names.register("myname", alice, secret, 1);
 
         // Set address resolution
         names.setAddr(tokenId, bob);
@@ -145,7 +145,7 @@ contract MegaNamesTest is Test {
         names.commit(commitment);
         vm.warp(block.timestamp + 61);
 
-        uint256 tokenId = names.register("renew", alice, secret);
+        uint256 tokenId = names.register("renew", alice, secret, 1);
 
         // Get current expiry from records
         (,, uint64 expiresAt,,) = names.records(tokenId);
@@ -154,7 +154,7 @@ contract MegaNamesTest is Test {
         vm.warp(block.timestamp + 300 days);
 
         uint256 warrenBefore = usdm.balanceOf(WARREN_SAFE);
-        names.renew(tokenId);
+        names.renew(tokenId, 1);
 
         (,, uint64 newExpiresAt,,) = names.records(tokenId);
         assertGt(newExpiresAt, expiresAt);
@@ -174,7 +174,7 @@ contract MegaNamesTest is Test {
         usdm.approve(address(names), type(uint256).max);
         
         vm.expectRevert(MegaNames.CommitmentNotFound.selector);
-        names.register("nocommit", alice, keccak256("secret"));
+        names.register("nocommit", alice, keccak256("secret"), 1);
         
         vm.stopPrank();
     }
@@ -188,7 +188,7 @@ contract MegaNamesTest is Test {
         names.commit(commitment);
         vm.warp(block.timestamp + 61);
 
-        uint256 tokenId = names.register("expiring", alice, secret);
+        uint256 tokenId = names.register("expiring", alice, secret, 1);
 
         // Warp past expiry + grace period
         vm.warp(block.timestamp + 366 days + 91 days);
@@ -211,7 +211,7 @@ contract MegaNamesTest is Test {
 
         // Should revert due to no approval
         vm.expectRevert();
-        names.register("noallowance", alice, secret);
+        names.register("noallowance", alice, secret, 1);
 
         vm.stopPrank();
     }
@@ -227,7 +227,7 @@ contract MegaNamesTest is Test {
         vm.warp(block.timestamp + 61);
 
         uint256 balBefore = usdm.balanceOf(alice);
-        names.register("x", alice, secret);
+        names.register("x", alice, secret, 1);
         uint256 balAfter = usdm.balanceOf(alice);
 
         assertEq(balBefore - balAfter, 1000e18); // $1000
