@@ -11,6 +11,11 @@ import {ReentrancyGuard} from "soledge/utils/ReentrancyGuard.sol";
 import {WarrenLib} from "./WarrenLib.sol";
 import {MegaNamesSVG} from "./MegaNamesSVG.sol";
 
+/// @notice Interface for external tokenURI renderer
+interface ITokenURIRenderer {
+    function tokenURI(uint256 tokenId) external view returns (string memory);
+}
+
 /// @title MegaNames
 /// @notice ENS-style naming system for .mega TLD on MegaETH
 /// @dev Fork of wei-names/NameNFT.sol adapted for MegaETH with USDM payments
@@ -73,6 +78,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     event FeeRecipientChanged(address newRecipient);
     event PaymentTokenChanged(address newToken);
     event RegistrationOpenChanged(bool open);
+    event TokenURIRendererChanged(address renderer);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -145,6 +151,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
     /// @notice Whether public registration is open (admin can always register)
     bool public registrationOpen;
+
+    /// @notice External token URI renderer (if set, overrides built-in SVG)
+    address public tokenURIRenderer;
 
     /// @notice Enumerable set of token IDs owned by each address
     mapping(address => EnumerableSetLib.Uint256Set) internal _ownedTokens;
@@ -227,6 +236,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
     function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
         if (!_recordExists(tokenId)) revert TokenDoesNotExist();
+
+        // Delegate to external renderer if set
+        if (tokenURIRenderer != address(0)) {
+            return ITokenURIRenderer(tokenURIRenderer).tokenURI(tokenId);
+        }
 
         NameRecord storage record = records[tokenId];
 
@@ -798,6 +812,12 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     function setRegistrationOpen(bool open) public onlyOwner {
         registrationOpen = open;
         emit RegistrationOpenChanged(open);
+    }
+
+    /// @notice Set external tokenURI renderer (address(0) to use built-in SVG)
+    function setTokenURIRenderer(address renderer) public onlyOwner {
+        tokenURIRenderer = renderer;
+        emit TokenURIRendererChanged(renderer);
     }
 
     function setFeeRecipient(address newRecipient) public onlyOwner {
