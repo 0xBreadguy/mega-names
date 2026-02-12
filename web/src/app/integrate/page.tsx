@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 const CONTRACT_ADDRESS = '0x5B424C6CCba77b32b9625a6fd5A30D409d20d997'
-const RPC_URL = 'https://carrot.megaeth.com/rpc'
+const RPC_URL = 'https://mainnet.megaeth.com/rpc'
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
