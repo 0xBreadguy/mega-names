@@ -632,6 +632,48 @@ contract MegaNamesTest is Test {
                         LABEL VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/
 
+    function test_RevokeSubdomain() public {
+        vm.startPrank(alice);
+        usdm.approve(address(names), type(uint256).max);
+        uint256 parentId = names.register("parent", alice, 1);
+        uint256 subId = names.registerSubdomain(parentId, "child");
+
+        // Parent owner revokes subdomain
+        names.revokeSubdomain(subId);
+
+        // Subdomain token no longer exists
+        vm.expectRevert();
+        names.ownerOf(subId);
+
+        // Can re-create same subdomain
+        names.registerSubdomain(parentId, "child");
+        vm.stopPrank();
+    }
+
+    function test_RevertWhen_NonParentRevokesSubdomain() public {
+        vm.startPrank(alice);
+        usdm.approve(address(names), type(uint256).max);
+        uint256 parentId = names.register("parent2", alice, 1);
+        uint256 subId = names.registerSubdomain(parentId, "child");
+        vm.stopPrank();
+
+        // Bob (not parent owner) tries to revoke
+        vm.prank(bob);
+        vm.expectRevert(MegaNames.NotParentOwner.selector);
+        names.revokeSubdomain(subId);
+    }
+
+    function test_RevertWhen_RevokeTopLevel() public {
+        vm.startPrank(alice);
+        usdm.approve(address(names), type(uint256).max);
+        uint256 tokenId = names.register("toplevel", alice, 1);
+        vm.stopPrank();
+
+        vm.prank(alice);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.revokeSubdomain(tokenId);
+    }
+
     function test_SubdomainReRegistrationAfterParentReReg() public {
         // Alice registers parent + subdomain
         vm.startPrank(alice);

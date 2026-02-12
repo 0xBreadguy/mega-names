@@ -55,6 +55,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         uint256 indexed tokenId, string label, address indexed owner, uint256 expiresAt
     );
     event SubdomainRegistered(uint256 indexed tokenId, uint256 indexed parentId, string label);
+    event SubdomainRevoked(uint256 indexed tokenId, uint256 indexed parentId);
     event NameRenewed(uint256 indexed tokenId, uint256 newExpiresAt);
     event PrimaryNameSet(address indexed addr, uint256 indexed tokenId);
     // ENS-compatible resolver events
@@ -626,6 +627,27 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         _mint(msg.sender, tokenId);
 
         emit SubdomainRegistered(tokenId, parentId, string(normalized));
+    }
+
+    /// @notice Revoke a subdomain (parent owner only)
+    /// @param tokenId The subdomain token ID to revoke
+    function revokeSubdomain(uint256 tokenId) public {
+        NameRecord storage record = records[tokenId];
+        uint256 parentId = record.parent;
+        if (parentId == 0) revert InvalidName(); // not a subdomain
+        if (ownerOf(parentId) != msg.sender) revert NotParentOwner();
+        if (!_isSubdomainValid(tokenId)) revert InvalidName(); // already invalid
+
+        // Burn the subdomain token
+        _burn(tokenId);
+
+        // Delete record so subdomain can be re-registered
+        delete records[tokenId];
+
+        // Clear resolver data
+        recordVersion[tokenId]++;
+
+        emit SubdomainRevoked(tokenId, parentId);
     }
 
     /*//////////////////////////////////////////////////////////////
