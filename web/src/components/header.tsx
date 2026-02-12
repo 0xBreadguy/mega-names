@@ -35,9 +35,9 @@ export function Header() {
             <Link href="/integrate" className="font-label text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
               integrate
             </Link>
-            <a href="https://rabbithole.megaeth.com" target="_blank" rel="noopener noreferrer"
+            <a href="https://rabbithole.megaeth.com/bridge" target="_blank" rel="noopener noreferrer"
               className="font-label text-[var(--muted)] hover:text-[var(--foreground)] transition-colors hidden sm:inline">
-              megaeth ↗
+              bridge ↗
             </a>
           </nav>
 

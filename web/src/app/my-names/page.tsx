@@ -151,7 +151,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
           <>
             <div className="mb-6">
               <p className="font-label text-xs text-[var(--muted)] mb-2">TRANSFERRING</p>
-              <p className="font-display text-3xl">{displayName}</p>
+              <p className="font-display text-3xl truncate">{displayName}</p>
             </div>
 
             <div className="mb-6">
@@ -506,7 +506,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
           <>
             <div className="mb-6">
               <p className="font-label text-xs text-[var(--muted)] mb-2">NAME</p>
-              <p className="font-display text-2xl">{displayName}</p>
+              <p className="font-display text-2xl truncate">{displayName}</p>
             </div>
 
             <div className="mb-4">
@@ -738,7 +738,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
           <>
             <div className="mb-6">
               <p className="font-label text-xs text-[var(--muted)] mb-2">RENEWING</p>
-              <p className="font-display text-3xl">{displayName}</p>
+              <p className="font-display text-3xl truncate">{displayName}</p>
             </div>
 
             {/* Year selector */}
@@ -1002,7 +1002,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <p className="font-label text-xs text-[var(--muted)] mb-2">LINKING TO</p>
-              <p className="font-display text-2xl">{displayName}</p>
+              <p className="font-display text-2xl truncate">{displayName}</p>
             </div>
 
             <div className="mb-4">
@@ -1269,7 +1269,7 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
       <div className="p-6 max-h-[60vh] overflow-y-auto">
         <div className="mb-4">
           <p className="font-label text-xs text-[var(--muted)] mb-1">NAME</p>
-          <p className="font-display text-xl">{displayName}</p>
+          <p className="font-display text-xl truncate">{displayName}</p>
         </div>
 
         {error && (
@@ -1416,9 +1416,9 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
     <div className={`border border-[var(--border)] ${isPrimary ? 'bg-[var(--surface)]' : ''}`}>
       <div className="p-6">
         <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="font-display text-3xl">{name.label}.mega</h2>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap min-w-0">
+              <h2 className="font-display text-3xl truncate">{name.label}.mega</h2>
               {isPrimary && (
                 <span className="px-2 py-1 text-xs font-label bg-[var(--foreground)] text-[var(--background)]">
                   PRIMARY

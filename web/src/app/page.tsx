@@ -332,7 +332,7 @@ export default function Home() {
 
             {/* Search Result */}
             {searchedName && (
-              <div className="mt-4">
+              <div className="mt-4 relative">
                 {isLoading ? (
                   <div className="panel p-5">
                     <div className="animate-pulse">
@@ -342,9 +342,9 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className={`panel p-5 ${isAvailable ? '!border-[#2d6b3f]/40' : ''}`}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-display text-3xl text-[var(--foreground)] mb-1">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-display text-3xl text-[var(--foreground)] mb-1 truncate">
                           {searchedName}.mega
                         </p>
                         <p className={`font-label ${isAvailable ? 'text-[#2d6b3f]' : 'text-[var(--muted)]'}`}>
@@ -366,6 +366,18 @@ export default function Home() {
                         register now <ArrowRight className="w-4 h-4" />
                       </Link>
                     )}
+                  </div>
+                )}
+                {/* Easter egg: bread mascot */}
+                {searchedName === 'bread' && (
+                  <div className="absolute -right-2 sm:-right-16 bottom-0 pointer-events-none animate-fade-in-up" style={{ animationDuration: '0.5s' }}>
+                    <Image
+                      src="/mascot.png"
+                      alt=""
+                      width={100}
+                      height={152}
+                      className="w-[70px] sm:w-[100px] drop-shadow-md"
+                    />
                   </div>
                 )}
               </div>

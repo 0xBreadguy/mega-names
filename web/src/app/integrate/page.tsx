@@ -213,7 +213,7 @@ export default function IntegratePage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-12">
           <p className="font-label text-[var(--muted)] text-xs uppercase tracking-widest mb-2">for developers</p>
-          <h1 className="text-3xl sm:text-4xl font-black italic tracking-tight text-[var(--foreground)] mb-3">
+          <h1 className="font-display text-4xl sm:text-5xl text-[var(--foreground)] mb-3">
             Integrate Mega Names
           </h1>
           <p className="text-[var(--muted-dark)] max-w-2xl leading-relaxed">

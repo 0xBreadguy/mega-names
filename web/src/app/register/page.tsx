@@ -230,7 +230,7 @@ function RegisterContent() {
         <div className="border border-[var(--border)] mb-8">
           <div className="p-8 border-b border-[var(--border)]">
             <p className="font-label text-sm text-[var(--muted)] mb-2">REGISTERING</p>
-            <h1 className="font-display text-5xl lg:text-6xl">{name}.mega</h1>
+            <h1 className="font-display text-5xl lg:text-6xl truncate max-w-full">{name}.mega</h1>
           </div>
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">
@@ -403,7 +403,7 @@ function RegisterContent() {
               onClick={handleRegister}
               className="btn-primary w-full py-5 text-lg font-label"
             >
-              REGISTER {name.toUpperCase()}.MEGA
+              <span className="truncate block">REGISTER {name.toUpperCase()}.MEGA</span>
             </button>
           </div>
         )}

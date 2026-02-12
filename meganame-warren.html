@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MegaName Market — On-Chain Identity</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #e8e2d6;
+    --fg: #19191a;
+    --muted: #9a9590;
+    --muted-dark: #6b6560;
+    --border: #c8c0b4;
+    --surface: #ddd7cb;
+    --blueprint: rgba(25,25,26,0.06);
+    --blueprint-strong: rgba(25,25,26,0.12);
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
+  .font-label { font-family: 'Inter', sans-serif; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--blueprint) 1px, transparent 1px),
+      linear-gradient(90deg, var(--blueprint) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Paper texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(232,226,214,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 50;
+  }
+  header .logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; }
+  header nav { display: flex; gap: 24px; }
+  header nav a { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  header nav a:hover { color: var(--fg); }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 100px 0 60px;
+    position: relative;
+  }
+  .hero .label { margin-bottom: 16px; }
+  .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 10vw, 6rem); line-height: 0.95; margin-bottom: 8px; }
+  .hero h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.5rem, 5vw, 3rem); color: var(--muted-dark); margin-bottom: 24px; }
+  .hero p { color: var(--muted-dark); max-width: 480px; margin: 0 auto 40px; font-size: 0.95rem; line-height: 1.6; }
+
+  /* Orbital rings */
+  .orbital {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px solid var(--blueprint-strong);
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  .orbital-1 { width: 500px; height: 500px; }
+  .orbital-2 { width: 700px; height: 700px; border-style: dashed; opacity: 0.3; }
+
+  /* Search */
+  .search-box {
+    display: flex;
+    max-width: 500px;
+    margin: 0 auto;
+    border: 2px solid var(--fg);
+  }
+  .search-box input {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    font-weight: 600;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+  }
+  .search-box .suffix {
+    padding: 14px 16px;
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    font-weight: 600;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+  }
+  .search-box button {
+    padding: 14px 20px;
+    background: var(--fg);
+    color: var(--bg);
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+  }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--border);
+    margin-top: 80px;
+  }
+  .stat {
+    padding: 40px 0;
+    border-right: 1px solid var(--border);
+  }
+  .stat:last-child { border-right: none; }
+  .stat .value { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; }
+
+  /* Features */
+  .features {
+    border-top: 1px solid var(--border);
+    padding: 80px 0;
+  }
+  .features h3 { margin-bottom: 32px; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feature-card {
+    border: 1px solid var(--border);
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+  .feature-card:hover { border-color: var(--fg); }
+  .feature-card .icon { font-size: 1.5rem; margin-bottom: 12px; }
+  .feature-card h4 { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; margin-bottom: 8px; }
+  .feature-card p { font-size: 0.85rem; color: var(--muted-dark); line-height: 1.5; }
+
+  /* Pricing */
+  .pricing {
+    border-top: 1px solid var(--border);
+    padding: 80px 0;
+  }
+  .price-table { width: 100%; border-collapse: collapse; }
+  .price-table th, .price-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+  .price-table th { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+  .price-table td { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; }
+  .price-table td:last-child { text-align: right; }
+
+  /* Interop */
+  .interop {
+    border-top: 1px solid var(--border);
+    padding: 80px 0;
+    text-align: center;
+  }
+  .interop h3 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; margin-bottom: 12px; }
+  .interop p { color: var(--muted-dark); max-width: 500px; margin: 0 auto; font-size: 0.9rem; line-height: 1.6; }
+  .chain-tags { display: flex; gap: 8px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+  .chain-tag {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-dark);
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  footer a { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--fg); }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .feature-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr; }
+    .stat { border-right: none; border-bottom: 1px solid var(--border); }
+    .stat:last-child { border-bottom: none; }
+  }
+
+  /* Warren badge */
+  .warren-badge {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    padding: 8px 14px;
+    background: var(--fg);
+    color: var(--bg);
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-decoration: none;
+    z-index: 100;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .warren-badge:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">MEGANAME</div>
+    <nav>
+      <a href="https://meganame.market">launch app</a>
+      <a href="https://meganame.market/integrate">integrate</a>
+      <a href="https://rabbithole.megaeth.com/bridge">bridge ↗</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="orbital orbital-1"></div>
+    <div class="orbital orbital-2"></div>
+    <p class="font-label label">on-chain identity</p>
+    <h1>MEGA NAME</h1>
+    <h2>MARKET</h2>
+    <p>Human-readable addresses on the real-time blockchain. Purchase .mega domains with USDM.</p>
+
+    <div class="search-box">
+      <input type="text" placeholder="yourname" />
+      <span class="suffix">.mega</span>
+      <button>⌕</button>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <p class="font-label">total registered</p>
+      <p class="value">—</p>
+    </div>
+    <div class="stat" style="padding-left: 24px;">
+      <p class="font-label">total purchased</p>
+      <p class="value">—</p>
+    </div>
+    <div class="stat" style="padding-left: 24px;">
+      <p class="font-label">chain</p>
+      <p class="value">MEGAETH</p>
+    </div>
+  </section>
+
+  <section class="features">
+    <p class="font-label" style="margin-bottom: 32px;">features</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">◎</div>
+        <h4>RESOLVE NAMES</h4>
+        <p>Map .mega names to any address. Set a primary name for reverse resolution.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⬡</div>
+        <h4>SUBDOMAINS</h4>
+        <p>Create unlimited free subdomains under any name you own.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⊹</div>
+        <h4>TEXT RECORDS</h4>
+        <p>Store avatar, URL, Twitter, email, and custom key-value records on-chain.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">◈</div>
+        <h4>WARREN SITES</h4>
+        <p>Link your name to a permanent on-chain website via Warren Protocol.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⬢</div>
+        <h4>INTEROP ADDRESS</h4>
+        <p>ERC-7930 binary format for cross-chain resolution. Future-proof addressing.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">▣</div>
+        <h4>MULTI-YEAR DISCOUNTS</h4>
+        <p>Save up to 25% with multi-year registrations. 2Y 5% · 3Y 10% · 5Y 15% · 10Y 25%.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing">
+    <p class="font-label" style="margin-bottom: 32px;">pricing</p>
+    <table class="price-table">
+      <thead>
+        <tr><th>Name Length</th><th style="text-align:right">Price / Year</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1 character</td><td style="text-align:right">$1,000</td></tr>
+        <tr><td>2 characters</td><td style="text-align:right">$500</td></tr>
+        <tr><td>3 characters</td><td style="text-align:right">$100</td></tr>
+        <tr><td>4 characters</td><td style="text-align:right">$10</td></tr>
+        <tr><td>5+ characters</td><td style="text-align:right">$1</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="interop">
+    <p class="font-label" style="margin-bottom: 16px;">interop</p>
+    <h3>YOUR NAME, EVERY CHAIN</h3>
+    <p>Built on the interop address standard. Resolve .mega names across the EVM ecosystem.</p>
+    <div class="chain-tags">
+      <span class="chain-tag">megaeth</span>
+      <span class="chain-tag">ethereum</span>
+      <span class="chain-tag">base</span>
+      <span class="chain-tag">arbitrum</span>
+      <span class="chain-tag">optimism</span>
+    </div>
+  </section>
+
+  <footer>
+    <span class="font-label">meganames © 2026</span>
+    <div style="display: flex; gap: 24px;">
+      <a href="https://meganame.market">app</a>
+      <a href="https://github.com/0xBreadguy/mega-names">github</a>
+    </div>
+  </footer>
+</div>
+
+<a href="https://thewarren.app" target="_blank" class="warren-badge">stored on-chain via warren ⛓️</a>
+
+</body>
+</html>

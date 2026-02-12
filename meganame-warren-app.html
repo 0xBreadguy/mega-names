@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MegaName Market — On-Chain Lookup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #e8e2d6; --fg: #19191a; --muted: #9a9590; --muted-dark: #6b6560;
+    --border: #c8c0b4; --surface: #ddd7cb; --blueprint: rgba(25,25,26,0.06);
+    --green: #2d6b3f; --red: #9b2c2c;
+  }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg); color: var(--fg);
+    min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(var(--blueprint) 1px, transparent 1px), linear-gradient(90deg, var(--blueprint) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
+  .font-label { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+  .container { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; padding: 0 24px; }
+
+  header {
+    border-bottom: 1px solid var(--border); padding: 16px 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header .logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; }
+  #connectBtn {
+    padding: 8px 16px; background: var(--fg); color: var(--bg); border: none;
+    font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase;
+    cursor: pointer; font-family: 'Inter', sans-serif;
+  }
+  #connectBtn:hover { opacity: 0.85; }
+  #connectBtn.connected { background: var(--green); }
+
+  .hero { text-align: center; padding: 80px 0 40px; }
+  .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.5rem, 8vw, 4.5rem); line-height: 0.95; margin-bottom: 8px; }
+  .hero p { color: var(--muted-dark); font-size: 0.9rem; margin-bottom: 40px; }
+
+  .search-box {
+    display: flex; max-width: 480px; margin: 0 auto; border: 2px solid var(--fg);
+  }
+  .search-box input {
+    flex: 1; padding: 14px 20px; border: none; background: transparent;
+    font-size: 1rem; font-weight: 600; outline: none; font-family: 'Inter', sans-serif;
+    min-width: 0;
+  }
+  .search-box .suffix {
+    padding: 14px 16px; border-left: 1px solid var(--border);
+    background: var(--surface); font-weight: 600; color: var(--muted);
+    display: flex; align-items: center; flex-shrink: 0;
+  }
+  .search-box button {
+    padding: 14px 20px; background: var(--fg); color: var(--bg);
+    border: none; cursor: pointer; font-size: 1.1rem; flex-shrink: 0;
+  }
+  .search-box button:hover { opacity: 0.85; }
+
+  #result {
+    max-width: 480px; margin: 16px auto 0; min-height: 20px;
+  }
+  .result-card {
+    border: 2px solid var(--border); padding: 24px;
+    animation: fadeIn 0.3s ease;
+  }
+  .result-card.available { border-color: rgba(45,107,63,0.4); }
+  .result-card.taken { border-color: var(--border); }
+  .result-name { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; }
+  .result-status { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 16px; }
+  .result-status.avail { color: var(--green); }
+  .result-status.reg { color: var(--muted); }
+  .result-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .detail-item .label { font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .detail-item .value { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; }
+  .owner-addr { font-family: monospace; font-size: 0.75rem; color: var(--muted-dark); word-break: break-all; }
+
+  .register-link {
+    display: block; text-align: center; margin-top: 16px; padding: 14px;
+    background: var(--fg); color: var(--bg); text-decoration: none;
+    font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+  }
+  .register-link:hover { opacity: 0.85; }
+
+  .pricing { border-top: 1px solid var(--border); margin-top: 60px; padding: 40px 0; }
+  .price-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; text-align: center; }
+  .price-item { border: 1px solid var(--border); padding: 16px 8px; }
+  .price-item .len { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; }
+  .price-item .cost { font-size: 0.7rem; color: var(--muted-dark); margin-top: 4px; }
+
+  #loading { display: none; text-align: center; padding: 20px; }
+  #loading .spinner {
+    width: 20px; height: 20px; border: 2px solid var(--border);
+    border-top-color: var(--fg); border-radius: 50%;
+    animation: spin 0.6s linear infinite; display: inline-block;
+  }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 24px 0; margin-top: 40px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  footer a { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--fg); }
+
+  .warren-badge {
+    position: fixed; bottom: 16px; right: 16px; padding: 8px 14px;
+    background: var(--fg); color: var(--bg); font-size: 0.55rem;
+    letter-spacing: 0.15em; text-transform: uppercase; text-decoration: none;
+    z-index: 100; opacity: 0.7; transition: opacity 0.2s;
+  }
+  .warren-badge:hover { opacity: 1; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 500px) {
+    .price-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">MEGANAME</div>
+    <button id="connectBtn" onclick="connectWallet()">CONNECT WALLET</button>
+  </header>
+
+  <section class="hero">
+    <p class="font-label" style="margin-bottom: 16px;">on-chain lookup</p>
+    <h1>MEGA NAME<br>MARKET</h1>
+    <p>Check availability and pricing for .mega names on MegaETH.</p>
+
+    <form class="search-box" onsubmit="lookupName(); return false;">
+      <input id="nameInput" type="text" placeholder="yourname" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')" />
+      <span class="suffix">.mega</span>
+      <button type="submit">⌕</button>
+    </form>
+
+    <div id="loading"><div class="spinner"></div></div>
+    <div id="result"></div>
+  </section>
+
+  <section class="pricing">
+    <p class="font-label" style="margin-bottom: 24px;">pricing</p>
+    <div class="price-grid">
+      <div class="price-item"><div class="len">1</div><div class="cost">$1,000/yr</div></div>
+      <div class="price-item"><div class="len">2</div><div class="cost">$500/yr</div></div>
+      <div class="price-item"><div class="len">3</div><div class="cost">$100/yr</div></div>
+      <div class="price-item"><div class="len">4</div><div class="cost">$10/yr</div></div>
+      <div class="price-item"><div class="len">5+</div><div class="cost">$1/yr</div></div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="font-label">meganames © 2026</span>
+    <a href="https://meganame.market">full app →</a>
+  </footer>
+</div>
+
+<a href="https://thewarren.app" target="_blank" class="warren-badge">on-chain via warren ⛓️</a>
+
+<script type="module">
+  import { ethers } from 'https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm';
+
+  const RPC = 'https://carrot.megaeth.com/rpc';
+  const CONTRACT = '0x6b55800ebc02429b7f56ebc3b6246626f393f7ae';
+  const CHAIN_ID = 6342;
+
+  const ABI = [
+    'function records(uint256 tokenId) view returns (string label, address resolvedAddress, uint256 expiresAt, uint256 registeredAt, uint256 recordVersion, bool isSubdomain, uint256 parentTokenId)',
+    'function primaryName(address addr) view returns (uint256)',
+    'function defaultFee() view returns (uint256)',
+    'function lengthFees(uint256 len) view returns (uint256)',
+  ];
+
+  const provider = new ethers.JsonRpcProvider(RPC);
+  const contract = new ethers.Contract(CONTRACT, ABI, provider);
+
+  // Prices in USDM (18 decimals)
+  const PRICES = { 1: 1000n, 2: 500n, 3: 100n, 4: 10n };
+  const DEFAULT_PRICE = 1n;
+
+  function getPrice(len) {
+    return (PRICES[len] || DEFAULT_PRICE) * 10n**18n;
+  }
+
+  function formatUSDM(wei) {
+    const dollars = Number(wei / 10n**18n);
+    return '$' + dollars.toLocaleString();
+  }
+
+  // ENS-style namehash: keccak256(abi.encodePacked(MEGA_NODE, keccak256(label)))
+  const MEGA_NODE = ethers.keccak256(
+    ethers.solidityPacked(['bytes32', 'bytes32'], [
+      '0x0000000000000000000000000000000000000000000000000000000000000000',
+      ethers.keccak256(ethers.toUtf8Bytes('mega'))
+    ])
+  );
+
+  function tokenId(name) {
+    const labelHash = ethers.keccak256(ethers.toUtf8Bytes(name.toLowerCase()));
+    return BigInt(ethers.keccak256(ethers.solidityPacked(['bytes32', 'bytes32'], [MEGA_NODE, labelHash])));
+  }
+
+  window.connectWallet = async function() {
+    const btn = document.getElementById('connectBtn');
+    if (!window.ethereum) {
+      alert('No wallet detected. Install MetaMask or another Web3 wallet.');
+      return;
+    }
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const addr = accounts[0];
+      btn.textContent = addr.slice(0, 6) + '...' + addr.slice(-4);
+      btn.classList.add('connected');
+
+      // Try to get primary name
+      try {
+        const primary = await contract.primaryName(addr);
+        if (primary > 0n) {
+          const rec = await contract.records(primary);
+          if (rec.label) btn.textContent = rec.label + '.mega';
+        }
+      } catch(e) {}
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  window.lookupName = async function() {
+    const input = document.getElementById('nameInput').value.trim().toLowerCase();
+    const resultDiv = document.getElementById('result');
+    const loading = document.getElementById('loading');
+
+    if (!input) { resultDiv.innerHTML = ''; return; }
+
+    loading.style.display = 'block';
+    resultDiv.innerHTML = '';
+
+    try {
+      const id = tokenId(input);
+      const rec = await contract.records(id);
+      const isRegistered = rec.label !== '' && rec.expiresAt > BigInt(Math.floor(Date.now() / 1000));
+      const price = getPrice(input.length);
+
+      if (isRegistered) {
+        const expDate = new Date(Number(rec.expiresAt) * 1000);
+        const owner = rec.resolvedAddress !== '0x0000000000000000000000000000000000000000'
+          ? rec.resolvedAddress
+          : null;
+
+        // Try reverse resolve owner
+        let ownerDisplay = owner ? (owner.slice(0, 6) + '...' + owner.slice(-4)) : 'not set';
+        if (owner) {
+          try {
+            const primary = await contract.primaryName(owner);
+            if (primary > 0n) {
+              const prec = await contract.records(primary);
+              if (prec.label) ownerDisplay = prec.label + '.mega';
+            }
+          } catch(e) {}
+        }
+
+        resultDiv.innerHTML = `
+          <div class="result-card taken">
+            <p class="result-name">${input.toUpperCase()}.MEGA</p>
+            <p class="result-status reg">○ registered</p>
+            <div class="result-details">
+              <div class="detail-item">
+                <div class="label">expires</div>
+                <div class="value">${expDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+              </div>
+              <div class="detail-item">
+                <div class="label">resolved to</div>
+                <div class="owner-addr">${ownerDisplay}</div>
+              </div>
+            </div>
+          </div>`;
+      } else {
+        resultDiv.innerHTML = `
+          <div class="result-card available">
+            <p class="result-name">${input.toUpperCase()}.MEGA</p>
+            <p class="result-status avail">● available</p>
+            <div class="result-details">
+              <div class="detail-item">
+                <div class="label">price / year</div>
+                <div class="value">${formatUSDM(price)}</div>
+              </div>
+              <div class="detail-item">
+                <div class="label">length</div>
+                <div class="value">${input.length} CHAR${input.length > 1 ? 'S' : ''}</div>
+              </div>
+            </div>
+            <a href="https://meganame.market/register?name=${input}" target="_blank" class="register-link">
+              register on meganame.market →
+            </a>
+          </div>`;
+      }
+    } catch(e) {
+      console.error(e);
+      resultDiv.innerHTML = `<div class="result-card"><p style="color:var(--red);font-size:0.85rem;">Error looking up name. Check console.</p></div>`;
+    }
+
+    loading.style.display = 'none';
+  };
+
+  // Auto-connect if wallet already authorized
+  if (window.ethereum) {
+    window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+      if (accounts.length > 0) window.connectWallet();
+    });
+  }
+</script>
+
+</body>
+</html>
