@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-const CONTRACT_ADDRESS = '0x8F0310eEDcfB71E5095ee5ce4f3676D9cEA65101'
+const CONTRACT_ADDRESS = '0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491'
 const RPC_URL = 'https://carrot.megaeth.com/rpc'
 
 function CopyButton({ text }: { text: string }) {
@@ -245,7 +245,7 @@ export default function IntegratePage() {
               </div>
               <div className="flex flex-col sm:flex-row sm:gap-2">
                 <span className="text-[var(--muted)] shrink-0">Chain:</span>
-                <span className="text-[var(--foreground)]">MegaETH Testnet (6342)</span>
+                <span className="text-[var(--foreground)]">MegaETH Mainnet (4326)</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:gap-2">
                 <span className="text-[var(--muted)] shrink-0">RPC:</span>

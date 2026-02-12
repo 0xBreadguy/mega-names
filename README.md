@@ -10,17 +10,18 @@ MegaNames provides ENS-style naming for MegaETH's `.mega` TLD with stable USDM p
 
 - **ERC-721 Name Ownership** — Names are NFTs you own and transfer
 - **USDM Payments** — Stable USD pricing, no ETH volatility
-- **Commit-Reveal Registration** — Front-running protection
+- **Direct Registration** — Simple approve + register flow
 - **Forward + Reverse Resolution** — `bread.mega` ↔ `0x...`
 - **Cross-Chain Interop** — `bread.mega@megaeth` via [ERC-7828](https://interopaddress.com/)
 - **On-Chain Websites** — IPFS/Warren contenthash hosting
 - **Text Records** — Social profiles, avatar, metadata
 - **Free Subdomains** — Parent-controlled, unlimited depth
 - **Multi-Year Discounts** — Up to 25% off for 10-year registrations
+- **Premium Decay** — Dutch auction pricing for expired name re-registration
 
 ## Fee Structure
 
-100% of fees go to the [Warren Protocol](https://x.com/thewarrenapp) safe for on-chain website infrastructure.
+100% of fees go to on-chain infrastructure.
 
 | Length | Annual Fee | | Multi-Year | Discount |
 |--------|-----------|---|------------|----------|
@@ -32,21 +33,16 @@ MegaNames provides ENS-style naming for MegaETH's `.mega` TLD with stable USDM p
 
 ## Contracts
 
-### MegaETH Testnet (Chain ID: 6342)
-
-| Contract | Address |
-|----------|---------|
-| MegaNames | [`0x84443E5aC049636561f1A70FCAa8C8d776aA26f0`](https://megaeth.blockscout.com/address/0x84443E5aC049636561f1A70FCAa8C8d776aA26f0) |
-| MockUSDM | [`0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833`](https://megaeth.blockscout.com/address/0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833) |
-
 ### MegaETH Mainnet (Chain ID: 4326)
 
 | Contract | Address |
 |----------|---------|
-| MegaNames | [`0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad`](https://megaeth.blockscout.com/address/0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad) |
+| MegaNames | [`0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491`](https://megaeth.blockscout.com/address/0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491) |
 | USDM | [`0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`](https://megaeth.blockscout.com/address/0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7) |
 
-**Fee Recipient (Warren Safe):** `0xd4aE3973244592ef06dfdf82470329aCfA62C187`
+**Fee Recipient:** `0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38`
+
+**Etherscan:** [mega.etherscan.io/address/0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491](https://mega.etherscan.io/address/0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491)
 
 ## Quick Start
 
@@ -56,13 +52,8 @@ MegaNames provides ENS-style naming for MegaETH's `.mega` TLD with stable USDM p
 // 1. Approve USDM spending
 IERC20(usdm).approve(address(megaNames), fee);
 
-// 2. Commit (front-running protection)
-bytes32 secret = keccak256("your-secret");
-bytes32 commitment = megaNames.makeCommitment("yourname", yourAddress, secret);
-megaNames.commit(commitment);
-
-// 3. Wait 60 seconds, then register (within 24 hours)
-uint256 tokenId = megaNames.register("yourname", yourAddress, secret, 1); // 1 year
+// 2. Register
+uint256 tokenId = megaNames.register("yourname", yourAddress, 1); // 1 year
 ```
 
 ### Resolve Names
@@ -97,7 +88,7 @@ uint256 subId = megaNames.registerSubdomain(parentTokenId, "blog");
 
 ```bash
 forge build      # Compile
-forge test       # Run tests (14 passing)
+forge test       # Run tests (60 passing)
 ```
 
 ### Token ID Computation
@@ -118,8 +109,8 @@ uint256 tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(bytes(
 Fork of [wei-names](https://github.com/z0r0z/wei-names) by z0r0z. Key changes:
 - TLD: `wei` → `mega`
 - Payment: ETH → USDM (ERC-20, 18 decimals)
-- Fee recipient: hardcoded Warren Safe
-- Added: multi-year discounts, ERC721 enumeration, Warren contenthash, counters
+- Added: multi-year discounts, ERC721 enumeration, Warren contenthash, counters, premium decay, launch mode, subdomain revocation
+- Security audited: strict label validation (`[a-z0-9-]`), zero-address guards, stale token burn
 
 ## License
 
