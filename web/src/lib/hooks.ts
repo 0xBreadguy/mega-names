@@ -64,17 +64,6 @@ export function useResolveMegaName(input: string) {
     }
   }, [input])
   
-  // Compute tokenId from label
-  const tokenId = label ? BigInt('0x' + Buffer.from(label).reduce((acc, byte) => {
-    const hash = [...acc + byte.toString(16).padStart(2, '0')].reduce((h, c) => 
-      (((h << 5) - h) + c.charCodeAt(0)) | 0, 0
-    )
-    return hash.toString(16)
-  }, '').slice(-16).padStart(16, '0')) : BigInt(0)
-  
-  // Actually, let's use the same getTokenId from utils - but we need keccak256
-  // For now, let's just query the contract by using addr() with the computed tokenId
-  
   const publicClient = usePublicClient()
   const [resolvedAddress, setResolvedAddress] = useState<`0x${string}` | null>(null)
   const [isOwnerFallback, setIsOwnerFallback] = useState(false)
@@ -90,9 +79,9 @@ export function useResolveMegaName(input: string) {
     const resolve = async () => {
       setIsLoading(true)
       try {
-        // Compute tokenId using keccak256(label)
-        const { keccak256, toBytes } = await import('viem')
-        const tokenId = BigInt(keccak256(toBytes(label)))
+        // Compute tokenId using namehash: keccak256(MEGA_NODE, keccak256(label))
+        const { getTokenId } = await import('./utils')
+        const tokenId = getTokenId(label)
         
         // First check if the name exists
         const record = await publicClient.readContract({

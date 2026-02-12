@@ -9,6 +9,7 @@ import { shortenAddress, formatUSDM, getPrice, calculateFee, getDiscountLabel } 
 import { useMegaName, useResolveMegaName } from '@/lib/hooks'
 import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign, RefreshCw, FileText, Trash2, Globe } from 'lucide-react'
 import Link from 'next/link'
+import { Tooltip } from '@/components/tooltip'
 
 const MEGAETH_TESTNET_CHAIN_ID = 6343
 
@@ -18,6 +19,7 @@ interface OwnedName {
   expiresAt: bigint
   parent: bigint
   isSubdomain: boolean
+  parentLabel?: string
   subdomains?: OwnedName[]
 }
 
@@ -69,7 +71,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
     : resolvedFromName
     
   const isValidRecipient = finalRecipientAddress && finalRecipientAddress.toLowerCase() !== address.toLowerCase()
-  const displayName = name.isSubdomain ? `${name.label}.${name.parent}` : `${name.label}.mega`
+  const displayName = name.isSubdomain ? `${name.label}.${name.parentLabel || '?'}.mega` : `${name.label}.mega`
 
   const handleTransfer = async () => {
     if (!walletClient || !publicClient || !isValidRecipient || !finalRecipientAddress) return
@@ -210,7 +212,9 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
 
             <div className="p-4 bg-yellow-50 border-2 border-yellow-400 mb-6">
               <p className="text-sm text-yellow-800">
-                ⚠️ This action is irreversible. Make sure the recipient address is correct.
+                {name.isSubdomain 
+                  ? '⚠️ The parent name owner can revoke this subdomain after transfer.'
+                  : '⚠️ This action is irreversible. Make sure the recipient address is correct.'}
               </p>
             </div>
           </>
@@ -417,7 +421,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
   const { address: userAddress } = useAccount()
 
   const isValidAddress = isAddress(targetAddress)
-  const displayName = name.isSubdomain ? `${name.label}.parent.mega` : `${name.label}.mega`
+  const displayName = name.isSubdomain ? `${name.label}.${name.parentLabel || '?'}.mega` : `${name.label}.mega`
 
   const handleSetAddr = async () => {
     if (!walletClient || !publicClient || !isValidAddress) return
@@ -865,7 +869,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
 
-  const displayName = name.isSubdomain ? `${name.label}.parent.mega` : `${name.label}.mega`
+  const displayName = name.isSubdomain ? `${name.label}.${name.parentLabel || '?'}.mega` : `${name.label}.mega`
   const isValidTokenId = warrenTokenId !== '' && !isNaN(Number(warrenTokenId)) && Number(warrenTokenId) >= 0
 
   const handleSetWarren = async () => {
@@ -1118,7 +1122,7 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
 
-  const displayName = name.isSubdomain ? `${name.label}.parent.mega` : `${name.label}.mega`
+  const displayName = name.isSubdomain ? `${name.label}.${name.parentLabel || '?'}.mega` : `${name.label}.mega`
 
   // Fetch existing text records
   useEffect(() => {
@@ -1438,63 +1442,70 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
           
           <div className="flex items-center gap-2">
             {!isPrimary && (
-              <button
-                onClick={onSetPrimary}
-                disabled={isSettingPrimary}
-                className="p-2 hover:bg-yellow-100 transition-colors border border-[var(--border)] disabled:opacity-50"
-                title="Set as Primary"
-              >
-                {isSettingPrimary ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Star className="w-5 h-5" />
-                )}
-              </button>
+              <Tooltip label="Set as Primary">
+                <button
+                  onClick={onSetPrimary}
+                  disabled={isSettingPrimary}
+                  className="p-2 hover:bg-yellow-100 transition-colors border border-[var(--border)] disabled:opacity-50"
+                >
+                  {isSettingPrimary ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Star className="w-5 h-5" />
+                  )}
+                </button>
+              </Tooltip>
             )}
-            <button
-              onClick={onSetAddr}
-              className="p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
-              title="Set Address Resolution"
-            >
-              <AtSign className="w-5 h-5" />
-            </button>
-            <button
-              onClick={onTextRecords}
-              className="p-2 hover:bg-orange-100 transition-colors border border-[var(--border)]"
-              title="Text Records"
-            >
-              <FileText className="w-5 h-5" />
-            </button>
-            <button
-              onClick={onWarren}
-              className="p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
-              title="Link Warren Site"
-            >
-              <Globe className="w-5 h-5" />
-            </button>
-            <button
-              onClick={onCreateSubdomain}
-              className="p-2 hover:bg-blue-100 transition-colors border border-[var(--border)]"
-              title="Create Subdomain"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-            <button
-              onClick={onTransfer}
-              className="p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
-              title="Transfer"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-            <a
-              href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${name.tokenId.toString()}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
-              title="View on Explorer"
-            >
-              <ExternalLink className="w-5 h-5" />
-            </a>
+            <Tooltip label="Set Address">
+              <button
+                onClick={onSetAddr}
+                className="p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
+              >
+                <AtSign className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip label="Text Records">
+              <button
+                onClick={onTextRecords}
+                className="p-2 hover:bg-orange-100 transition-colors border border-[var(--border)]"
+              >
+                <FileText className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip label="Warren Site">
+              <button
+                onClick={onWarren}
+                className="p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
+              >
+                <Globe className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip label="Subdomain">
+              <button
+                onClick={onCreateSubdomain}
+                className="p-2 hover:bg-blue-100 transition-colors border border-[var(--border)]"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip label="Transfer">
+              <button
+                onClick={onTransfer}
+                className="p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip label="Explorer">
+              <a
+                href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${name.tokenId.toString()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
+              >
+                <ExternalLink className="w-5 h-5" />
+              </a>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -1519,43 +1530,48 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             <div key={sub.tokenId.toString()} className="px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] last:border-b-0 bg-[var(--background-light)]">
               <span className="font-mono text-sm truncate flex-1 min-w-0 mr-2">{sub.label}.{name.label}.mega</span>
               <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => onSubdomainAction?.(sub, 'setAddr')}
-                  className="p-1 hover:bg-purple-100 transition-colors"
-                  title="Set Address"
-                >
-                  <AtSign className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => onSubdomainAction?.(sub, 'textRecords')}
-                  className="p-1 hover:bg-orange-100 transition-colors"
-                  title="Text Records"
-                >
-                  <FileText className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => onSubdomainAction?.(sub, 'transfer')}
-                  className="p-1 hover:bg-[var(--surface-hover)] transition-colors"
-                  title="Transfer"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => onSubdomainAction?.(sub, 'revoke')}
-                  className="p-1 hover:bg-red-100 transition-colors"
-                  title="Revoke Subdomain"
-                >
-                  <X className="w-4 h-4 text-red-500" />
-                </button>
-                <a
-                  href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${sub.tokenId.toString()}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1 hover:bg-[var(--surface-hover)]"
-                  title="View on Explorer"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
+                <Tooltip label="Set Address">
+                  <button
+                    onClick={() => onSubdomainAction?.(sub, 'setAddr')}
+                    className="p-1 hover:bg-purple-100 transition-colors"
+                  >
+                    <AtSign className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip label="Text Records">
+                  <button
+                    onClick={() => onSubdomainAction?.(sub, 'textRecords')}
+                    className="p-1 hover:bg-orange-100 transition-colors"
+                  >
+                    <FileText className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip label="Transfer">
+                  <button
+                    onClick={() => onSubdomainAction?.(sub, 'transfer')}
+                    className="p-1 hover:bg-[var(--surface-hover)] transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip label="Revoke">
+                  <button
+                    onClick={() => onSubdomainAction?.(sub, 'revoke')}
+                    className="p-1 hover:bg-red-100 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-red-500" />
+                  </button>
+                </Tooltip>
+                <Tooltip label="Explorer">
+                  <a
+                    href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${sub.tokenId.toString()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1 hover:bg-[var(--surface-hover)]"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </Tooltip>
               </div>
             </div>
           ))}
@@ -1747,10 +1763,13 @@ export default function MyNamesPage() {
         }
       }
 
-      // Attach subdomains to their parents
+      // Attach subdomains to their parents and set parentLabel
       for (const name of names) {
         const subs = subdomainsByParent.get(name.tokenId.toString())
         if (subs) {
+          for (const sub of subs) {
+            sub.parentLabel = name.label
+          }
           name.subdomains = subs
         }
       }
