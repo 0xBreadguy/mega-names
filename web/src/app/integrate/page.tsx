@@ -274,6 +274,7 @@ export default function IntegratePage() {
                 { label: 'Source Code', url: 'https://github.com/0xBreadguy/mega-names/blob/main/src/MegaNames.sol', desc: 'Full contract source' },
                 { label: 'AGENTS.md', url: 'https://github.com/0xBreadguy/mega-names/blob/main/AGENTS.md', desc: 'Complete ABI reference for AI agents & LLMs' },
                 { label: 'Frontend Hooks', url: 'https://github.com/0xBreadguy/mega-names/blob/main/web/src/lib/hooks.ts', desc: 'React hooks for name resolution' },
+                { label: 'AI Developer Skills', url: 'https://github.com/0xBreadguy/megaeth-ai-developer-skills', desc: 'MegaETH development playbook for AI coding agents' },
                 { label: 'ERC-7828 Interop', url: 'https://interopaddress.com', desc: 'Cross-chain address format — bread.mega@megaeth' },
               ].map(link => (
                 <a
@@ -294,6 +295,7 @@ export default function IntegratePage() {
               ))}
             </div>
           </Section>
+
         </div>
       </div>
     </div>

@@ -480,7 +480,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
   return (
     <Modal onClose={onClose}>
       <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-        <h2 className="font-display text-2xl">SET ADDRESS</h2>
+        <h2 className="font-display text-2xl">FORWARD TO</h2>
         <button onClick={onClose} className="p-1 hover:bg-[var(--surface-hover)]">
           <X className="w-5 h-5" />
         </button>
@@ -564,7 +564,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
               SETTING...
             </>
           ) : (
-            'SET ADDRESS'
+            'FORWARD TO'
           )}
         </button>
       )}
@@ -1462,7 +1462,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                 </button>
               </Tooltip>
             )}
-            <Tooltip label="Set Address">
+            <Tooltip label="Forward to">
               <button
                 onClick={onSetAddr}
                 className="p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
@@ -1536,7 +1536,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             <div key={sub.tokenId.toString()} className="px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] last:border-b-0 bg-[var(--background-light)]">
               <span className="font-mono text-sm truncate flex-1 min-w-0 mr-2">{sub.label}.{name.label}.mega</span>
               <div className="flex items-center gap-1 shrink-0">
-                <Tooltip label="Set Address">
+                <Tooltip label="Forward to">
                   <button
                     onClick={() => onSubdomainAction?.(sub, 'setAddr')}
                     className="p-1 hover:bg-purple-100 transition-colors"

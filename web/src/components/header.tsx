@@ -6,7 +6,7 @@ import { useAccount, useConnect, useDisconnect, useSwitchChain, useReadContract,
 import { useResolvedName } from '@/lib/hooks'
 import { CONTRACTS, ERC20_ABI, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { formatUnits } from 'viem'
-import { Loader2, Copy, Check, ChevronDown, LogOut, Shield, Wallet } from 'lucide-react'
+import { Loader2, Copy, Check, ChevronDown, LogOut, Shield, Wallet, Star } from 'lucide-react'
 
 export function Header() {
   const { address, isConnected, chainId } = useAccount()
@@ -20,6 +20,13 @@ export function Header() {
 
   const MEGAETH_CHAIN_ID = 4326
   const isWrongChain = isConnected && chainId !== MEGAETH_CHAIN_ID
+
+  // Auto-switch to MegaETH when connected on wrong chain
+  useEffect(() => {
+    if (isWrongChain && switchChain) {
+      switchChain({ chainId: MEGAETH_CHAIN_ID })
+    }
+  }, [isWrongChain, switchChain])
 
   // USDM balance
   const { data: usdmBalance } = useReadContract({
@@ -88,20 +95,17 @@ export function Header() {
           </Link>
 
           <nav className="flex items-center gap-3 sm:gap-6">
-            <Link href="/" className="font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
+            <Link href="/" className="font-label text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
               search
             </Link>
-            <Link href="/my-names" className="font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
-              my names
-            </Link>
-            <Link href="/ideas" className="font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
+            <Link href="/ideas" className="font-label text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
               ideas
             </Link>
-            <Link href="/integrate" className="font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
+            <Link href="/integrate" className="font-label text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
               integrate
             </Link>
             <a href="https://rabbithole.megaeth.com/bridge" target="_blank" rel="noopener noreferrer"
-              className="font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors hidden sm:inline">
+              className="font-label text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors hidden sm:inline">
               bridge ↗
             </a>
           </nav>
@@ -192,6 +196,16 @@ export function Header() {
                         </div>
                       )}
                     </div>
+
+                    {/* My Names */}
+                    <Link
+                      href="/my-names"
+                      onClick={() => setOpen(false)}
+                      className="w-full p-3 flex items-center gap-2 text-xs font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors border-b border-[var(--border)]"
+                    >
+                      <Star className="w-3 h-3" />
+                      my names
+                    </Link>
 
                     {/* Disconnect */}
                     <button

@@ -20,7 +20,7 @@ export const megaethMainnet = {
   name: 'MegaETH',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://mainnet.megaeth.com/rpc'] },
+    default: { http: ['https://meganames-rpc-proxy.0xbreadguy.workers.dev'] },
   },
   blockExplorers: {
     default: { name: 'Explorer', url: 'https://megaeth.explorer.caldera.xyz' },
