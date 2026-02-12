@@ -618,6 +618,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         });
 
         recordVersion[tokenId]++;
+
+        // Burn stale subdomain token if re-registering after parent epoch change
+        if (_exists(tokenId)) {
+            _burn(tokenId);
+        }
         _mint(msg.sender, tokenId);
 
         emit SubdomainRegistered(tokenId, parentId, string(normalized));

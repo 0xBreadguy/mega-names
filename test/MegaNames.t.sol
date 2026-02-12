@@ -632,6 +632,28 @@ contract MegaNamesTest is Test {
                         LABEL VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/
 
+    function test_SubdomainReRegistrationAfterParentReReg() public {
+        // Alice registers parent + subdomain
+        vm.startPrank(alice);
+        usdm.approve(address(names), type(uint256).max);
+        uint256 parentId = names.register("myparent", alice, 1);
+        names.registerSubdomain(parentId, "sub");
+        vm.stopPrank();
+
+        // Parent expires fully (past grace + premium decay)
+        vm.warp(block.timestamp + 366 days + 91 days + 22 days);
+
+        // Bob re-registers the parent
+        vm.startPrank(bob);
+        usdm.approve(address(names), type(uint256).max);
+        uint256 newParentId = names.register("myparent", bob, 1);
+        assertEq(newParentId, parentId);
+
+        // Bob should be able to create the same subdomain (old stale one gets burned)
+        names.registerSubdomain(newParentId, "sub");
+        vm.stopPrank();
+    }
+
     function test_RegistrationClosedBlocksPublic() public {
         // Close registration
         vm.prank(deployer);
