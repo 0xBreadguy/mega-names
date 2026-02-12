@@ -44,6 +44,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     error DecayPeriodTooLong();
     error InvalidPaymentToken();
     error InvalidYears();
+    error InvalidAddress();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -759,6 +760,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     }
 
     function setFeeRecipient(address newRecipient) public onlyOwner {
+        if (newRecipient == address(0)) revert InvalidAddress();
         feeRecipient = newRecipient;
         emit FeeRecipientChanged(newRecipient);
     }
