@@ -7,7 +7,7 @@ import { encodeFunctionData, isAddress, type Hash, erc20Abi } from 'viem'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice, calculateFee, getDiscountLabel } from '@/lib/utils'
 import { useMegaName, useResolveMegaName } from '@/lib/hooks'
-import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDown, ChevronUp, AtSign, RefreshCw, FileText, Trash2, Globe } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, FolderTree, ChevronDown, ChevronUp, MapPin, RefreshCw, UserCircle, Trash2, Globe } from 'lucide-react'
 import Link from 'next/link'
 import { Tooltip } from '@/components/tooltip'
 
@@ -167,6 +167,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
                 placeholder="0x... or name.mega"
                 className="w-full p-3 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                 disabled={isPending}
+                autoFocus
               />
               {/* Address input validation */}
               {isAddressInput && recipient && !isAddress(recipient) && (
@@ -1267,7 +1268,7 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
   return (
     <Modal onClose={onClose}>
       <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-        <h2 className="font-display text-2xl">TEXT RECORDS</h2>
+        <h2 className="font-display text-2xl">PROFILE</h2>
         <button onClick={onClose} className="p-1 hover:bg-[var(--surface-hover)]">
           <X className="w-5 h-5" />
         </button>
@@ -1467,15 +1468,15 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                 onClick={onSetAddr}
                 className="p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
               >
-                <AtSign className="w-5 h-5" />
+                <MapPin className="w-5 h-5" />
               </button>
             </Tooltip>
-            <Tooltip label="Text Records">
+            <Tooltip label="Profile">
               <button
                 onClick={onTextRecords}
                 className="p-2 hover:bg-orange-100 transition-colors border border-[var(--border)]"
               >
-                <FileText className="w-5 h-5" />
+                <UserCircle className="w-5 h-5" />
               </button>
             </Tooltip>
             <Tooltip label="Warren Site">
@@ -1491,7 +1492,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                 onClick={onCreateSubdomain}
                 className="p-2 hover:bg-blue-100 transition-colors border border-[var(--border)]"
               >
-                <Plus className="w-5 h-5" />
+                <FolderTree className="w-5 h-5" />
               </button>
             </Tooltip>
             <Tooltip label="Transfer">
@@ -1541,15 +1542,15 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                     onClick={() => onSubdomainAction?.(sub, 'setAddr')}
                     className="p-1 hover:bg-purple-100 transition-colors"
                   >
-                    <AtSign className="w-4 h-4" />
+                    <MapPin className="w-4 h-4" />
                   </button>
                 </Tooltip>
-                <Tooltip label="Text Records">
+                <Tooltip label="Profile">
                   <button
                     onClick={() => onSubdomainAction?.(sub, 'textRecords')}
                     className="p-1 hover:bg-orange-100 transition-colors"
                   >
-                    <FileText className="w-4 h-4" />
+                    <UserCircle className="w-4 h-4" />
                   </button>
                 </Tooltip>
                 <Tooltip label="Transfer">

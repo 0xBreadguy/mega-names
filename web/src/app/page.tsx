@@ -193,7 +193,17 @@ export default function Home() {
   })
 
   const isAvailable = searchedName && records && records[0] === ''
+  const isTaken = searchedName && records && records[0] !== ''
   const price = searchedName ? getPrice(searchedName.length) : BigInt(0)
+
+  // Fetch owner when name is taken
+  const { data: nameOwner } = useReadContract({
+    address: CONTRACTS.mainnet.megaNames,
+    abi: MEGA_NAMES_ABI,
+    functionName: 'ownerOf',
+    args: [tokenId],
+    query: { enabled: !!isTaken },
+  })
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -350,6 +360,14 @@ export default function Home() {
                         <p className={`font-label ${isAvailable ? 'text-[#2d6b3f]' : 'text-[var(--muted)]'}`}>
                           {isAvailable ? '● available' : '○ registered'}
                         </p>
+                        {isTaken && nameOwner && (
+                          <Link
+                            href={`/profile?a=${nameOwner}`}
+                            className="inline-flex items-center gap-1.5 mt-2 text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors"
+                          >
+                            owner: {nameOwner.slice(0, 6)}...{nameOwner.slice(-4)} <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        )}
                       </div>
                       {isAvailable && (
                         <div className="text-right">
