@@ -4,8 +4,8 @@ export const CONTRACTS = {
     usdm: '0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833' as const,
   },
   mainnet: {
-    megaNames: '0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad' as const,
-    usdm: '0xbB4E6d2F0f1C65a180D8aA57acF22eF8397f6c62' as const,
+    megaNames: '0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491' as const,
+    usdm: '0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7' as const,
   },
 } as const
 

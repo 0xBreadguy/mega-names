@@ -9,8 +9,8 @@ contract DeployMainnet is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         
         // Mainnet addresses
-        address paymentToken = 0xbB4E6d2F0f1C65a180D8aA57acF22eF8397f6c62;  // USDM mainnet
-        address feeRecipient = 0xd4aE3973244592ef06dfdf82470329aCfA62C187;  // Warren Safe
+        address paymentToken = 0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7;  // USDM mainnet
+        address feeRecipient = 0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38;  // Mainnet fees address
         
         console.log("Deploying MegaNames to MegaETH Mainnet...");
         console.log("Payment Token (USDM):", paymentToken);

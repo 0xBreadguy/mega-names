@@ -185,7 +185,7 @@ export default function Home() {
   const tokenId = searchedName ? getTokenId(searchedName) : BigInt(0)
 
   const { data: records, isLoading } = useReadContract({
-    address: CONTRACTS.testnet.megaNames,
+    address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'records',
     args: [tokenId],

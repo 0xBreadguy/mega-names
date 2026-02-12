@@ -7,7 +7,7 @@ import { CONTRACTS, MEGA_NAMES_ABI } from './contracts'
 // Hook to get a name for an address (reverse lookup)
 export function useMegaName(address: `0x${string}` | undefined) {
   const { data: name, isLoading } = useReadContract({
-    address: CONTRACTS.testnet.megaNames,
+    address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'getName',
     args: [address!],
@@ -85,7 +85,7 @@ export function useResolveMegaName(input: string) {
         
         // First check if the name exists
         const record = await publicClient.readContract({
-          address: CONTRACTS.testnet.megaNames,
+          address: CONTRACTS.mainnet.megaNames,
           abi: MEGA_NAMES_ABI,
           functionName: 'records',
           args: [tokenId],
@@ -100,7 +100,7 @@ export function useResolveMegaName(input: string) {
         
         // Try to get the set address
         const addr = await publicClient.readContract({
-          address: CONTRACTS.testnet.megaNames,
+          address: CONTRACTS.mainnet.megaNames,
           abi: MEGA_NAMES_ABI,
           functionName: 'addr',
           args: [tokenId],
@@ -112,7 +112,7 @@ export function useResolveMegaName(input: string) {
         } else {
           // Fall back to owner
           const owner = await publicClient.readContract({
-            address: CONTRACTS.testnet.megaNames,
+            address: CONTRACTS.mainnet.megaNames,
             abi: MEGA_NAMES_ABI,
             functionName: 'ownerOf',
             args: [tokenId],
@@ -149,7 +149,7 @@ export function useRecentRegistrations(count = 20) {
     const fetch = async () => {
       try {
         const logs = await publicClient.getLogs({
-          address: CONTRACTS.testnet.megaNames,
+          address: CONTRACTS.mainnet.megaNames,
           event: {
             type: 'event',
             name: 'NameRegistered',
@@ -183,25 +183,25 @@ export function useRecentRegistrations(count = 20) {
 // Hook to get contract stats (names registered, renewals, subdomains, volume)
 export function useContractStats() {
   const { data: totalRegistrations, isLoading: loadingRegistrations } = useReadContract({
-    address: CONTRACTS.testnet.megaNames,
+    address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'totalRegistrations',
   })
 
   const { data: totalRenewals, isLoading: loadingRenewals } = useReadContract({
-    address: CONTRACTS.testnet.megaNames,
+    address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'totalRenewals',
   })
 
   const { data: totalSubdomains, isLoading: loadingSubdomains } = useReadContract({
-    address: CONTRACTS.testnet.megaNames,
+    address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'totalSubdomains',
   })
 
   const { data: totalVolume, isLoading: loadingVolume } = useReadContract({
-    address: CONTRACTS.testnet.megaNames,
+    address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'totalVolume',
   })

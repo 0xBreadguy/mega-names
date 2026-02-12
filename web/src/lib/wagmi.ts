@@ -20,7 +20,7 @@ export const megaethMainnet = {
   name: 'MegaETH',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://rpc.megaeth.com'] },
+    default: { http: ['https://mainnet.megaeth.com/rpc'] },
   },
   blockExplorers: {
     default: { name: 'Explorer', url: 'https://megaeth.explorer.caldera.xyz' },
@@ -28,7 +28,7 @@ export const megaethMainnet = {
 } as const
 
 export const config = createConfig({
-  chains: [megaethTestnet, megaethMainnet],
+  chains: [megaethMainnet, megaethTestnet],
   connectors: [
     injected({ shimDisconnect: true }),
     walletConnect({ 

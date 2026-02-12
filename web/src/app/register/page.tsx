@@ -16,7 +16,7 @@ import { getTokenId, formatUSDM, getPrice, isValidName, calculateFee, getDiscoun
 import { Loader2, Check, ArrowLeft, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
-const MEGAETH_TESTNET_CHAIN_ID = 6343
+const MEGAETH_CHAIN_ID = 4326
 const MAX_UINT256 = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
 
 type Step = 'check' | 'connect' | 'wrong-chain' | 'approve' | 'register' | 'pending' | 'success'
@@ -37,7 +37,7 @@ function RegisterContent() {
   const [isPending, setIsPending] = useState(false)
   const [numYears, setNumYears] = useState(1)
 
-  const isWrongChain = isConnected && chainId !== MEGAETH_TESTNET_CHAIN_ID
+  const isWrongChain = isConnected && chainId !== MEGAETH_CHAIN_ID
   const tokenId = name ? getTokenId(name) : BigInt(0)
   const pricePerYear = name ? getPrice(name.length) : BigInt(0)
   const price = name ? calculateFee(name.length, numYears) : BigInt(0)
@@ -45,7 +45,7 @@ function RegisterContent() {
 
   // Check if name is available
   const { data: records, isLoading: checkingAvailability } = useReadContract({
-    address: CONTRACTS.testnet.megaNames,
+    address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'records',
     args: [tokenId],
@@ -54,7 +54,7 @@ function RegisterContent() {
 
   // Check USDM balance
   const { data: balance } = useReadContract({
-    address: CONTRACTS.testnet.usdm,
+    address: CONTRACTS.mainnet.usdm,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: [address!],
@@ -63,10 +63,10 @@ function RegisterContent() {
 
   // Check existing USDM allowance (always fetch fresh)
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: CONTRACTS.testnet.usdm,
+    address: CONTRACTS.mainnet.usdm,
     abi: erc20Abi,
     functionName: 'allowance',
-    args: [address!, CONTRACTS.testnet.megaNames],
+    args: [address!, CONTRACTS.mainnet.megaNames],
     query: { 
       enabled: !!address,
       staleTime: 0,  // Always refetch - allowances can change externally
@@ -94,7 +94,7 @@ function RegisterContent() {
       to,
       data,
       chain: {
-        id: MEGAETH_TESTNET_CHAIN_ID,
+        id: MEGAETH_CHAIN_ID,
         name: 'MegaETH Testnet',
         nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
         rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -142,7 +142,7 @@ function RegisterContent() {
   }, [checkingAvailability, isConnected, isWrongChain, isAvailable, hasAllowance, isPending, step])
 
   const handleSwitchChain = () => {
-    switchChain({ chainId: MEGAETH_TESTNET_CHAIN_ID })
+    switchChain({ chainId: MEGAETH_CHAIN_ID })
   }
 
   const handleRevokeApproval = async () => {
@@ -153,11 +153,11 @@ function RegisterContent() {
       const data = encodeFunctionData({
         abi: erc20Abi,
         functionName: 'approve',
-        args: [CONTRACTS.testnet.megaNames, BigInt(0)],
+        args: [CONTRACTS.mainnet.megaNames, BigInt(0)],
       })
 
       const { success } = await sendRealtimeTransaction(
-        CONTRACTS.testnet.usdm,
+        CONTRACTS.mainnet.usdm,
         data
       )
 
@@ -184,11 +184,11 @@ function RegisterContent() {
       const data = encodeFunctionData({
         abi: erc20Abi,
         functionName: 'approve',
-        args: [CONTRACTS.testnet.megaNames, MAX_UINT256],
+        args: [CONTRACTS.mainnet.megaNames, MAX_UINT256],
       })
 
       const { hash, success } = await sendRealtimeTransaction(
-        CONTRACTS.testnet.usdm,
+        CONTRACTS.mainnet.usdm,
         data
       )
 
@@ -224,7 +224,7 @@ function RegisterContent() {
       })
 
       const { hash, success } = await sendRealtimeTransaction(
-        CONTRACTS.testnet.megaNames,
+        CONTRACTS.mainnet.megaNames,
         data
       )
 

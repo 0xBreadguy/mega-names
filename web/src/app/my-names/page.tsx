@@ -11,7 +11,7 @@ import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, Plus, ChevronDo
 import Link from 'next/link'
 import { Tooltip } from '@/components/tooltip'
 
-const MEGAETH_TESTNET_CHAIN_ID = 6343
+const MEGAETH_CHAIN_ID = 4326
 
 interface OwnedName {
   tokenId: bigint
@@ -87,10 +87,10 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -140,7 +140,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
             <p className="text-[var(--muted)]">{displayName} has been transferred</p>
             {txHash && (
               <a
-                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                href={`https://megaeth.blockscout.com/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -275,10 +275,10 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -328,7 +328,7 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
             <p className="text-[var(--muted)]">{fullName}</p>
             {txHash && (
               <a
-                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                href={`https://megaeth.blockscout.com/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -437,10 +437,10 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -497,7 +497,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
             <p className="font-mono text-sm mt-1">{targetAddress.slice(0, 10)}...{targetAddress.slice(-8)}</p>
             {txHash && (
               <a
-                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                href={`https://megaeth.blockscout.com/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -598,10 +598,10 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
 
   // Check existing USDM allowance
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: CONTRACTS.testnet.usdm,
+    address: CONTRACTS.mainnet.usdm,
     abi: erc20Abi,
     functionName: 'allowance',
-    args: [address!, CONTRACTS.testnet.megaNames],
+    args: [address!, CONTRACTS.mainnet.megaNames],
     query: { enabled: !!address, staleTime: 0 },
   })
 
@@ -625,14 +625,14 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
       const data = encodeFunctionData({
         abi: erc20Abi,
         functionName: 'approve',
-        args: [CONTRACTS.testnet.megaNames, MAX_UINT256],
+        args: [CONTRACTS.mainnet.megaNames, MAX_UINT256],
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.usdm,
+        to: CONTRACTS.mainnet.usdm,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -664,10 +664,10 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -700,11 +700,14 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
 
   const formatExpiry = (expiresAt: bigint) => {
     const date = new Date(Number(expiresAt) * 1000)
-    return date.toLocaleDateString('en-US', { 
+    const dateStr = date.toLocaleDateString('en-US', { 
       year: 'numeric', 
-      month: 'long', 
+      month: 'short', 
       day: 'numeric' 
     })
+    const yearsLeft = (Number(expiresAt) * 1000 - Date.now()) / (365.25 * 24 * 60 * 60 * 1000)
+    const yr = yearsLeft > 0 ? `(${yearsLeft.toFixed(1)} yr)` : '(expired)'
+    return `${dateStr} ${yr}`
   }
 
   const newExpiry = BigInt(Number(name.expiresAt) + 365 * 24 * 60 * 60 * numYears)
@@ -729,7 +732,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
             <p className="text-sm text-[var(--muted)] mt-2">New expiry: {formatExpiry(newExpiry)}</p>
             {txHash && (
               <a
-                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                href={`https://megaeth.blockscout.com/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -886,10 +889,10 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -939,7 +942,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
             <p className="text-[var(--muted)]">{displayName} now points to Warren #{warrenTokenId}</p>
             {txHash && (
               <a
-                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                href={`https://megaeth.blockscout.com/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -1062,7 +1065,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
             <div className="text-xs text-[var(--muted)] mb-4">
               <p>Warren NFT Contract:</p>
               <a 
-                href={`https://megaeth-testnet-v2.blockscout.com/address/${WARREN_NFT_CONTRACT}`}
+                href={`https://megaeth.blockscout.com/address/${WARREN_NFT_CONTRACT}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-blue-600 hover:underline break-all"
@@ -1134,7 +1137,7 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
       for (const { key } of COMMON_TEXT_KEYS) {
         try {
           const value = await publicClient.readContract({
-            address: CONTRACTS.testnet.megaNames,
+            address: CONTRACTS.mainnet.megaNames,
             abi: MEGA_NAMES_ABI,
             functionName: 'text',
             args: [name.tokenId, key],
@@ -1175,10 +1178,10 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -1230,10 +1233,10 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -1400,11 +1403,14 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
   
   const formatExpiry = (expiresAt: bigint) => {
     const date = new Date(Number(expiresAt) * 1000)
-    return date.toLocaleDateString('en-US', { 
+    const dateStr = date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
     })
+    const yearsLeft = (Number(expiresAt) * 1000 - Date.now()) / (365.25 * 24 * 60 * 60 * 1000)
+    const yr = yearsLeft > 0 ? `(${yearsLeft.toFixed(1)} yr)` : '(expired)'
+    return `${dateStr} ${yr}`
   }
 
   const daysUntilExpiry = (expiresAt: bigint) => {
@@ -1498,7 +1504,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             </Tooltip>
             <Tooltip label="Explorer">
               <a
-                href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${name.tokenId.toString()}`}
+                href={`https://megaeth.blockscout.com/token/${CONTRACTS.mainnet.megaNames}/instance/${name.tokenId.toString()}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
@@ -1564,7 +1570,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                 </Tooltip>
                 <Tooltip label="Explorer">
                   <a
-                    href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${sub.tokenId.toString()}`}
+                    href={`https://megaeth.blockscout.com/token/${CONTRACTS.mainnet.megaNames}/instance/${sub.tokenId.toString()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1 hover:bg-[var(--surface-hover)]"
@@ -1612,7 +1618,7 @@ export default function MyNamesPage() {
 
   // Get primary name using getName
   const { data: primaryName, refetch: refetchPrimaryName } = useReadContract({
-    address: CONTRACTS.testnet.megaNames,
+    address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
     functionName: 'getName',
     args: [address!],
@@ -1631,10 +1637,10 @@ export default function MyNamesPage() {
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -1662,10 +1668,10 @@ export default function MyNamesPage() {
       })
 
       const hash = await walletClient.sendTransaction({
-        to: CONTRACTS.testnet.megaNames,
+        to: CONTRACTS.mainnet.megaNames,
         data,
         chain: {
-          id: MEGAETH_TESTNET_CHAIN_ID,
+          id: MEGAETH_CHAIN_ID,
           name: 'MegaETH Testnet',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
           rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
@@ -1697,7 +1703,7 @@ export default function MyNamesPage() {
     try {
       // Single call to get all owned token IDs (no log scanning!)
       const rawTokenIds = await publicClient.readContract({
-        address: CONTRACTS.testnet.megaNames,
+        address: CONTRACTS.mainnet.megaNames,
         abi: MEGA_NAMES_ABI,
         functionName: 'tokensOfOwner',
         args: [address],
@@ -1716,7 +1722,7 @@ export default function MyNamesPage() {
         tokenIds.map(async (tokenId) => {
           try {
             const result = await publicClient.readContract({
-              address: CONTRACTS.testnet.megaNames,
+              address: CONTRACTS.mainnet.megaNames,
               abi: MEGA_NAMES_ABI,
               functionName: 'records',
               args: [tokenId],

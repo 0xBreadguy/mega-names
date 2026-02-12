@@ -18,12 +18,12 @@ export function Header() {
   const [copied, setCopied] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const MEGAETH_TESTNET_ID = 6343
-  const isWrongChain = isConnected && chainId !== MEGAETH_TESTNET_ID
+  const MEGAETH_CHAIN_ID = 4326
+  const isWrongChain = isConnected && chainId !== MEGAETH_CHAIN_ID
 
   // USDM balance
   const { data: usdmBalance } = useReadContract({
-    address: CONTRACTS.testnet.usdm,
+    address: CONTRACTS.mainnet.usdm,
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
@@ -32,10 +32,10 @@ export function Header() {
 
   // USDM allowance for MegaNames contract
   const { data: usdmAllowance, refetch: refetchAllowance } = useReadContract({
-    address: CONTRACTS.testnet.usdm,
+    address: CONTRACTS.mainnet.usdm,
     abi: ERC20_ABI,
     functionName: 'allowance',
-    args: address ? [address, CONTRACTS.testnet.megaNames] : undefined,
+    args: address ? [address, CONTRACTS.mainnet.megaNames] : undefined,
     query: { enabled: !!address },
   })
 
@@ -106,7 +106,7 @@ export function Header() {
           <div className="relative" ref={dropdownRef}>
             {isConnected && isWrongChain ? (
               <button
-                onClick={() => switchChain({ chainId: MEGAETH_TESTNET_ID })}
+                onClick={() => switchChain({ chainId: MEGAETH_CHAIN_ID })}
                 className="px-3 py-1.5 border border-orange-400 text-xs font-mono uppercase tracking-wider text-orange-600 hover:bg-orange-50 transition-all"
               >
                 switch network
@@ -172,10 +172,10 @@ export function Header() {
                           </div>
                           <button
                             onClick={() => revokeApproval({
-                              address: CONTRACTS.testnet.usdm,
+                              address: CONTRACTS.mainnet.usdm,
                               abi: ERC20_ABI,
                               functionName: 'approve',
-                              args: [CONTRACTS.testnet.megaNames, BigInt(0)],
+                              args: [CONTRACTS.mainnet.megaNames, BigInt(0)],
                             })}
                             disabled={isRevoking}
                             className="px-2 py-1 text-[10px] font-label border border-red-300 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
