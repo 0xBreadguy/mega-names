@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-const CONTRACT_ADDRESS = '0xA90389BD576DdD4D0d56d90FfeaA18eEE5CD6B22'
+const CONTRACT_ADDRESS = '0x8F0310eEDcfB71E5095ee5ce4f3676D9cEA65101'
 const RPC_URL = 'https://carrot.megaeth.com/rpc'
 
 function CopyButton({ text }: { text: string }) {
