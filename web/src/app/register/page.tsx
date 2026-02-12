@@ -145,6 +145,35 @@ function RegisterContent() {
     switchChain({ chainId: MEGAETH_TESTNET_CHAIN_ID })
   }
 
+  const handleRevokeApproval = async () => {
+    setError(null)
+    setIsPending(true)
+
+    try {
+      const data = encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [CONTRACTS.testnet.megaNames, BigInt(0)],
+      })
+
+      const { success } = await sendRealtimeTransaction(
+        CONTRACTS.testnet.usdm,
+        data
+      )
+
+      if (success) {
+        await refetchAllowance()
+      } else {
+        setError('Revoke transaction failed')
+      }
+    } catch (err: any) {
+      console.error('Revoke error:', err)
+      setError(err.shortMessage || err.message || 'Revoke failed')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
   const handleApprove = async () => {
     setError(null)
     setIsPending(true)
@@ -439,6 +468,26 @@ function RegisterContent() {
               <Link href="/my-names" className="btn-primary inline-block px-8 py-4">
                 VIEW MY NAMES
               </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Revoke USDM Approval */}
+        {isConnected && !isWrongChain && hasAllowance && !isPending && (
+          <div className="mt-8 border border-[var(--border)] p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-label text-xs text-[var(--muted)]">USDM APPROVAL</p>
+                <p className="text-sm text-[var(--muted)] mt-1">
+                  MegaNames has permission to spend your USDM
+                </p>
+              </div>
+              <button
+                onClick={handleRevokeApproval}
+                className="px-4 py-2 border-2 border-red-400 text-red-600 font-label text-sm hover:bg-red-50 transition-colors"
+              >
+                REVOKE
+              </button>
             </div>
           </div>
         )}
