@@ -237,8 +237,8 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         string memory fullName = _buildFullName(tokenId);
         fullName = string.concat(fullName, ".mega");
         string memory displayName = bytes(fullName).length <= 20
-            ? fullName
-            : string.concat(_truncateUTF8(fullName, 17), "...");
+            ? _toUpperCase(fullName)
+            : _toUpperCase(string.concat(_truncateUTF8(fullName, 17), "..."));
 
         string memory attributes;
         if (record.parent == 0) {
@@ -888,16 +888,106 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
     function _generateSVG(string memory displayName) internal pure returns (string memory) {
         return string.concat(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">',
-            '<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">',
-            '<stop offset="0%" style="stop-color:#6366f1"/><stop offset="100%" style="stop-color:#8b5cf6"/>',
-            '</linearGradient></defs>',
-            '<rect width="400" height="400" fill="url(#bg)"/>',
-            '<text x="200" y="200" font-family="sans-serif" font-size="24" ',
-            'text-anchor="middle" fill="#fff">',
-            _escapeXML(displayName),
-            '</text></svg>'
+            _svgHeader(),
+            _svgBackground(),
+            _svgGeometry(),
+            _svgLabels(),
+            _svgNameText(displayName),
+            _svgFooter()
         );
+    }
+
+    function _svgLabels() internal pure returns (string memory) {
+        return '<text x="200" y="46" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.25)" letter-spacing="3">MEGANAMES</text>';
+    }
+
+    function _svgNameText(string memory displayName) internal pure returns (string memory) {
+        uint256 len = bytes(displayName).length;
+        string memory fontSize;
+        string memory yPos;
+        if (len <= 6) { fontSize = "80"; yPos = "206"; }
+        else if (len <= 10) { fontSize = "52"; yPos = "200"; }
+        else if (len <= 15) { fontSize = "36"; yPos = "196"; }
+        else { fontSize = "28"; yPos = "194"; }
+
+        return string.concat(
+            '<text x="200" y="', yPos,
+            '" font-family="Impact,Arial Black,Helvetica Neue,sans-serif" font-size="', fontSize,
+            '" text-anchor="middle" fill="#19191a" letter-spacing="2">',
+            _escapeXML(displayName),
+            '</text>'
+        );
+    }
+
+    function _svgFooter() internal pure returns (string memory) {
+        return string.concat(
+            '<text x="200" y="215" font-family="Impact,Arial Black,sans-serif" font-size="200" text-anchor="middle" fill="rgba(25,25,26,0.02)">M</text>',
+            '<text x="200" y="360" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.20)" letter-spacing="2">.MEGA</text>',
+            '<rect x="8" y="8" width="384" height="384" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.5"/>',
+            '</svg>'
+        );
+    }
+
+    function _svgHeader() internal pure returns (string memory) {
+        return string.concat(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">',
+            '<defs>',
+            '<pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">',
+            '<path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(25,25,26,0.06)" stroke-width="0.5"/></pattern>',
+            '<pattern id="G" width="80" height="80" patternUnits="userSpaceOnUse">',
+            '<path d="M 80 0 L 0 0 0 80" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.8"/></pattern>',
+            '</defs>'
+        );
+    }
+
+    function _svgBackground() internal pure returns (string memory) {
+        return '<rect width="400" height="400" fill="#e8e2d6"/><rect width="400" height="400" fill="url(#g)"/><rect width="400" height="400" fill="url(#G)"/>';
+    }
+
+    function _svgGeometry() internal pure returns (string memory) {
+        return string.concat(_svgRings(), _svgLines(), _svgDots());
+    }
+
+    function _svgRings() internal pure returns (string memory) {
+        return string.concat(
+            '<circle cx="200" cy="185" r="120" fill="none" stroke="rgba(25,25,26,0.06)" stroke-width="0.8"/>',
+            '<circle cx="200" cy="185" r="85" fill="none" stroke="rgba(25,25,26,0.08)" stroke-width="0.8"/>',
+            '<circle cx="200" cy="185" r="50" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.8"/>'
+        );
+    }
+
+    function _svgLines() internal pure returns (string memory) {
+        return string.concat(
+            '<line x1="200" y1="65" x2="200" y2="305" stroke="rgba(25,25,26,0.05)" stroke-width="0.5"/>',
+            '<line x1="80" y1="185" x2="320" y2="185" stroke="rgba(25,25,26,0.05)" stroke-width="0.5"/>',
+            '<line x1="0" y1="0" x2="120" y2="120" stroke="rgba(25,25,26,0.04)" stroke-width="0.5"/>',
+            '<line x1="400" y1="0" x2="280" y2="120" stroke="rgba(25,25,26,0.04)" stroke-width="0.5"/>',
+            '<path d="M 16 16 L 16 32 M 16 16 L 32 16" fill="none" stroke="rgba(25,25,26,0.15)" stroke-width="1"/>',
+            '<path d="M 384 16 L 384 32 M 384 16 L 368 16" fill="none" stroke="rgba(25,25,26,0.15)" stroke-width="1"/>',
+            '<path d="M 16 384 L 16 368 M 16 384 L 32 384" fill="none" stroke="rgba(25,25,26,0.15)" stroke-width="1"/>',
+            '<path d="M 384 384 L 384 368 M 384 384 L 368 384" fill="none" stroke="rgba(25,25,26,0.15)" stroke-width="1"/>'
+        );
+    }
+
+    function _svgDots() internal pure returns (string memory) {
+        return string.concat(
+            '<circle cx="200" cy="65" r="3" fill="rgba(25,25,26,0.12)"/>',
+            '<circle cx="320" cy="185" r="3" fill="rgba(25,25,26,0.12)"/>',
+            '<circle cx="200" cy="305" r="3" fill="rgba(25,25,26,0.12)"/>',
+            '<circle cx="80" cy="185" r="3" fill="rgba(25,25,26,0.12)"/>',
+            '<circle cx="262" cy="112" r="2.5" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="1"/>',
+            '<circle cx="138" cy="258" r="2.5" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="1"/>'
+        );
+    }
+
+    function _toUpperCase(string memory s) internal pure returns (string memory) {
+        bytes memory b = bytes(s);
+        for (uint256 i = 0; i < b.length; i++) {
+            if (b[i] >= 0x61 && b[i] <= 0x7A) {
+                b[i] = bytes1(uint8(b[i]) - 32);
+            }
+        }
+        return string(b);
     }
 
     function _escapeXML(string memory s) internal pure returns (string memory) {
@@ -973,7 +1063,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
             "data:application/json;base64,",
             Base64.encode(
                 bytes(
-                    '{"name":"[Invalid]","description":"This subdomain is no longer valid.","image":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNDAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzk5OSIvPjx0ZXh0IHg9IjIwMCIgeT0iMjAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+W0ludmFsaWRdPC90ZXh0Pjwvc3ZnPg=="}'
+                    '{"name":"[Invalid]","description":"This subdomain is no longer valid.","image":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNDAwIj48ZGVmcz48cGF0dGVybiBpZD0iZyIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDIwIDAgTCAwIDAgMCAyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDQpIiBzdHJva2Utd2lkdGg9IjAuNSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiNkNGQwYzgiLz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNnKSIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE4NSIgcj0iMTIwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjUsMjUsMjYsMC4wNCkiIHN0cm9rZS13aWR0aD0iMC44Ii8+PGNpcmNsZSBjeD0iMjAwIiBjeT0iMTg1IiByPSI4NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDQpIiBzdHJva2Utd2lkdGg9IjAuOCIvPjxsaW5lIHgxPSIyMDAiIHkxPSI2NSIgeDI9IjIwMCIgeTI9IjMwNSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDMpIiBzdHJva2Utd2lkdGg9IjAuNSIvPjxsaW5lIHgxPSI4MCIgeTE9IjE4NSIgeDI9IjMyMCIgeTI9IjE4NSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDMpIiBzdHJva2Utd2lkdGg9IjAuNSIvPjxwYXRoIGQ9Ik0gMTYgMTYgTCAxNiAzMiBNIDE2IDE2IEwgMzIgMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNSwyNSwyNiwwLjA4KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTSAzODQgMTYgTCAzODQgMzIgTSAzODQgMTYgTCAzNjggMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNSwyNSwyNiwwLjA4KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTSAxNiAzODQgTCAxNiAzNjggTSAxNiAzODQgTCAzMiAzODQiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNSwyNSwyNiwwLjA4KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTSAzODQgMzg0IEwgMzg0IDM2OCBNIDM4NCAzODQgTCAzNjggMzg0IiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjUsMjUsMjYsMC4wOCkiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjIwMCIgeT0iNDYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0icmdiYSgyNSwyNSwyNiwwLjE1KSIgbGV0dGVyLXNwYWNpbmc9IjMiPk1FR0FOQU1FUzwvdGV4dD48dGV4dCB4PSIyMDAiIHk9IjE5NiIgZm9udC1mYW1pbHk9IkltcGFjdCxBcmlhbCBCbGFjayxIZWx2ZXRpY2EgTmV1ZSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJyZ2JhKDI1LDI1LDI2LDAuMjApIiBsZXR0ZXItc3BhY2luZz0iMiI+W0lOVkFMSURdPC90ZXh0Pjx0ZXh0IHg9IjIwMCIgeT0iMzYwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9InJnYmEoMjUsMjUsMjYsMC4xMikiIGxldHRlci1zcGFjaW5nPSIyIj4uTUVHQTwvdGV4dD48cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iMzg0IiBoZWlnaHQ9IjM4NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDYpIiBzdHJva2Utd2lkdGg9IjAuNSIvPjwvc3ZnPg=="}'
                 )
             )
         );
@@ -984,7 +1074,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
             "data:application/json;base64,",
             Base64.encode(
                 bytes(
-                    '{"name":"[Expired]","description":"This name has expired.","image":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNDAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzk5OSIvPjx0ZXh0IHg9IjIwMCIgeT0iMjAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiI+W0V4cGlyZWRdPC90ZXh0Pjwvc3ZnPg=="}'
+                    '{"name":"[Expired]","description":"This name has expired.","image":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNDAwIj48ZGVmcz48cGF0dGVybiBpZD0iZyIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDIwIDAgTCAwIDAgMCAyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDQpIiBzdHJva2Utd2lkdGg9IjAuNSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiNkNGQwYzgiLz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNnKSIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE4NSIgcj0iMTIwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjUsMjUsMjYsMC4wNCkiIHN0cm9rZS13aWR0aD0iMC44Ii8+PGNpcmNsZSBjeD0iMjAwIiBjeT0iMTg1IiByPSI4NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDQpIiBzdHJva2Utd2lkdGg9IjAuOCIvPjxsaW5lIHgxPSIyMDAiIHkxPSI2NSIgeDI9IjIwMCIgeTI9IjMwNSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDMpIiBzdHJva2Utd2lkdGg9IjAuNSIvPjxsaW5lIHgxPSI4MCIgeTE9IjE4NSIgeDI9IjMyMCIgeTI9IjE4NSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDMpIiBzdHJva2Utd2lkdGg9IjAuNSIvPjxwYXRoIGQ9Ik0gMTYgMTYgTCAxNiAzMiBNIDE2IDE2IEwgMzIgMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNSwyNSwyNiwwLjA4KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTSAzODQgMTYgTCAzODQgMzIgTSAzODQgMTYgTCAzNjggMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNSwyNSwyNiwwLjA4KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTSAxNiAzODQgTCAxNiAzNjggTSAxNiAzODQgTCAzMiAzODQiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNSwyNSwyNiwwLjA4KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTSAzODQgMzg0IEwgMzg0IDM2OCBNIDM4NCAzODQgTCAzNjggMzg0IiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMjUsMjUsMjYsMC4wOCkiIHN0cm9rZS13aWR0aD0iMSIvPjx0ZXh0IHg9IjIwMCIgeT0iNDYiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0icmdiYSgyNSwyNSwyNiwwLjE1KSIgbGV0dGVyLXNwYWNpbmc9IjMiPk1FR0FOQU1FUzwvdGV4dD48dGV4dCB4PSIyMDAiIHk9IjE5NiIgZm9udC1mYW1pbHk9IkltcGFjdCxBcmlhbCBCbGFjayxIZWx2ZXRpY2EgTmV1ZSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJyZ2JhKDI1LDI1LDI2LDAuMjApIiBsZXR0ZXItc3BhY2luZz0iMiI+W0VYUElSRURdPC90ZXh0Pjx0ZXh0IHg9IjIwMCIgeT0iMzYwIiBmb250LWZhbWlseT0ibW9ub3NwYWNlIiBmb250LXNpemU9IjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9InJnYmEoMjUsMjUsMjYsMC4xMikiIGxldHRlci1zcGFjaW5nPSIyIj4uTUVHQTwvdGV4dD48cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iMzg0IiBoZWlnaHQ9IjM4NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1LDI1LDI2LDAuMDYpIiBzdHJva2Utd2lkdGg9IjAuNSIvPjwvc3ZnPg=="}'
                 )
             )
         );
