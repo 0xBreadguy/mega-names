@@ -623,4 +623,83 @@ contract MegaNamesTest is Test {
 
         vm.stopPrank();
     }
+
+    /*//////////////////////////////////////////////////////////////
+                        LABEL VALIDATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_RevertWhen_NullByteInLabel() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister("evil\x00hidden", alice, 1);
+    }
+
+    function test_RevertWhen_SpaceInLabel() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister("has space", alice, 1);
+    }
+
+    function test_RevertWhen_SpecialCharsInLabel() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister("<script>", alice, 1);
+    }
+
+    function test_RevertWhen_ControlCharsInLabel() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister("test\x01ctrl", alice, 1);
+    }
+
+    function test_RevertWhen_LeadingHyphen() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister("-leading", alice, 1);
+    }
+
+    function test_RevertWhen_TrailingHyphen() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister("trailing-", alice, 1);
+    }
+
+    function test_RevertWhen_UnicodeEmoji() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister(unicode"🍞", alice, 1);
+    }
+
+    function test_RevertWhen_AtSign() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister("user@name", alice, 1);
+    }
+
+    function test_RevertWhen_Underscore() public {
+        vm.prank(deployer);
+        vm.expectRevert(MegaNames.InvalidName.selector);
+        names.adminRegister("under_score", alice, 1);
+    }
+
+    function test_ValidLabelWithHyphens() public {
+        vm.prank(deployer);
+        uint256 tokenId = names.adminRegister("my-name", alice, 1);
+        (string memory label,,,,) = names.records(tokenId);
+        assertEq(label, "my-name");
+    }
+
+    function test_ValidLabelWithNumbers() public {
+        vm.prank(deployer);
+        uint256 tokenId = names.adminRegister("web3dao", alice, 1);
+        (string memory label,,,,) = names.records(tokenId);
+        assertEq(label, "web3dao");
+    }
+
+    function test_LabelUppercaseNormalization() public {
+        vm.prank(deployer);
+        uint256 tokenId = names.adminRegister("HELLO", alice, 1);
+        (string memory label,,,,) = names.records(tokenId);
+        assertEq(label, "hello");
+    }
 }

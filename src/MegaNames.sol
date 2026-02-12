@@ -846,42 +846,29 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         if (len > MAX_LABEL_LENGTH) revert InvalidLength();
 
         bytes memory result = new bytes(len);
-        uint256 i = 0;
 
-        while (i < len) {
+        for (uint256 i = 0; i < len; i++) {
             uint8 b = uint8(label[i]);
 
-            // Forbid dots
-            if (b == 0x2e) revert InvalidName();
-
-            // ASCII lowercase conversion
+            // Uppercase A-Z → lowercase a-z
             if (b >= 0x41 && b <= 0x5a) {
                 result[i] = bytes1(b + 32);
-                i++;
                 continue;
             }
 
-            // Regular ASCII
-            if (b < 0x80) {
+            // Allow: a-z (0x61-0x7a), 0-9 (0x30-0x39), hyphen (0x2d)
+            if ((b >= 0x61 && b <= 0x7a) || (b >= 0x30 && b <= 0x39) || b == 0x2d) {
                 result[i] = label[i];
-                i++;
                 continue;
             }
 
-            // UTF-8 multi-byte sequences
-            uint256 seqLen;
-            if ((b & 0xe0) == 0xc0) seqLen = 2;
-            else if ((b & 0xf0) == 0xe0) seqLen = 3;
-            else if ((b & 0xf8) == 0xf0) seqLen = 4;
-            else revert InvalidName();
-
-            if (i + seqLen > len) revert InvalidName();
-
-            for (uint256 j = 0; j < seqLen; j++) {
-                result[i + j] = label[i + j];
-            }
-            i += seqLen;
+            // Everything else is rejected: dots, spaces, null bytes,
+            // control chars, special chars, unicode/emoji, etc.
+            revert InvalidName();
         }
+
+        // No leading or trailing hyphens
+        if (uint8(result[0]) == 0x2d || uint8(result[len - 1]) == 0x2d) revert InvalidName();
 
         return result;
     }
