@@ -1387,10 +1387,11 @@ interface NameCardProps {
   onRenew: () => void
   onTextRecords: () => void
   onWarren: () => void
+  onSubdomainAction?: (sub: OwnedName, action: 'transfer' | 'setAddr' | 'textRecords' | 'revoke') => void
   isSettingPrimary: boolean
 }
 
-function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, onTextRecords, onWarren, isSettingPrimary }: NameCardProps) {
+function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, onTextRecords, onWarren, onSubdomainAction, isSettingPrimary }: NameCardProps) {
   const [showSubdomains, setShowSubdomains] = useState(false)
   
   const formatExpiry = (expiresAt: bigint) => {
@@ -1516,8 +1517,36 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
         <div className="border-t border-[var(--border)]">
           {name.subdomains!.map((sub) => (
             <div key={sub.tokenId.toString()} className="px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] last:border-b-0 bg-[var(--background-light)]">
-              <span className="font-mono text-sm">{sub.label}.{name.label}.mega</span>
-              <div className="flex items-center gap-2">
+              <span className="font-mono text-sm truncate flex-1 min-w-0 mr-2">{sub.label}.{name.label}.mega</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => onSubdomainAction?.(sub, 'setAddr')}
+                  className="p-1 hover:bg-purple-100 transition-colors"
+                  title="Set Address"
+                >
+                  <AtSign className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onSubdomainAction?.(sub, 'textRecords')}
+                  className="p-1 hover:bg-orange-100 transition-colors"
+                  title="Text Records"
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onSubdomainAction?.(sub, 'transfer')}
+                  className="p-1 hover:bg-[var(--surface-hover)] transition-colors"
+                  title="Transfer"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => onSubdomainAction?.(sub, 'revoke')}
+                  className="p-1 hover:bg-red-100 transition-colors"
+                  title="Revoke Subdomain"
+                >
+                  <X className="w-4 h-4 text-red-500" />
+                </button>
                 <a
                   href={`https://megaeth-testnet-v2.blockscout.com/token/${CONTRACTS.testnet.megaNames}/instance/${sub.tokenId.toString()}`}
                   target="_blank"
@@ -1573,6 +1602,36 @@ export default function MyNamesPage() {
     args: [address!],
     query: { enabled: !!address },
   })
+
+  const handleRevokeSubdomain = async (sub: OwnedName) => {
+    if (!walletClient || !publicClient) return
+    if (!confirm(`Revoke ${sub.label} subdomain? This will burn the token.`)) return
+
+    try {
+      const data = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'revokeSubdomain',
+        args: [sub.tokenId],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.testnet.megaNames,
+        data,
+        chain: {
+          id: MEGAETH_TESTNET_CHAIN_ID,
+          name: 'MegaETH Testnet',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        },
+      })
+
+      await publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 })
+      fetchOwnedNames()
+    } catch (err: any) {
+      console.error('Revoke subdomain error:', err)
+      alert(err.shortMessage || err.message || 'Failed to revoke subdomain')
+    }
+  }
 
   const handleSetPrimary = async (name: OwnedName) => {
     if (!walletClient || !publicClient) return
@@ -1776,6 +1835,12 @@ export default function MyNamesPage() {
                 onRenew={() => setRenewingName(name)}
                 onTextRecords={() => setEditingTextRecordsFor(name)}
                 onWarren={() => setSettingWarrenFor(name)}
+                onSubdomainAction={(sub, action) => {
+                  if (action === 'transfer') setTransferringName(sub)
+                  else if (action === 'setAddr') setSettingAddrFor(sub)
+                  else if (action === 'textRecords') setEditingTextRecordsFor(sub)
+                  else if (action === 'revoke') handleRevokeSubdomain(sub)
+                }}
                 isSettingPrimary={settingPrimaryFor === name.tokenId}
               />
             ))}
