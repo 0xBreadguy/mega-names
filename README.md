@@ -37,12 +37,12 @@ MegaNames provides ENS-style naming for MegaETH's `.mega` TLD with stable USDM p
 
 | Contract | Address |
 |----------|---------|
-| MegaNames | [`0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491`](https://megaeth.blockscout.com/address/0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491) |
+| MegaNames | [`0x5B424C6CCba77b32b9625a6fd5A30D409d20d997`](https://megaeth.blockscout.com/address/0x5B424C6CCba77b32b9625a6fd5A30D409d20d997) |
 | USDM | [`0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`](https://megaeth.blockscout.com/address/0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7) |
 
 **Fee Recipient:** `0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38`
 
-**Etherscan:** [mega.etherscan.io/address/0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491](https://mega.etherscan.io/address/0x0dbB1582ea7eA2584bFDE68AbA5d46763A568491)
+**Etherscan:** [mega.etherscan.io/address/0x5B424C6CCba77b32b9625a6fd5A30D409d20d997](https://mega.etherscan.io/address/0x5B424C6CCba77b32b9625a6fd5A30D409d20d997)
 
 ## Quick Start
 

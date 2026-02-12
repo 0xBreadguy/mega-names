@@ -27,7 +27,7 @@ interface OwnedName {
 function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--background-light)] border border-[var(--border)] max-w-md w-full">
+      <div className="bg-[var(--background-light)] border border-[var(--border)] max-w-md w-full shadow-[0_8px_30px_rgba(25,25,26,0.12),0_2px_8px_rgba(25,25,26,0.06)]">
         {children}
       </div>
     </div>
@@ -1424,7 +1424,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
   const hasSubdomains = name.subdomains && name.subdomains.length > 0
 
   return (
-    <div className={`border border-[var(--border)] ${isPrimary ? 'bg-[var(--surface)]' : ''}`}>
+    <div className={`border border-[var(--border)] shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)] ${isPrimary ? 'bg-[var(--surface)]' : ''}`}>
       <div className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">

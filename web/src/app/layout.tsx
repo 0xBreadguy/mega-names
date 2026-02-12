@@ -25,7 +25,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen`}>
         <Providers>
           <Header />
-          <div className="bg-[var(--foreground)] text-[var(--background)] text-center py-2 px-4">
+          <div className="bg-[var(--foreground)] text-[var(--background)] text-center py-2 px-4 shadow-[0_2px_6px_rgba(25,25,26,0.15)]">
             <p className="text-xs font-label tracking-wider">
               🚧 PRE-REGISTRATION PHASE — Public registration opening soon. Founder & team names are being reserved.
             </p>

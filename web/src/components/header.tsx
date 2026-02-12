@@ -78,7 +78,7 @@ export function Header() {
   const hasAllowance = usdmAllowance !== undefined && (usdmAllowance as bigint) > BigInt(0)
 
   return (
-    <header className="border-b border-[var(--border)] sticky top-0 z-50 bg-[var(--background)]/90 backdrop-blur-md">
+    <header className="border-b border-[var(--border)] sticky top-0 z-50 bg-[var(--background)]/90 backdrop-blur-md shadow-[0_1px_4px_rgba(25,25,26,0.05)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           <Link href="/" className="flex items-center gap-2">
@@ -93,6 +93,9 @@ export function Header() {
             </Link>
             <Link href="/my-names" className="font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
               my names
+            </Link>
+            <Link href="/ideas" className="font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
+              ideas
             </Link>
             <Link href="/integrate" className="font-label text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
               integrate
