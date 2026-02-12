@@ -23,6 +23,10 @@ contract MegaNamesTest is Test {
         usdm.mint(alice, 100_000e18);
         usdm.mint(bob, 100_000e18);
         usdm.mint(charlie, 100_000e18);
+
+        // Open registration for tests (deployer is owner via tx.origin)
+        vm.prank(deployer);
+        names.setRegistrationOpen(true);
     }
 
     // ─── Metadata ───
@@ -627,6 +631,25 @@ contract MegaNamesTest is Test {
     /*//////////////////////////////////////////////////////////////
                         LABEL VALIDATION TESTS
     //////////////////////////////////////////////////////////////*/
+
+    function test_RegistrationClosedBlocksPublic() public {
+        // Close registration
+        vm.prank(deployer);
+        names.setRegistrationOpen(false);
+
+        // Public register should fail
+        vm.startPrank(alice);
+        usdm.approve(address(names), type(uint256).max);
+        vm.expectRevert(MegaNames.RegistrationClosed.selector);
+        names.register("blocked", alice, 1);
+        vm.stopPrank();
+
+        // Admin register should still work
+        vm.prank(deployer);
+        uint256 tokenId = names.adminRegister("reserved", alice, 1);
+        (string memory label,,,,) = names.records(tokenId);
+        assertEq(label, "reserved");
+    }
 
     function test_RevertWhen_NullByteInLabel() public {
         vm.prank(deployer);

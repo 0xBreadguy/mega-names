@@ -45,6 +45,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     error InvalidPaymentToken();
     error InvalidYears();
     error InvalidAddress();
+    error RegistrationClosed();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -69,6 +70,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     event PremiumSettingsChanged(uint256 maxPremium, uint256 decayPeriod);
     event FeeRecipientChanged(address newRecipient);
     event PaymentTokenChanged(address newToken);
+    event RegistrationOpenChanged(bool open);
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -138,6 +140,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     
     /// @notice Total volume in USDM (18 decimals) from registrations + renewals
     uint256 public totalVolume;
+
+    /// @notice Whether public registration is open (admin can always register)
+    bool public registrationOpen;
 
     /// @notice Enumerable set of token IDs owned by each address
     mapping(address => EnumerableSetLib.Uint256Set) internal _ownedTokens;
@@ -334,6 +339,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         nonReentrant
         returns (uint256 tokenId)
     {
+        if (!registrationOpen) revert RegistrationClosed();
         if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
         
         bytes memory normalized = _validateAndNormalize(bytes(label));
@@ -394,6 +400,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         bytes32 r,
         bytes32 s
     ) public nonReentrant returns (uint256 tokenId) {
+        if (!registrationOpen) revert RegistrationClosed();
         if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
         
         bytes memory normalized = _validateAndNormalize(bytes(label));
@@ -757,6 +764,12 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         if (newToken == address(0)) revert InvalidPaymentToken();
         paymentToken = newToken;
         emit PaymentTokenChanged(newToken);
+    }
+
+    /// @notice Toggle public registration open/closed (admin can always register)
+    function setRegistrationOpen(bool open) public onlyOwner {
+        registrationOpen = open;
+        emit RegistrationOpenChanged(open);
     }
 
     function setFeeRecipient(address newRecipient) public onlyOwner {
