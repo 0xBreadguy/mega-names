@@ -1,6 +1,6 @@
 export const CONTRACTS = {
   testnet: {
-    megaNames: '0xcf60a71e6e0ffa6eab78d996014ec306c0138b99' as const,
+    megaNames: '0x1fB4a81D6785fD78605EC92556Fd3eb1541eD3ca' as const,
     usdm: '0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833' as const,
   },
   mainnet: {
@@ -47,6 +47,7 @@ export const MEGA_NAMES_ABI = [
   { type: 'function', name: 'warren', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [{ name: 'warrenTokenId', type: 'uint32' }, { name: 'isMaster', type: 'bool' }, { name: 'isWarren', type: 'bool' }], stateMutability: 'view' },
   { type: 'function', name: 'setPrimaryName', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
   { type: 'function', name: 'registerSubdomain', inputs: [{ name: 'parentId', type: 'uint256' }, { name: 'label', type: 'string' }], outputs: [{ type: 'uint256' }], stateMutability: 'nonpayable' },
+  { type: 'function', name: 'revokeSubdomain', inputs: [{ name: 'tokenId', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
   
   // ERC721 Transfer
   { type: 'function', name: 'transferFrom', inputs: [{ name: 'from', type: 'address' }, { name: 'to', type: 'address' }, { name: 'id', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
