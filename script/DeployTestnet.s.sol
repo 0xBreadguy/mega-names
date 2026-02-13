@@ -6,18 +6,14 @@ import {MegaNames} from "../src/MegaNames.sol";
 import {MockUSDM} from "../src/MockUSDM.sol";
 
 contract DeployTestnet is Script {
+    // Fee recipient
+    address constant FEE_RECIPIENT = 0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38;
+
     function run() public {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
-        
-        // Bread's test address
-        address breadTest = 0x9D152D78B05f31EA6979061d432110c8664cA1a7;
-        
-        // Warren Safe (fee recipient)
-        address warrenSafe = 0xd4aE3973244592ef06dfdf82470329aCfA62C187;
 
         console.log("Deployer:", deployer);
-        console.log("Bread Test:", breadTest);
 
         vm.startBroadcast(deployerKey);
 
@@ -26,15 +22,11 @@ contract DeployTestnet is Script {
         console.log("MockUSDM deployed:", address(usdm));
 
         // 2. Deploy MegaNames with MockUSDM
-        MegaNames megaNames = new MegaNames(address(usdm), warrenSafe);
+        MegaNames megaNames = new MegaNames(address(usdm), FEE_RECIPIENT);
         console.log("MegaNames deployed:", address(megaNames));
 
-        // 3. Mint 1M USDM to Bread
-        uint256 amount = 1_000_000 * 1e18; // 1M USDM (18 decimals)
-        usdm.mint(breadTest, amount);
-        console.log("Minted 1M USDM to Bread");
-
-        // 4. Also mint some to deployer for testing
+        // 3. Mint test USDM to deployer
+        uint256 amount = 1_000_000 * 1e18;
         usdm.mint(deployer, amount);
         console.log("Minted 1M USDM to deployer");
 
@@ -44,6 +36,6 @@ contract DeployTestnet is Script {
         console.log("=== DEPLOYMENT COMPLETE ===");
         console.log("MockUSDM:", address(usdm));
         console.log("MegaNames:", address(megaNames));
-        console.log("Fee Recipient:", warrenSafe);
+        console.log("Fee Recipient:", FEE_RECIPIENT);
     }
 }

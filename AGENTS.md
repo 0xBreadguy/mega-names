@@ -9,16 +9,17 @@ MegaNames is a single-contract ENS-style naming system. One Solidity contract (`
 ## Contract Addresses
 
 ```
-# Testnet (Chain ID: 6342, RPC: https://carrot.megaeth.com/rpc)
-MegaNames: 0x84443E5aC049636561f1A70FCAa8C8d776aA26f0
+# Testnet (Chain ID: 6343, RPC: https://carrot.megaeth.com/rpc)
+MegaNames: 0x8F0310eEDcfB71E5095ee5ce4f3676D9cEA65101
 MockUSDM:  0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833
 
 # Mainnet (Chain ID: 4326, RPC: https://mainnet.megaeth.com/rpc)
-MegaNames: 0x3B4f7D6a5453f7161Eb5F7830726c12D3157c9Ad
+MegaNames: 0x5B424C6CCba77b32b9625a6fd5A30D409d20d997
 USDM:      0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7
+Renderer:  0x8d206c277E709c8F4f8882fc0157bE76dA0C48C4
 
 # Fee recipient (both networks)
-Warren Safe: 0xd4aE3973244592ef06dfdf82470329aCfA62C187
+Fee Recipient: 0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38
 ```
 
 ## Token ID Computation
@@ -109,18 +110,15 @@ function totalRenewals() → uint256
 function totalSubdomains() → uint256
 function totalVolume() → uint256                           // Cumulative USDM collected
 
-// Registration helpers
-function makeCommitment(string label, address owner, bytes32 secret) → bytes32
-function commitments(bytes32) → uint256                    // Timestamp of commitment
+// Pricing
+function calculateFee(uint256 labelLength, uint256 numYears) → uint256  // Total with discount
 ```
 
 ### Write Functions
 
 ```solidity
-// Registration (commit-reveal)
-function commit(bytes32 commitment)                        // Step 1: commit hash
-function register(string label, address owner, bytes32 secret, uint256 numYears) → uint256  // Step 2: reveal + register
-function registerDirect(string label, address owner, uint256 numYears) → uint256  // Owner-only: skip commit-reveal
+// Registration
+function register(string label, address owner, uint256 numYears) → uint256
 function registerWithPermit(string label, address owner, uint256 numYears, uint256 deadline, uint8 v, bytes32 r, bytes32 s) → uint256
 
 // Management
@@ -160,7 +158,7 @@ const record = await publicClient.readContract({
 const isAvailable = record[0] === '' // empty label = unregistered
 ```
 
-### Pattern 2: Register a Name (Full Flow)
+### Pattern 2: Register a Name
 
 ```javascript
 // 1. Calculate fee
@@ -175,22 +173,10 @@ await walletClient.writeContract({
   args: [MEGANAMES, fee]
 })
 
-// 3. Commit
-const secret = '0x' + crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, '0'), '')
-const commitment = await publicClient.readContract({
-  address: MEGANAMES, abi, functionName: 'makeCommitment',
-  args: [label, ownerAddress, secret]
-})
-await walletClient.writeContract({
-  address: MEGANAMES, abi, functionName: 'commit', args: [commitment]
-})
-
-// 4. Wait 60 seconds (MIN_COMMITMENT_AGE)
-
-// 5. Register (within 24 hours)
+// 3. Register
 const tokenId = await walletClient.writeContract({
   address: MEGANAMES, abi, functionName: 'register',
-  args: [label, ownerAddress, secret, BigInt(numYears)]
+  args: [label, ownerAddress, BigInt(numYears)]
 })
 ```
 
@@ -268,8 +254,6 @@ Standard keys (compatible with ENS):
 ## Important Constants
 
 ```
-MIN_COMMITMENT_AGE = 60 seconds      // Wait after commit before register
-MAX_COMMITMENT_AGE = 86400 seconds   // 24 hours — commit expires after this
 REGISTRATION_DURATION = 365 days     // Per year
 MAX_DEPTH = 3                        // Subdomain nesting limit
 TLD = "mega"

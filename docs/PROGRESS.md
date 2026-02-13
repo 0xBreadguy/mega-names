@@ -4,7 +4,7 @@
 - **Domain:** meganame.market (Cloudflare)
 - **TLD:** `.mega`
 - **Payment:** USDM stablecoin (18 decimals, OFT)
-- **Fee Recipient:** Warren Safe (`0xd4aE3973244592ef06dfdf82470329aCfA62C187`)
+- **Fee Recipient:** `0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38`
 
 ---
 
@@ -15,7 +15,7 @@
 **MegaNames.sol** - ENS-style naming for MegaETH
 - [x] Fork of z0r0z/wei-names
 - [x] USDM payments (18 decimals)
-- [x] Commit-reveal registration (60s min, 24h max)
+- [x] Direct registration (with permit support)
 - [x] Forward resolution (name → address)
 - [x] Reverse resolution (address → name)
 - [x] Contenthash support (IPFS/Warren)
@@ -35,14 +35,15 @@
 ### Testnet Deployment ✅
 | Contract | Address |
 |----------|---------|
-| MegaNames | `0xaa63b6535c7e8aa887764da86295e72116dfe52f` |
-| MockUSDM | `0x36c9b178b7d34c1a3582369e5bca42c4dc5e95ff` |
+| MegaNames | `0x8F0310eEDcfB71E5095ee5ce4f3676D9cEA65101` |
+| MockUSDM | `0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833` |
 
-**Test Registration:** `bread.mega` ✅
-
-### Mainnet Deployment
-- [ ] Pending (after website ready)
-- USDM Mainnet: `0x078D782b760474a361dDA0AF3839290b0EF57AD6`
+### Mainnet Deployment ✅
+| Contract | Address |
+|----------|---------|
+| MegaNames | `0x5B424C6CCba77b32b9625a6fd5A30D409d20d997` |
+| USDM | `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7` |
+| Renderer | `0x8d206c277E709c8F4f8882fc0157bE76dA0C48C4` |
 
 ---
 
@@ -65,11 +66,6 @@
 | Account ID | `a685746a969555465bb163932b8bc616` |
 | Zone ID | `27966738bbf5ade9a128a58cbde8939e` |
 
-### Credentials (in secrets/)
-- [x] `cloudflare_token.txt` - API token (Workers Edit)
-- [x] `cloudflare_config.json` - Account/Zone IDs
-- [x] `testnet_faucet_key.txt` - Deploy key
-
 ---
 
 ## Phase 3: Website 📋 NEXT UP
@@ -88,7 +84,7 @@
 ### Pages Needed
 - [ ] Landing / Home
 - [ ] Search (check name availability)
-- [ ] Register (commit → wait → reveal flow)
+- [ ] Register (direct + permit flow)
 - [ ] My Names (dashboard)
 - [ ] Name Detail (set records, manage)
 - [ ] Subdomain Management
@@ -97,7 +93,7 @@
 - [ ] Wallet connection (wagmi)
 - [ ] Name search/availability
 - [ ] USDM approval flow
-- [ ] Registration (commit-reveal)
+- [ ] Registration (direct + permit)
 - [ ] View owned names
 - [ ] Set address record
 - [ ] Set primary name

@@ -21,13 +21,6 @@ export function getTokenId(label: string): bigint {
   return BigInt(tokenId)
 }
 
-// Generate random secret for commit-reveal
-export function generateSecret(): `0x${string}` {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return `0x${Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')}`
-}
-
 // Format USDM amount (18 decimals)
 export function formatUSDM(amount: bigint): string {
   const value = Number(amount) / 1e18

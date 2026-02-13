@@ -21,7 +21,7 @@ The naming layer for MegaETH that:
 | **Project Name** | MegaNames |
 | **Gateway** | `meganame.market` |
 | **Ownership** | Bread → potentially gifted to ecosystem |
-| **Fee Recipient** | `0xd4aE3973244592ef06dfdf82470329aCfA62C187` (Warren Safe) |
+| **Fee Recipient** | `0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38` |
 
 ---
 
@@ -117,15 +117,15 @@ Name NFT minted to user
 ```
 
 ### 3.3 Token Addresses
-- **USDM Mainnet:** `0x078D782b760474a361dDA0AF3839290b0EF57AD6`
-- **Warren Safe:** `0xd4aE3973244592ef06dfdf82470329aCfA62C187`
+- **USDM Mainnet:** `0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7`
+- **Fee Recipient:** `0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38`
 
 ---
 
 ## 4. Features (from WNS)
 
 ### 4.1 Core (v1)
-- [x] Name registration (commit-reveal)
+- [x] Name registration
 - [x] ERC-721 ownership
 - [x] Address resolution
 - [x] Contenthash (IPFS + on-chain)
@@ -140,7 +140,7 @@ Name NFT minted to user
 
 ## 5. Dependencies
 
-- [x] Warren protocol fee recipient address: `0xd4aE3973244592ef06dfdf82470329aCfA62C187`
+- [x] Fee recipient address: `0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38`
 - [x] Warren contenthash format spec (7-byte format with 0xe9 codec)
 - [x] Gateway domain: `meganame.market`
 
