@@ -139,17 +139,16 @@ contract MegaNameRenderer is Ownable {
     }
 
     /*//////////////////////////////////////////////////////////////
-                          SVG — split to avoid stack depth
+                          SVG — synced with meganame.market aesthetic
     //////////////////////////////////////////////////////////////*/
 
     function _svg(string memory displayName, uint256 labelLen, uint256 regNum,
         uint256 totalRegs, uint256 subCount, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
-        // tier: 1=1char, 2=2char, 3=3char, 4=4char, 5=5+
         uint8 tier = labelLen >= 5 ? 5 : uint8(labelLen);
-        string memory part1 = string.concat(_svgOpen(), _svgBg(tier), _svgRings(tier));
-        string memory part2 = string.concat(_svgLines(), _svgDots(tier), _svgTierIcon(tier));
+        string memory part1 = string.concat(_svgOpen(), _svgBg(tier));
+        string memory part2 = string.concat(_svgCorners(), _svgTierIcon(tier));
         string memory part3 = string.concat(_svgName(displayName), _svgInfo(regNum, totalRegs, subCount, expiresAt, isSub), _svgClose());
         return string.concat(part1, part2, part3);
     }
@@ -157,47 +156,24 @@ contract MegaNameRenderer is Ownable {
     function _svgOpen() internal pure returns (string memory) {
         return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">'
             '<defs>'
-            '<pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">'
-            '<path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(25,25,26,0.06)" stroke-width="0.5"/></pattern>'
-            '<pattern id="G" width="80" height="80" patternUnits="userSpaceOnUse">'
-            '<path d="M 80 0 L 0 0 0 80" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.8"/></pattern>'
+            '<pattern id="g" width="100" height="100" patternUnits="userSpaceOnUse">'
+            '<path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(68,68,68,0.15)" stroke-width="0.5"/></pattern>'
             '</defs>';
     }
 
     function _svgBg(uint8 tier) internal pure returns (string memory) {
         return string.concat(
-            '<rect width="400" height="400" fill="#e8e2d6"/>'
+            '<rect width="400" height="400" fill="#CECEC9"/>'
             '<rect width="400" height="400" fill="url(#g)"/>'
-            '<rect width="400" height="400" fill="url(#G)"/>'
             '<rect width="400" height="400" fill="', _tierBgFill(tier), '"/>'
         );
     }
 
-    function _svgRings(uint8 tier) internal pure returns (string memory) {
-        return string.concat(
-            '<circle cx="200" cy="175" r="120" fill="none" stroke="', _tierAccent(tier), '" stroke-width="0.8"/>'
-            '<circle cx="200" cy="175" r="85" fill="none" stroke="rgba(25,25,26,0.08)" stroke-width="0.8"/>'
-            '<circle cx="200" cy="175" r="50" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.8"/>'
-        );
-    }
-
-    function _svgLines() internal pure returns (string memory) {
-        return '<line x1="200" y1="55" x2="200" y2="295" stroke="rgba(25,25,26,0.05)" stroke-width="0.5"/>'
-            '<line x1="80" y1="175" x2="320" y2="175" stroke="rgba(25,25,26,0.05)" stroke-width="0.5"/>'
-            '<path d="M 16 16 L 16 32 M 16 16 L 32 16" fill="none" stroke="rgba(25,25,26,0.15)" stroke-width="1"/>'
-            '<path d="M 384 16 L 384 32 M 384 16 L 368 16" fill="none" stroke="rgba(25,25,26,0.15)" stroke-width="1"/>'
-            '<path d="M 16 384 L 16 368 M 16 384 L 32 384" fill="none" stroke="rgba(25,25,26,0.15)" stroke-width="1"/>'
-            '<path d="M 384 384 L 384 368 M 384 384 L 368 384" fill="none" stroke="rgba(25,25,26,0.15)" stroke-width="1"/>';
-    }
-
-    function _svgDots(uint8 tier) internal pure returns (string memory) {
-        string memory ac = _tierAccent(tier);
-        return string.concat(
-            '<circle cx="200" cy="55" r="3" fill="', ac, '"/>'
-            '<circle cx="320" cy="175" r="3" fill="rgba(25,25,26,0.12)"/>'
-            '<circle cx="200" cy="295" r="3" fill="rgba(25,25,26,0.12)"/>'
-            '<circle cx="80" cy="175" r="3" fill="', ac, '"/>'
-        );
+    function _svgCorners() internal pure returns (string memory) {
+        return '<path d="M 16 16 L 16 32 M 16 16 L 32 16" fill="none" stroke="rgba(25,25,26,0.20)" stroke-width="1"/>'
+            '<path d="M 384 16 L 384 32 M 384 16 L 368 16" fill="none" stroke="rgba(25,25,26,0.20)" stroke-width="1"/>'
+            '<path d="M 16 384 L 16 368 M 16 384 L 32 384" fill="none" stroke="rgba(25,25,26,0.20)" stroke-width="1"/>'
+            '<path d="M 384 384 L 384 368 M 384 384 L 368 384" fill="none" stroke="rgba(25,25,26,0.20)" stroke-width="1"/>';
     }
 
     function _svgTierIcon(uint8 tier) internal pure returns (string memory) {
@@ -237,14 +213,14 @@ contract MegaNameRenderer is Ownable {
     function _svgName(string memory displayName) internal pure returns (string memory) {
         uint256 len = bytes(displayName).length;
         string memory fs; string memory yp;
-        if (len <= 6) { fs = "80"; yp = "196"; }
-        else if (len <= 10) { fs = "52"; yp = "190"; }
-        else if (len <= 15) { fs = "36"; yp = "186"; }
-        else { fs = "28"; yp = "184"; }
+        if (len <= 6) { fs = "72"; yp = "196"; }
+        else if (len <= 10) { fs = "48"; yp = "190"; }
+        else if (len <= 15) { fs = "34"; yp = "186"; }
+        else { fs = "26"; yp = "184"; }
         return string.concat(
-            '<text x="200" y="46" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.25)" letter-spacing="3">MEGANAMES</text>'
+            '<text x="28" y="46" font-family="monospace" font-size="9" fill="rgba(25,25,26,0.30)" letter-spacing="2">MEGANAMES</text>'
             '<text x="200" y="', yp, '" font-family="Impact,Arial Black,Helvetica Neue,sans-serif" font-size="',
-            fs, '" text-anchor="middle" fill="#19191a" letter-spacing="2">', MegaNamesSVG.escapeXML(displayName), '</text>'
+            fs, '" text-anchor="middle" fill="#1A1A1A" letter-spacing="1">', MegaNamesSVG.escapeXML(displayName), '</text>'
         );
     }
 
@@ -256,17 +232,18 @@ contract MegaNameRenderer is Ownable {
         string memory right = (!isSub && expiresAt > 0) ? string.concat("EXP ", _fmtDate(expiresAt)) : "";
 
         return string.concat(
-            '<rect x="16" y="340" width="368" height="32" fill="rgba(25,25,26,0.04)" rx="2"/>'
-            '<text x="28" y="360" font-family="monospace" font-size="9" fill="rgba(25,25,26,0.35)">', left, '</text>'
-            '<text x="200" y="360" font-family="monospace" font-size="9" text-anchor="middle" fill="rgba(25,25,26,0.30)" letter-spacing="2">', center, '</text>'
-            '<text x="372" y="360" font-family="monospace" font-size="9" text-anchor="end" fill="rgba(25,25,26,0.30)">', right, '</text>'
+            '<rect x="16" y="336" width="368" height="36" fill="#c2c2bd" rx="0"/>'
+            '<line x1="16" y1="336" x2="384" y2="336" stroke="rgba(25,25,26,0.12)" stroke-width="0.5"/>'
+            '<text x="28" y="359" font-family="monospace" font-size="9" fill="rgba(25,25,26,0.40)">', left, '</text>'
+            '<text x="200" y="359" font-family="monospace" font-size="9" text-anchor="middle" fill="rgba(25,25,26,0.35)" letter-spacing="2">', center, '</text>'
+            '<text x="372" y="359" font-family="monospace" font-size="9" text-anchor="end" fill="rgba(25,25,26,0.35)">', right, '</text>'
         );
     }
 
     function _svgClose() internal pure returns (string memory) {
-        return '<text x="200" y="210" font-family="Impact,Arial Black,sans-serif" font-size="200" text-anchor="middle" fill="rgba(25,25,26,0.02)">M</text>'
-            '<text x="200" y="384" font-family="monospace" font-size="7" text-anchor="middle" fill="rgba(25,25,26,0.15)" letter-spacing="2">.MEGA</text>'
-            '<rect x="8" y="8" width="384" height="384" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.5"/>'
+        return '<text x="200" y="210" font-family="Impact,Arial Black,sans-serif" font-size="200" text-anchor="middle" fill="rgba(25,25,26,0.025)">M</text>'
+            '<text x="200" y="388" font-family="monospace" font-size="7" text-anchor="middle" fill="rgba(25,25,26,0.18)" letter-spacing="2">.MEGA</text>'
+            '<rect x="0" y="0" width="400" height="400" fill="none" stroke="rgba(25,25,26,0.12)" stroke-width="1"/>'
             '</svg>';
     }
 
@@ -283,11 +260,11 @@ contract MegaNameRenderer is Ownable {
     }
 
     function _tierBgFill(uint8 tier) internal pure returns (string memory) {
-        if (tier == 1) return "rgba(212,175,55,0.12)";
-        if (tier == 2) return "rgba(192,160,45,0.08)";
-        if (tier == 3) return "rgba(168,140,40,0.06)";
-        if (tier == 4) return "rgba(140,130,110,0.05)";
-        return "rgba(25,25,26,0.03)";
+        if (tier == 1) return "rgba(212,175,55,0.10)";
+        if (tier == 2) return "rgba(192,160,45,0.07)";
+        if (tier == 3) return "rgba(168,140,40,0.05)";
+        if (tier == 4) return "rgba(140,130,110,0.04)";
+        return "rgba(25,25,26,0.02)";
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -297,7 +274,6 @@ contract MegaNameRenderer is Ownable {
     /// @dev "FEB 2029" — civil date from unix timestamp
     function _fmtDate(uint64 ts) internal pure returns (string memory) {
         if (ts == 0) return "---";
-        // days since epoch + offset to March 1, year 0 (Howard Hinnant's algorithm)
         uint256 z = uint256(ts) / 86400 + 719468;
         uint256 era = z / 146097;
         uint256 doe = z - era * 146097;
@@ -305,7 +281,7 @@ contract MegaNameRenderer is Ownable {
         uint256 y = yoe + era * 400;
         uint256 doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
         uint256 mp = (5 * doy + 2) / 153;
-        uint256 m = mp < 10 ? mp + 3 : mp - 9; // 1=Jan .. 12=Dec
+        uint256 m = mp < 10 ? mp + 3 : mp - 9;
         if (m <= 2) y++;
         string[12] memory mn = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
         return string.concat(mn[m - 1], " ", y.toString());
