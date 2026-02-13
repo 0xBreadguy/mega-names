@@ -294,22 +294,21 @@ contract MegaNameRenderer is Ownable {
                           DATE FORMAT
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev "FEB 2029" — OpenZeppelin-style timestamp to date
+    /// @dev "FEB 2029" — civil date from unix timestamp
     function _fmtDate(uint64 ts) internal pure returns (string memory) {
         if (ts == 0) return "---";
-        // Adapted from BokkyPooBah's DateTime Library (correct version)
-        uint256 _days = uint256(ts) / 86400;
-        uint256 y = (10000 * _days + 14780) / 3652425;
-        int256 doy = int256(_days) - int256((365 * y + y / 4 - y / 100 + y / 400));
-        if (doy < 0) {
-            y--;
-            doy = int256(_days) - int256((365 * y + y / 4 - y / 100 + y / 400));
-        }
-        uint256 mi = uint256((100 * doy + 52) / 3060);
-        uint256 month = (mi + 2) % 12; // 0=Jan, 11=Dec
-        y = y + (mi + 2) / 12;
+        // days since epoch + offset to March 1, year 0 (Howard Hinnant's algorithm)
+        uint256 z = uint256(ts) / 86400 + 719468;
+        uint256 era = z / 146097;
+        uint256 doe = z - era * 146097;
+        uint256 yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+        uint256 y = yoe + era * 400;
+        uint256 doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+        uint256 mp = (5 * doy + 2) / 153;
+        uint256 m = mp < 10 ? mp + 3 : mp - 9; // 1=Jan .. 12=Dec
+        if (m <= 2) y++;
         string[12] memory mn = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-        return string.concat(mn[month], " ", y.toString());
+        return string.concat(mn[m - 1], " ", y.toString());
     }
 
     /*//////////////////////////////////////////////////////////////
