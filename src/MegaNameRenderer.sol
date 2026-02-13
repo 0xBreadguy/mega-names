@@ -46,12 +46,22 @@ contract MegaNameRenderer is Ownable {
         internal view returns (string memory)
     {
         string memory fullName = _buildName(label, parent);
-        string memory displayName = _makeDisplay(fullName);
         bool isSub = parent != 0;
         uint256 labelLen = bytes(label).length;
-        // Tier is based on the root parent label length, not the subdomain label
         uint256 tierLen = isSub ? _rootLabelLen(parent) : labelLen;
-        string memory svg = _svg(displayName, tierLen, labelLen, expiresAt, isSub);
+
+        // For subdomains: split into sub chain (top) and root parent (bottom)
+        string memory topDisplay;
+        string memory bottomDisplay;
+        if (isSub) {
+            topDisplay = _makeDisplay(string.concat(_buildSubChain(label, parent), "."));
+            bottomDisplay = _rootName(parent);
+        } else {
+            topDisplay = _makeDisplay(fullName);
+            bottomDisplay = "";
+        }
+
+        string memory svg = _svg(topDisplay, bottomDisplay, tierLen, labelLen, expiresAt, isSub);
         return _encode(fullName, svg, tierLen, labelLen, expiresAt, isSub);
     }
 
@@ -59,15 +69,28 @@ contract MegaNameRenderer is Ownable {
         if (parent != 0) {
             (string memory pLabel, uint256 grandParent,,,) = megaNames.records(parent);
             string memory parentName = _buildName(pLabel, grandParent);
-            // parentName already ends with ".mega", so insert before it
             return string.concat(label, ".", parentName);
         }
         return string.concat(label, ".mega");
     }
 
-    function _makeDisplay(string memory fullName) internal pure returns (string memory) {
-        if (bytes(fullName).length <= 20) return fullName;
-        return string.concat(_trunc(fullName, 17), "...");
+    /// @dev Build the subdomain chain excluding root (e.g. "1.vault" for 1.vault.bread.mega)
+    function _buildSubChain(string memory label, uint256 parent) internal view returns (string memory) {
+        (string memory pLabel, uint256 grandParent,,,) = megaNames.records(parent);
+        if (grandParent == 0) return label; // parent is root, stop
+        return string.concat(label, ".", _buildSubChain(pLabel, grandParent));
+    }
+
+    /// @dev Get root parent name (e.g. "bread.mega")
+    function _rootName(uint256 tokenId) internal view returns (string memory) {
+        (string memory lbl, uint256 par,,,) = megaNames.records(tokenId);
+        if (par == 0) return string.concat(lbl, ".mega");
+        return _rootName(par);
+    }
+
+    function _makeDisplay(string memory name) internal pure returns (string memory) {
+        if (bytes(name).length <= 20) return name;
+        return string.concat(_trunc(name, 17), "...");
     }
 
     function _encode(string memory fullName, string memory svg, uint256 tierLen, uint256 labelLen, uint64 expiresAt, bool isSub)
@@ -90,13 +113,13 @@ contract MegaNameRenderer is Ownable {
                           SVG
     //////////////////////////////////////////////////////////////*/
 
-    function _svg(string memory displayName, uint256 tierLen, uint256 labelLen, uint64 expiresAt, bool isSub)
+    function _svg(string memory topDisplay, string memory bottomDisplay, uint256 tierLen, uint256 labelLen, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
         uint8 tier = tierLen >= 5 ? 5 : uint8(tierLen);
         string memory part1 = string.concat(_svgOpen(), _svgBg(tier));
-        string memory part2 = string.concat(_svgCorners(), _svgTierIcon(tier));
-        string memory part3 = string.concat(_svgName(displayName), _svgInfo(labelLen, expiresAt, isSub), _svgClose());
+        string memory part2 = _svgCorners();
+        string memory part3 = string.concat(_svgName(topDisplay, bottomDisplay, isSub), _svgInfo(labelLen, expiresAt, isSub), _svgClose());
         return string.concat(part1, part2, part3);
     }
 
@@ -156,17 +179,35 @@ contract MegaNameRenderer is Ownable {
         );
     }
 
-    function _svgName(string memory displayName) internal pure returns (string memory) {
-        uint256 len = bytes(displayName).length;
+    function _svgName(string memory topDisplay, string memory bottomDisplay, bool isSub) internal pure returns (string memory) {
+        string memory logo = '<rect x="20" y="41" width="4" height="4" fill="rgba(25,25,26,0.35)"/>'
+            '<path d="M 27.5 45 L 27.5 27 M 27.5 32 C 28.5 28 31 26.5 34.5 26.5 C 38 26.5 39.75 29 39.75 32 L 39.75 45 M 39.75 32 C 40.75 28 43 26.5 46.5 26.5 C 50 26.5 51.75 29 51.75 32 L 51.75 45" fill="none" stroke="rgba(25,25,26,0.35)" stroke-width="3.5" stroke-linecap="butt" stroke-linejoin="round"/>';
+
+        if (isSub) {
+            uint256 topLen = bytes(topDisplay).length;
+            string memory fs;
+            if (topLen <= 6) fs = "72";
+            else if (topLen <= 10) fs = "48";
+            else if (topLen <= 15) fs = "34";
+            else fs = "26";
+            return string.concat(
+                logo,
+                '<text x="28" y="180" font-family="Impact,Arial Black,Helvetica Neue,sans-serif" font-size="',
+                fs, '" fill="#1A1A1A" letter-spacing="1">', MegaNamesSVG.escapeXML(topDisplay), '</text>',
+                '<text x="28" y="220" font-family="Helvetica Neue,Arial,sans-serif" font-size="32" fill="rgba(25,25,26,0.40)">', MegaNamesSVG.escapeXML(bottomDisplay), '</text>'
+            );
+        }
+
+        uint256 len = bytes(topDisplay).length;
         string memory fs; string memory yp;
         if (len <= 6) { fs = "72"; yp = "196"; }
         else if (len <= 10) { fs = "48"; yp = "190"; }
         else if (len <= 15) { fs = "34"; yp = "186"; }
         else { fs = "26"; yp = "184"; }
         return string.concat(
-            '<text x="28" y="46" font-family="monospace" font-size="9" fill="rgba(25,25,26,0.30)" letter-spacing="2">MEGANAMES</text>'
+            logo,
             '<text x="200" y="', yp, '" font-family="Impact,Arial Black,Helvetica Neue,sans-serif" font-size="',
-            fs, '" text-anchor="middle" fill="#1A1A1A" letter-spacing="1">', MegaNamesSVG.escapeXML(displayName), '</text>'
+            fs, '" text-anchor="middle" fill="#1A1A1A" letter-spacing="1">', MegaNamesSVG.escapeXML(topDisplay), '</text>'
         );
     }
 
@@ -187,8 +228,7 @@ contract MegaNameRenderer is Ownable {
     }
 
     function _svgClose() internal pure returns (string memory) {
-        return '<rect x="118" y="195" width="18" height="18" fill="rgba(25,25,26,0.04)"/>'
-            '<text x="148" y="260" font-family="Helvetica Neue,Arial,sans-serif" font-size="160" font-weight="400" fill="rgba(25,25,26,0.04)">m</text>'
+        return ''
             '<text x="200" y="388" font-family="monospace" font-size="7" text-anchor="middle" fill="rgba(25,25,26,0.18)" letter-spacing="2">.MEGA</text>'
             '<rect x="0" y="0" width="400" height="400" fill="none" stroke="rgba(25,25,26,0.12)" stroke-width="1"/>'
             '</svg>';
