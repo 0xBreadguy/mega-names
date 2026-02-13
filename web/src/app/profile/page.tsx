@@ -308,7 +308,7 @@ function ProfileContent() {
                     )}
                     {textRecords.email && (
                       <a href={`mailto:${textRecords.email}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
-                        ✉ {textRecords.email}
+                        {textRecords.email}
                       </a>
                     )}
                   </div>

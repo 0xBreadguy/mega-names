@@ -1,15 +1,8 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/lib/providers"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-
-const inter = Inter({ 
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  style: ["normal", "italic"],
-})
 
 export const metadata: Metadata = {
   title: "MEGANAMES",
@@ -23,16 +16,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen`}>
+      <body className="min-h-screen flex items-center justify-center p-0 sm:p-6">
         <Providers>
-          <Header />
-          <div className="bg-[var(--foreground)] text-[var(--background)] text-center py-2 px-4 shadow-[0_2px_6px_rgba(25,25,26,0.15)]">
-            <p className="text-xs font-label tracking-wider">
-              🚧 PRE-REGISTRATION PHASE — Public registration opening soon. Founder & team names are being reserved.
-            </p>
+          <div className="app-frame w-full max-w-[1200px] min-h-screen sm:min-h-0 sm:max-h-[95vh] overflow-y-auto border border-[var(--border)] shadow-[0_0_60px_rgba(0,0,0,0.4)] flex flex-col">
+            <Header />
+            <div className="bg-[var(--foreground)] text-[var(--bg-card)] text-center py-2 px-4">
+              <p className="text-[10px] font-label tracking-wider" style={{ fontFamily: 'var(--font-main)' }}>
+                PRE-REGISTRATION PHASE — Public registration opening soon
+              </p>
+            </div>
+            <main className="flex-1">{children}</main>
+            <Footer />
           </div>
-          <main>{children}</main>
-          <Footer />
         </Providers>
       </body>
     </html>

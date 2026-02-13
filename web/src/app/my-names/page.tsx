@@ -91,9 +91,9 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -140,7 +140,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
             <p className="text-[var(--muted)]">{displayName} has been transferred</p>
             {txHash && (
               <a
-                href={`https://megaeth.blockscout.com/tx/${txHash}`}
+                href={`https://mega.etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -214,8 +214,8 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
             <div className="p-4 bg-yellow-50 border-2 border-yellow-400 mb-6">
               <p className="text-sm text-yellow-800">
                 {name.isSubdomain 
-                  ? '⚠️ The parent name owner can revoke this subdomain after transfer.'
-                  : '⚠️ This action is irreversible. Make sure the recipient address is correct.'}
+                  ? 'The parent name owner can revoke this subdomain after transfer.'
+                  : 'This action is irreversible. Make sure the recipient address is correct.'}
               </p>
             </div>
           </>
@@ -280,9 +280,9 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -329,7 +329,7 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
             <p className="text-[var(--muted)]">{fullName}</p>
             {txHash && (
               <a
-                href={`https://megaeth.blockscout.com/tx/${txHash}`}
+                href={`https://mega.etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -375,7 +375,7 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
 
             <div className="p-4 bg-green-50 border-2 border-green-400 mb-6">
               <p className="text-sm text-green-800">
-                ✨ Subdomains are free to create! You can transfer or sell them like any name.
+                Subdomains are free to create! You can transfer or sell them like any name.
               </p>
             </div>
           </>
@@ -442,9 +442,9 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -498,7 +498,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
             <p className="font-mono text-sm mt-1">{targetAddress.slice(0, 10)}...{targetAddress.slice(-8)}</p>
             {txHash && (
               <a
-                href={`https://megaeth.blockscout.com/tx/${txHash}`}
+                href={`https://mega.etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -546,7 +546,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
 
             <div className="p-4 bg-blue-50 border-2 border-blue-400 mb-6">
               <p className="text-sm text-blue-800">
-                💡 This sets where {displayName} resolves to. You can point it to any address — a wallet, multisig, or contract.
+                This sets where {displayName} resolves to. You can point it to any address — a wallet, multisig, or contract.
               </p>
             </div>
           </>
@@ -634,9 +634,9 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -669,9 +669,9 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -733,7 +733,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
             <p className="text-sm text-[var(--muted)] mt-2">New expiry: {formatExpiry(newExpiry)}</p>
             {txHash && (
               <a
-                href={`https://megaeth.blockscout.com/tx/${txHash}`}
+                href={`https://mega.etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -850,7 +850,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
   )
 }
 
-// Warren NFT contract address (testnet)
+// Warren NFT contract address
 const WARREN_NFT_CONTRACT = '0xd1591a060BB8933869b16A248C77d1375389842B' as const
 const WARREN_APP_URL = 'https://thewarren.app'
 
@@ -894,9 +894,9 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -943,7 +943,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
             <p className="text-[var(--muted)]">{displayName} now points to Warren #{warrenTokenId}</p>
             {txHash && (
               <a
-                href={`https://megaeth.blockscout.com/tx/${txHash}`}
+                href={`https://mega.etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mt-4 inline-block"
@@ -1066,7 +1066,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
             <div className="text-xs text-[var(--muted)] mb-4">
               <p>Warren NFT Contract:</p>
               <a 
-                href={`https://megaeth.blockscout.com/address/${WARREN_NFT_CONTRACT}`}
+                href={`https://mega.etherscan.io/address/${WARREN_NFT_CONTRACT}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-blue-600 hover:underline break-all"
@@ -1183,9 +1183,9 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -1238,9 +1238,9 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -1369,7 +1369,7 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
 
         <div className="mt-6 p-4 bg-blue-50 border-2 border-blue-400">
           <p className="text-sm text-blue-800">
-            💡 Text records are ENS-compatible. Apps and dApps can read these to show your profile info.
+            Text records are ENS-compatible. Apps and dApps can read these to show your profile info.
           </p>
         </div>
       </div>
@@ -1505,7 +1505,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             </Tooltip>
             <Tooltip label="Explorer">
               <a
-                href={`https://megaeth.blockscout.com/token/${CONTRACTS.mainnet.megaNames}/instance/${name.tokenId.toString()}`}
+                href={`https://mega.etherscan.io/token/${CONTRACTS.mainnet.megaNames}/instance/${name.tokenId.toString()}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
@@ -1571,7 +1571,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                 </Tooltip>
                 <Tooltip label="Explorer">
                   <a
-                    href={`https://megaeth.blockscout.com/token/${CONTRACTS.mainnet.megaNames}/instance/${sub.tokenId.toString()}`}
+                    href={`https://mega.etherscan.io/token/${CONTRACTS.mainnet.megaNames}/instance/${sub.tokenId.toString()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1 hover:bg-[var(--surface-hover)]"
@@ -1642,9 +1642,9 @@ export default function MyNamesPage() {
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -1673,9 +1673,9 @@ export default function MyNamesPage() {
         data,
         chain: {
           id: MEGAETH_CHAIN_ID,
-          name: 'MegaETH Testnet',
+          name: 'MegaETH',
           nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
         },
       })
 
@@ -1899,7 +1899,7 @@ export default function MyNamesPage() {
         <div className="mt-8 p-6 bg-[var(--surface)] border border-[var(--border)]">
           <p className="font-label text-xs text-[var(--muted)] mb-2">TESTNET NOTICE</p>
           <p className="text-sm text-[var(--muted)]">
-            MegaNames is currently on testnet. Names registered here are for testing only.
+            MegaNames is in pre-registration phase. Public registration coming soon.
             Need test USDM? Use the faucet in the MegaETH ecosystem bot.
           </p>
         </div>

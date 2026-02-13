@@ -163,6 +163,60 @@ function NamePreview({ name }: { name: string }) {
   )
 }
 
+/* ── Subdomain Hierarchy Animation ── */
+
+function SubdomainTree() {
+  const [step, setStep] = useState(0)
+  const { ref, visible } = useInView(0.3)
+
+  useEffect(() => {
+    if (!visible) return
+    const interval = setInterval(() => {
+      setStep((s) => (s + 1) % 5)
+    }, 1200)
+    return () => clearInterval(interval)
+  }, [visible])
+
+  const nodes = [
+    { label: 'bread.mega', depth: 0, show: 0 },
+    { label: 'dev.bread.mega', depth: 1, show: 1 },
+    { label: 'blog.bread.mega', depth: 1, show: 2 },
+    { label: 'api.bread.mega', depth: 1, show: 3 },
+    { label: 'staging.dev.bread.mega', depth: 2, show: 4 },
+  ]
+
+  return (
+    <div ref={ref} className="bg-[var(--background)] border border-[var(--border-light)] rounded-sm px-4 py-3 font-mono text-xs space-y-1.5 my-3">
+      {nodes.map((node, i) => {
+        const isVisible = visible && step >= node.show
+        const isActive = visible && step === node.show
+        return (
+          <div
+            key={i}
+            className="flex items-center gap-2 transition-all duration-500"
+            style={{
+              paddingLeft: `${node.depth * 20}px`,
+              opacity: isVisible ? 1 : 0,
+              transform: isVisible ? 'translateX(0)' : 'translateX(-8px)',
+              transition: 'opacity 0.4s ease-out, transform 0.4s ease-out',
+            }}
+          >
+            {node.depth > 0 && (
+              <span className="text-[var(--border)]">{node.depth === 1 ? '├─' : '│ └─'}</span>
+            )}
+            <span className={`${node.depth === 0 ? 'text-[var(--foreground)] font-semibold' : 'text-[var(--muted-dark)]'}`}>
+              {node.label}
+            </span>
+            {isActive && (
+              <span className="inline-block w-1.5 h-3 bg-[var(--foreground)] animate-blink ml-0.5" />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 /* ── Main Page ── */
 
 export default function Home() {
@@ -456,8 +510,9 @@ export default function Home() {
               </p>
             </div>
             <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
-              <h3 className="font-display text-xl text-[var(--foreground)] mb-2">ON-CHAIN WEBSITES</h3>
-              <p className="text-[var(--muted-dark)] text-sm leading-relaxed">Host your website directly on MegaETH with Warren integration.</p>
+              <h3 className="font-display text-xl text-[var(--foreground)] mb-2">SUBDOMAINS</h3>
+              <SubdomainTree />
+              <p className="text-[var(--muted-dark)] text-sm leading-relaxed mt-3">Create unlimited free subdomains. Give your team, projects, or apps their own identity.</p>
             </div>
           </div>
         </div>

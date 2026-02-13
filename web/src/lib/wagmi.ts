@@ -23,7 +23,7 @@ export const megaethMainnet = {
     default: { http: ['https://meganames-rpc-proxy.0xbreadguy.workers.dev'] },
   },
   blockExplorers: {
-    default: { name: 'Explorer', url: 'https://megaeth.explorer.caldera.xyz' },
+    default: { name: 'Explorer', url: 'https://mega.etherscan.io' },
   },
 } as const
 

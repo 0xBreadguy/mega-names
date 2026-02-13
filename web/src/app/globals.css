@@ -1,97 +1,168 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
 :root {
-  --background: #e8e2d6;
-  --background-light: #ede8dd;
-  --foreground: #19191a;
-  --accent: #19191a;
+  --bg-body: #111111;
+  --bg-card: #CECEC9;
+  --bg-card-light: #d8d8d3;
+  --foreground: #1A1A1A;
+  --text-secondary: #444444;
+  --text-muted: #666666;
+  --line-color: #444444;
+  --line-light: rgba(68, 68, 68, 0.15);
+  --border: #999999;
+  --border-light: #aaaaaa;
+  --surface: #c2c2bd;
+  --surface-hover: #b8b8b3;
+  --font-main: 'Space Mono', monospace;
+  --font-display: 'Archivo Black', sans-serif;
+
+  /* Legacy aliases for components not yet updated */
+  --background: #CECEC9;
+  --background-light: #d8d8d3;
+  --muted: #666666;
+  --muted-dark: #444444;
+  --accent: #1A1A1A;
   --accent-hover: #333;
-  --muted: #9a9590;
-  --muted-dark: #6b6560;
-  --border: #c8c0b4;
-  --border-light: #d5cec2;
-  --surface: #ddd7cb;
-  --surface-hover: #d5cec2;
-  --blueprint: rgba(25, 25, 26, 0.06);
-  --blueprint-strong: rgba(25, 25, 26, 0.12);
 }
 
-/* MegaETH Official Fonts */
-@font-face {
-  font-family: 'Bebas Neue';
-  src: url('/fonts/BebasNeue-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Wudoo Mono';
-  src: url('/fonts/WudooMono-Light.ttf') format('truetype');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Wudoo Mono';
-  src: url('/fonts/WudooMono-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Wudoo Mono';
-  src: url('/fonts/WudooMono-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
+* {
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--bg-body);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-main);
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 80px 80px;
 }
 
-/* Display headlines - Bebas Neue */
+/* Display headlines - Archivo Black */
 .font-display {
-  font-family: 'Bebas Neue', 'Impact', sans-serif;
+  font-family: var(--font-display);
   font-weight: 400;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.02em;
 }
 
 /* Labels/UI text */
 .font-label {
-  font-family: 'Wudoo Mono', 'SF Mono', monospace;
+  font-family: var(--font-main);
   font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
 }
 
-/* Monospace - Wudoo Mono */
+/* Monospace */
 .font-mono {
-  font-family: 'Wudoo Mono', 'SF Mono', 'Monaco', monospace;
+  font-family: var(--font-main);
 }
 
-/* Blueprint grid background */
+/* App container - the light card on dark body */
+.app-frame {
+  background-color: var(--bg-card);
+  background-image:
+    linear-gradient(var(--line-light) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, var(--line-light) 0.5px, transparent 0.5px);
+  background-size: 100px 100px;
+  background-position: center top;
+}
+
+/* Bracket nav items */
+.nav-bracket {
+  font-family: var(--font-main);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--foreground);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.nav-bracket::before { content: '[ '; opacity: 0.4; }
+.nav-bracket::after { content: ' ]'; opacity: 0.4; }
+.nav-bracket:hover { opacity: 0.7; }
+
+/* Grid cells with + markers */
+.grid-cell {
+  position: relative;
+  padding: 20px;
+  border-bottom: 1px solid var(--line-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.grid-cell-right {
+  border-right: 1px solid var(--line-color);
+}
+
+.grid-cell-right::after {
+  content: '+';
+  position: absolute;
+  bottom: -9px;
+  right: -6px;
+  font-size: 14px;
+  color: var(--foreground);
+  background: var(--bg-card);
+  z-index: 5;
+  font-weight: lighter;
+  font-family: var(--font-main);
+}
+
+/* Pill label */
+.pill-label {
+  font-family: var(--font-main);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+  border: 1px solid var(--foreground);
+  padding: 2px 8px;
+  align-self: flex-start;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+/* Meta row */
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 20px;
+  color: var(--foreground);
+  border-top: 1px solid var(--line-color);
+}
+
+/* Divider */
+.line-divider {
+  height: 1px;
+  background-color: var(--line-color);
+  width: 100%;
+}
+
+/* Blueprint grid background (legacy — still used in hero) */
 .blueprint-grid {
   position: absolute;
   inset: 0;
   background:
     repeating-linear-gradient(
       90deg,
-      var(--blueprint) 0px,
-      var(--blueprint) 1px,
+      var(--line-light) 0px,
+      var(--line-light) 1px,
       transparent 1px,
       transparent 80px
     ),
     repeating-linear-gradient(
       0deg,
-      var(--blueprint) 0px,
-      var(--blueprint) 1px,
+      var(--line-light) 0px,
+      var(--line-light) 1px,
       transparent 1px,
       transparent 80px
     );
@@ -118,7 +189,7 @@ body {
 .orbital-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1px solid var(--blueprint-strong);
+  border: 1px solid rgba(68, 68, 68, 0.15);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -131,12 +202,11 @@ body {
 .orbital-ring-4 { width: 680px; height: 680px; animation-delay: 3.6s; }
 .orbital-ring-5 { width: 840px; height: 840px; animation-delay: 4.8s; }
 
-/* Planet dots on orbits */
 .orbital-dot {
   position: absolute;
   width: 6px;
   height: 6px;
-  background: var(--blueprint-strong);
+  background: rgba(68, 68, 68, 0.2);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   animation: dot-pulse 4s ease-in-out infinite;
@@ -146,21 +216,20 @@ body {
   position: absolute;
   width: 8px;
   height: 8px;
-  border: 1px solid var(--blueprint-strong);
+  border: 1px solid rgba(68, 68, 68, 0.2);
   border-radius: 50%;
   background: transparent;
   transform: translate(-50%, -50%);
   animation: dot-hollow-pulse 5s ease-in-out infinite;
 }
 
-/* Planet labels */
 .orbital-label {
   position: absolute;
-  font-family: 'Wudoo Mono', monospace;
+  font-family: var(--font-main);
   font-size: 0.5rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-muted);
   transform: translate(-50%, -50%);
   white-space: nowrap;
 }
@@ -172,7 +241,7 @@ body {
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--blueprint);
+  background: var(--line-light);
   pointer-events: none;
 }
 
@@ -182,23 +251,22 @@ body {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--blueprint);
+  background: var(--line-light);
   pointer-events: none;
 }
 
-/* Diagonal lines */
 .diag-line {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 50%;
   width: 1px;
-  background: var(--blueprint);
+  background: var(--line-light);
   pointer-events: none;
   transform-origin: center;
 }
 
-/* Texture overlay for paper feel */
+/* Paper texture */
 .paper-texture {
   position: fixed;
   inset: 0;
@@ -208,18 +276,12 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
 }
 
-/* Slow orbital rotation */
-@keyframes orbit-spin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+/* Animations */
+@keyframes ring-breathe {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.2; }
 }
 
-@keyframes diag-spin {
-  from { transform: rotate(var(--diag-start)); }
-  to { transform: rotate(calc(var(--diag-start) + 360deg)); }
-}
-
-/* Gentle pulse on orbital dots */
 @keyframes dot-pulse {
   0%, 100% { opacity: 0.12; transform: translate(-50%, -50%) scale(1); }
   50% { opacity: 0.25; transform: translate(-50%, -50%) scale(1.4); }
@@ -230,13 +292,6 @@ body {
   50% { opacity: 0.2; transform: translate(-50%, -50%) scale(1.2); }
 }
 
-/* Ring breathing */
-@keyframes ring-breathe {
-  0%, 100% { opacity: 0.12; }
-  50% { opacity: 0.18; }
-}
-
-/* Scan line sweeping across hero */
 @keyframes scan-line {
   0% { top: -2px; opacity: 0; }
   5% { opacity: 1; }
@@ -244,7 +299,6 @@ body {
   100% { top: 100%; opacity: 0; }
 }
 
-/* Fade in up for sections */
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -254,15 +308,13 @@ body {
   animation: fade-in-up 0.6s ease-out both;
 }
 
-/* Stagger delays */
 .delay-100 { animation-delay: 0.1s; }
 .delay-200 { animation-delay: 0.2s; }
 .delay-300 { animation-delay: 0.3s; }
 
-/* Search focus → ring 3 glow */
 .ring-glow {
-  border-color: rgba(25, 25, 26, 0.25) !important;
-  box-shadow: 0 0 40px rgba(25, 25, 26, 0.06), inset 0 0 40px rgba(25, 25, 26, 0.03);
+  border-color: rgba(68, 68, 68, 0.3) !important;
+  box-shadow: 0 0 40px rgba(68, 68, 68, 0.08);
   transition: border-color 0.6s ease, box-shadow 0.6s ease;
 }
 
@@ -270,7 +322,6 @@ body {
   transition: border-color 0.6s ease, box-shadow 0.6s ease;
 }
 
-/* Cursor blink */
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
@@ -280,7 +331,6 @@ body {
   animation: blink 0.8s step-end infinite;
 }
 
-/* Marquee ticker */
 @keyframes ticker-scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -296,37 +346,31 @@ body {
   animation-play-state: paused;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-body); }
+::-webkit-scrollbar-thumb { background: var(--line-color); }
 
 /* Selection */
 ::selection {
   background: var(--foreground);
-  color: var(--background);
+  color: var(--bg-card);
 }
 
-/* Input */
+/* Inputs */
 input[type="text"],
 input[type="search"] {
-  background: var(--background-light);
+  background: var(--bg-card-light);
   border: 1px solid var(--border);
   color: var(--foreground);
-  font-weight: 600;
+  font-family: var(--font-main);
+  font-weight: 700;
+  font-size: 14px;
   transition: all 0.2s ease;
 }
 
 input::placeholder {
-  color: var(--muted);
+  color: var(--text-muted);
   font-weight: 400;
 }
 
@@ -336,33 +380,35 @@ input:focus {
   box-shadow: 0 0 0 1px var(--foreground);
 }
 
-/* Button primary */
+/* Button primary — full-width dark bar style */
 .btn-primary {
   background: var(--foreground);
-  color: var(--background);
-  border: 1px solid var(--foreground);
-  font-family: 'Wudoo Mono', monospace;
+  color: var(--bg-card);
+  border: none;
+  font-family: var(--font-main);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   font-size: 0.75rem;
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .btn-primary:hover {
-  background: var(--accent-hover);
+  background: #333;
 }
 
 .btn-secondary {
   background: transparent;
   color: var(--foreground);
   border: 1px solid var(--border);
-  font-family: 'Wudoo Mono', monospace;
-  font-weight: 600;
+  font-family: var(--font-main);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   font-size: 0.75rem;
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .btn-secondary:hover {
@@ -375,18 +421,30 @@ input:focus {
   border: 1px solid var(--border);
 }
 
-.panel-glow {
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-/* Status indicators */
+/* Status */
 .status-available {
   color: #2d6b3f;
   border: 1px solid #2d6b3f;
 }
 
 .status-taken {
-  color: var(--muted);
+  color: var(--text-muted);
   border: 1px dashed var(--border);
+}
+
+/* Hatched pattern for emphasis */
+.hatched::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 4px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--foreground),
+    var(--foreground) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  margin-top: 4px;
+  opacity: 0.3;
 }

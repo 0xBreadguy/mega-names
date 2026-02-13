@@ -85,29 +85,17 @@ export function Header() {
   const hasAllowance = usdmAllowance !== undefined && (usdmAllowance as bigint) > BigInt(0)
 
   return (
-    <header className="border-b border-[var(--border)] sticky top-0 z-50 bg-[var(--background)]/90 backdrop-blur-md shadow-[0_1px_4px_rgba(25,25,26,0.05)]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="border-b border-[var(--line-color)] sticky top-0 z-50 bg-[var(--bg-card)]">
+      <div className="px-5">
         <div className="flex items-center justify-between h-14">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-black italic tracking-tight text-[var(--foreground)]">
-              MEGANAMES
-            </span>
+          <Link href="/" className="nav-bracket" style={{ fontSize: '12px', fontWeight: 700 }}>
+            MegaNames
           </Link>
 
-          <nav className="flex items-center gap-3 sm:gap-6">
-            <Link href="/" className="font-label text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
-              search
-            </Link>
-            <Link href="/ideas" className="font-label text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
-              ideas
-            </Link>
-            <Link href="/integrate" className="font-label text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors">
-              integrate
-            </Link>
-            <a href="https://rabbithole.megaeth.com/bridge" target="_blank" rel="noopener noreferrer"
-              className="font-label text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors hidden sm:inline">
-              bridge ↗
-            </a>
+          <nav className="flex items-center gap-2 sm:gap-4">
+            <Link href="/" className="nav-bracket">Search</Link>
+            <Link href="/about" className="nav-bracket">About</Link>
+            <Link href="/integrate" className="nav-bracket hidden sm:inline">Integrate</Link>
           </nav>
 
           <div className="relative" ref={dropdownRef}>

@@ -95,9 +95,9 @@ function RegisterContent() {
       data,
       chain: {
         id: MEGAETH_CHAIN_ID,
-        name: 'MegaETH Testnet',
+        name: 'MegaETH',
         nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-        rpcUrls: { default: { http: ['https://carrot.megaeth.com/rpc'] } },
+        rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
       },
     })
 
@@ -353,7 +353,7 @@ function RegisterContent() {
               <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-yellow-600" />
               <p className="font-label text-sm mb-2">WRONG NETWORK</p>
               <p className="text-[var(--muted)] mb-6">
-                Please switch to MegaETH Testnet to continue
+                Please switch to MegaETH to continue
               </p>
             </div>
             <button
@@ -456,7 +456,7 @@ function RegisterContent() {
             </p>
             {txHash && (
               <a 
-                href={`https://megaeth-testnet-v2.blockscout.com/tx/${txHash}`}
+                href={`https://mega.etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline mb-4 inline-block"
