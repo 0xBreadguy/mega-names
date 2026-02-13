@@ -364,6 +364,7 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
                   placeholder="subdomain"
                   className="flex-1 p-3 font-mono text-sm focus:outline-none"
                   disabled={isPending}
+                  autoFocus
                 />
                 <span className="px-3 py-3 bg-[var(--surface)] border-l border-[var(--border)] text-sm text-[var(--muted)]">
                   .{parentFullName}
@@ -532,6 +533,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
                 placeholder="0x..."
                 className="w-full p-3 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                 disabled={isPending}
+                autoFocus
               />
               {targetAddress && !isValidAddress && (
                 <p className="text-red-600 text-xs mt-1">Invalid address</p>
