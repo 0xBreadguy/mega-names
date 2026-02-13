@@ -256,7 +256,7 @@ function RegisterContent() {
         </Link>
 
         {/* Name card */}
-        <div className="border border-[var(--border)] mb-8">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] mb-8">
           <div className="p-8 border-b border-[var(--border)]">
             <p className="font-label text-sm text-[var(--muted)] mb-2">REGISTERING</p>
             <h1 className="font-display text-5xl lg:text-6xl truncate max-w-full">{name}.mega</h1>
@@ -324,14 +324,14 @@ function RegisterContent() {
 
         {/* Status messages */}
         {step === 'check' && checkingAvailability && (
-          <div className="border border-[var(--border)] p-8 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
             <p className="font-label text-sm">CHECKING AVAILABILITY...</p>
           </div>
         )}
 
         {step === 'check' && !checkingAvailability && isAvailable === false && (
-          <div className="border border-[var(--border)] p-8 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
             <p className="font-label text-sm text-red-600 mb-4">NAME NOT AVAILABLE</p>
             <p className="text-[var(--muted)]">This name has already been registered</p>
             <Link href="/" className="btn-secondary inline-block mt-4 px-6 py-3">
@@ -341,14 +341,14 @@ function RegisterContent() {
         )}
 
         {step === 'connect' && (
-          <div className="border border-[var(--border)] p-8 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
             <p className="font-label text-sm mb-4">CONNECT YOUR WALLET TO CONTINUE</p>
             <p className="text-[var(--muted)]">Use the connect button in the header</p>
           </div>
         )}
 
         {step === 'wrong-chain' && (
-          <div className="border border-[var(--border)]">
+          <div className="border border-[var(--border)] bg-[var(--bg-card)]">
             <div className="p-8 text-center">
               <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-yellow-600" />
               <p className="font-label text-sm mb-2">WRONG NETWORK</p>
@@ -374,7 +374,7 @@ function RegisterContent() {
         )}
 
         {step === 'approve' && (
-          <div className="border border-[var(--border)]">
+          <div className="border border-[var(--border)] bg-[var(--bg-card)]">
             <div className="p-8">
               {!hasBalance && (
                 <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-400">
@@ -412,7 +412,7 @@ function RegisterContent() {
         )}
 
         {step === 'register' && (
-          <div className="border border-[var(--border)]">
+          <div className="border border-[var(--border)] bg-[var(--bg-card)]">
             <div className="p-8">
               {error && (
                 <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
@@ -438,7 +438,7 @@ function RegisterContent() {
         )}
 
         {step === 'pending' && (
-          <div className="border border-[var(--border)] p-8 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
             <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
             <p className="font-label text-sm mb-2">PROCESSING...</p>
             <p className="text-[var(--muted)]">Confirming transaction on MegaETH</p>
@@ -446,7 +446,7 @@ function RegisterContent() {
         )}
 
         {step === 'success' && (
-          <div className="border border-[var(--border)] p-8 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
               <Check className="w-8 h-8 text-white" />
             </div>
@@ -474,7 +474,7 @@ function RegisterContent() {
 
         {/* Revoke USDM Approval */}
         {isConnected && !isWrongChain && hasAllowance && !isPending && (
-          <div className="mt-8 border border-[var(--border)] p-6">
+          <div className="mt-8 bg-[var(--bg-card)] border border-[var(--border)] p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-label text-xs text-[var(--muted)]">USDM APPROVAL</p>

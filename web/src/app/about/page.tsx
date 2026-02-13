@@ -9,7 +9,7 @@ import { ArrowLeft, ChevronDown, Star, MapPin, UserCircle, FolderTree, Send, Ref
 function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border border-[var(--border)]">
+    <div className="border border-[var(--border)] bg-[var(--bg-card)]">
       <button
         onClick={() => setOpen(!open)}
         className="w-full px-6 py-5 flex items-center justify-between hover:bg-[var(--surface)] transition-colors"
@@ -31,7 +31,7 @@ function Section({ title, children, defaultOpen = false }: { title: string; chil
 function Feature({ icon: Icon, label, description }: { icon: any; label: string; description: string }) {
   return (
     <div className="flex items-start gap-3 py-3">
-      <div className="p-1.5 border border-[var(--border)] flex-shrink-0 mt-0.5">
+      <div className="p-1.5 bg-[var(--bg-card)] border border-[var(--border)] flex-shrink-0 mt-0.5">
         <Icon className="w-4 h-4 text-[var(--muted-dark)]" />
       </div>
       <div>
@@ -369,7 +369,7 @@ export default function AboutPage() {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 p-8 border border-[var(--border)] text-center">
+        <div className="mt-10 p-8 border border-[var(--border)] bg-[var(--bg-card)] text-center">
           <h2 className="font-display text-2xl mb-3">GET STARTED</h2>
           <p className="text-[var(--muted-dark)] text-sm mb-6">
             Register your .mega name or integrate name resolution into your app.
@@ -378,7 +378,7 @@ export default function AboutPage() {
             <Link href="/" className="btn-primary px-6 py-2 font-label">
               SEARCH NAMES
             </Link>
-            <Link href="/integrate" className="px-6 py-2 border border-[var(--border)] font-label hover:border-[var(--foreground)] transition-colors">
+            <Link href="/integrate" className="px-6 py-2 bg-[var(--bg-card)] border border-[var(--border)] font-label hover:border-[var(--foreground)] transition-colors">
               INTEGRATE
             </Link>
           </div>

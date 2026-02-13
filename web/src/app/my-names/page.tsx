@@ -165,7 +165,7 @@ function TransferModal({ name, onClose, onSuccess, address }: TransferModalProps
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
                 placeholder="0x... or name.mega"
-                className="w-full p-3 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                className="w-full p-3 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                 disabled={isPending}
                 autoFocus
               />
@@ -349,7 +349,7 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
               <label className="font-label text-xs text-[var(--muted)] mb-2 block">
                 SUBDOMAIN LABEL
               </label>
-              <div className="flex items-center border border-[var(--border)]">
+              <div className="flex items-center bg-[var(--bg-card)] border border-[var(--border)]">
                 <input
                   type="text"
                   value={label}
@@ -523,7 +523,7 @@ function SetAddrModal({ name, onClose, onSuccess, currentAddress }: SetAddrModal
                 value={targetAddress}
                 onChange={(e) => setTargetAddress(e.target.value)}
                 placeholder="0x..."
-                className="w-full p-3 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                className="w-full p-3 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                 disabled={isPending}
               />
               {targetAddress && !isValidAddress && (
@@ -769,7 +769,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
               </div>
             </div>
 
-            <div className="mb-6 p-4 border border-[var(--border)]">
+            <div className="mb-6 p-4 bg-[var(--bg-card)] border border-[var(--border)]">
               <div className="flex justify-between mb-2">
                 <span className="text-[var(--muted)]">Current expiry</span>
                 <span>{formatExpiry(name.expiresAt)}</span>
@@ -1146,7 +1146,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                       value={ncDisplayName}
                       onChange={(e) => setNcDisplayName(e.target.value)}
                       placeholder={name.label}
-                      className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                      className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                     />
                   </div>
                   <div>
@@ -1156,7 +1156,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                       value={ncBio}
                       onChange={(e) => setNcBio(e.target.value)}
                       placeholder="A short bio..."
-                      className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                      className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                     />
                   </div>
                   <div>
@@ -1166,7 +1166,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                       value={ncAvatar}
                       onChange={(e) => setNcAvatar(e.target.value)}
                       placeholder="https://..."
-                      className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                      className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1177,7 +1177,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                         value={ncX}
                         onChange={(e) => setNcX(e.target.value)}
                         placeholder="@handle"
-                        className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                        className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                       />
                     </div>
                     <div>
@@ -1187,7 +1187,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                         value={ncGithub}
                         onChange={(e) => setNcGithub(e.target.value)}
                         placeholder="username"
-                        className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                        className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                       />
                     </div>
                   </div>
@@ -1198,7 +1198,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                       value={ncWebsite}
                       onChange={(e) => setNcWebsite(e.target.value)}
                       placeholder="https://..."
-                      className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                      className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                     />
                   </div>
                 </div>
@@ -1245,7 +1245,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                 value={warrenTokenId}
                 onChange={(e) => setWarrenTokenId(e.target.value)}
                 placeholder="e.g., 42"
-                className="w-full p-3 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                className="w-full p-3 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                 disabled={isPending}
                 min="0"
               />
@@ -1492,7 +1492,7 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
 
         <div className="space-y-3">
           {COMMON_TEXT_KEYS.map(({ key, label, placeholder }) => (
-            <div key={key} className="border border-[var(--border)]">
+            <div key={key} className="bg-[var(--bg-card)] border border-[var(--border)]">
               <div className="px-4 py-2 bg-[var(--surface)] border-b border-[var(--border)] flex items-center justify-between">
                 <span className="font-label text-xs">{label.toUpperCase()}</span>
                 <span className="text-xs text-[var(--muted)] font-mono">{key}</span>
@@ -1505,7 +1505,7 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     placeholder={placeholder}
-                    className="w-full p-2 border border-[var(--border)] font-mono text-sm focus:outline-none mb-3"
+                    className="w-full p-2 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none mb-3"
                     disabled={isPending}
                     autoFocus
                   />
@@ -1520,7 +1520,7 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
                     <button
                       onClick={() => setEditingKey(null)}
                       disabled={isPending}
-                      className="px-4 py-2 border border-[var(--border)] font-label text-sm"
+                      className="px-4 py-2 bg-[var(--bg-card)] border border-[var(--border)] font-label text-sm"
                     >
                       CANCEL
                     </button>
@@ -2047,12 +2047,12 @@ export default function MyNamesPage() {
 
         {/* Loading */}
         {isLoading ? (
-          <div className="border border-[var(--border)] p-8 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
             <p className="font-label text-sm">LOADING YOUR NAMES...</p>
           </div>
         ) : ownedNames.length === 0 ? (
-          <div className="border border-[var(--border)] p-8 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
             <p className="font-label text-sm mb-4">NO NAMES FOUND</p>
             <p className="text-[var(--muted)] mb-6">You don&apos;t own any .mega names yet</p>
             <Link href="/" className="btn-primary inline-block px-8 py-4">

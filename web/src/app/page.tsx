@@ -180,9 +180,9 @@ function SubdomainTree() {
   const nodes = [
     { label: 'bread.mega', depth: 0, show: 0 },
     { label: 'dev.bread.mega', depth: 1, show: 1 },
-    { label: 'blog.bread.mega', depth: 1, show: 2 },
-    { label: 'api.bread.mega', depth: 1, show: 3 },
-    { label: 'staging.dev.bread.mega', depth: 2, show: 4 },
+    { label: 'staging.dev.bread.mega', depth: 2, show: 2 },
+    { label: 'blog.bread.mega', depth: 1, show: 3 },
+    { label: 'api.bread.mega', depth: 1, show: 4 },
   ]
 
   return (

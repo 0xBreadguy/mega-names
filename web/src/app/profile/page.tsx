@@ -243,18 +243,18 @@ function ProfileContent() {
         </Link>
 
         {loading ? (
-          <div className="border border-[var(--border)] p-12 text-center">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] p-12 text-center">
             <div className="w-8 h-8 border-2 border-[var(--foreground)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="font-label text-sm text-[var(--muted)]">LOADING PROFILE...</p>
           </div>
         ) : (
           <>
             {/* Profile Header */}
-            <div className="border border-[var(--border)] mb-6">
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] mb-6">
               <div className="p-8">
                 <div className="flex items-start gap-5">
                   {textRecords?.avatar ? (
-                    <img src={textRecords.avatar} alt="" className="w-16 h-16 object-cover border border-[var(--border)]" />
+                    <img src={textRecords.avatar} alt="" className="w-16 h-16 object-cover bg-[var(--bg-card)] border border-[var(--border)]" />
                   ) : (
                     <div className="w-16 h-16 bg-[var(--border)] flex items-center justify-center flex-shrink-0">
                       <span className="font-display text-2xl text-[var(--muted-dark)]">
@@ -280,34 +280,34 @@ function ProfileContent() {
                 {textRecords && (
                   <div className="flex flex-wrap gap-3 mt-4">
                     {textRecords.twitter && (
-                      <a href={`https://x.com/${textRecords.twitter}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
+                      <a href={`https://x.com/${textRecords.twitter}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
                         <Twitter className="w-3.5 h-3.5" />
                         @{textRecords.twitter}
                       </a>
                     )}
                     {textRecords.url && (
-                      <a href={textRecords.url.startsWith('http') ? textRecords.url : `https://${textRecords.url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
+                      <a href={textRecords.url.startsWith('http') ? textRecords.url : `https://${textRecords.url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
                         <Globe className="w-3.5 h-3.5" />
                         {textRecords.url.replace(/^https?:\/\//, '')}
                       </a>
                     )}
                     {textRecords.discord && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-sm text-[var(--muted-dark)]">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[var(--muted-dark)]">
                         Discord: {textRecords.discord}
                       </span>
                     )}
                     {textRecords.telegram && (
-                      <a href={`https://t.me/${textRecords.telegram}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
+                      <a href={`https://t.me/${textRecords.telegram}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
                         Telegram: @{textRecords.telegram}
                       </a>
                     )}
                     {textRecords.github && (
-                      <a href={`https://github.com/${textRecords.github}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
+                      <a href={`https://github.com/${textRecords.github}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
                         GitHub: {textRecords.github}
                       </a>
                     )}
                     {textRecords.email && (
-                      <a href={`mailto:${textRecords.email}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
+                      <a href={`mailto:${textRecords.email}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors">
                         {textRecords.email}
                       </a>
                     )}
@@ -330,7 +330,7 @@ function ProfileContent() {
             </div>
 
             {/* Names */}
-            <div className="border border-[var(--border)]">
+            <div className="border border-[var(--border)] bg-[var(--bg-card)]">
               <div className="px-6 py-4 border-b border-[var(--border)]">
                 <p className="font-label text-sm text-[var(--muted)]">
                   NAMES ({names.length})
@@ -357,7 +357,7 @@ function ProfileContent() {
                               <span className="px-2 py-0.5 bg-[var(--foreground)] text-[var(--background)] font-label text-[0.5rem] tracking-wider flex-shrink-0">PRIMARY</span>
                             )}
                             {isSubdomain && (
-                              <span className="px-2 py-0.5 border border-[var(--border)] font-label text-[0.5rem] text-[var(--muted)] tracking-wider flex-shrink-0">SUBDOMAIN</span>
+                              <span className="px-2 py-0.5 bg-[var(--bg-card)] border border-[var(--border)] font-label text-[0.5rem] text-[var(--muted)] tracking-wider flex-shrink-0">SUBDOMAIN</span>
                             )}
                             {isExpired && (
                               <span className="px-2 py-0.5 bg-red-100 text-red-600 font-label text-[0.5rem] tracking-wider flex-shrink-0">EXPIRED</span>

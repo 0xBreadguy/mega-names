@@ -421,6 +421,13 @@ input:focus {
   border: 1px solid var(--border);
 }
 
+/* Elevated boxes — opaque background to cover grid lines */
+.elevated {
+  background: var(--bg-card);
+}
+
+/* -- removed -- */
+
 /* Status */
 .status-available {
   color: #2d6b3f;

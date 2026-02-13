@@ -158,7 +158,7 @@ export default function IdeasPage() {
           ))}
         </div>
 
-        <div className="mt-12 p-8 border border-[var(--border)] text-center">
+        <div className="mt-12 p-8 bg-[var(--bg-card)] border border-[var(--border)] text-center">
           <h2 className="font-display text-2xl mb-3">READY TO BUILD?</h2>
           <p className="text-[var(--muted-dark)] text-sm mb-6">
             Integrate .mega name resolution into your app in minutes.
@@ -167,7 +167,7 @@ export default function IdeasPage() {
             <Link href="/integrate" className="btn-primary px-6 py-2 font-label">
               DEVELOPER DOCS
             </Link>
-            <Link href="/register" className="px-6 py-2 border border-[var(--border)] font-label hover:border-[var(--foreground)] transition-colors">
+            <Link href="/register" className="px-6 py-2 bg-[var(--bg-card)] border border-[var(--border)] font-label hover:border-[var(--foreground)] transition-colors">
               REGISTER A NAME
             </Link>
           </div>
