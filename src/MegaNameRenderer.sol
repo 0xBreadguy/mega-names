@@ -47,31 +47,35 @@ contract MegaNameRenderer is Ownable {
     {
         string memory fullName = _buildName(label, parent);
         string memory displayName = _makeDisplay(fullName);
-        uint256 labelLen = bytes(label).length;
         bool isSub = parent != 0;
-        string memory svg = _svg(displayName, labelLen, expiresAt, isSub);
-        return _encode(fullName, svg, labelLen, expiresAt, isSub);
+        uint256 labelLen = bytes(label).length;
+        // Tier is based on the root parent label length, not the subdomain label
+        uint256 tierLen = isSub ? _rootLabelLen(parent) : labelLen;
+        string memory svg = _svg(displayName, tierLen, labelLen, expiresAt, isSub);
+        return _encode(fullName, svg, tierLen, labelLen, expiresAt, isSub);
     }
 
     function _buildName(string memory label, uint256 parent) internal view returns (string memory) {
         if (parent != 0) {
-            (string memory pLabel,,,,) = megaNames.records(parent);
-            return string.concat(label, ".", pLabel, ".mega");
+            (string memory pLabel, uint256 grandParent,,,) = megaNames.records(parent);
+            string memory parentName = _buildName(pLabel, grandParent);
+            // parentName already ends with ".mega", so insert before it
+            return string.concat(label, ".", parentName);
         }
         return string.concat(label, ".mega");
     }
 
     function _makeDisplay(string memory fullName) internal pure returns (string memory) {
-        if (bytes(fullName).length <= 20) return MegaNamesSVG.toUpperCase(fullName);
-        return MegaNamesSVG.toUpperCase(string.concat(_trunc(fullName, 17), "..."));
+        if (bytes(fullName).length <= 20) return fullName;
+        return string.concat(_trunc(fullName, 17), "...");
     }
 
-    function _encode(string memory fullName, string memory svg, uint256 labelLen, uint64 expiresAt, bool isSub)
+    function _encode(string memory fullName, string memory svg, uint256 tierLen, uint256 labelLen, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
         string memory n = MegaNamesSVG.escapeJSON(fullName);
         string memory img = Base64.encode(bytes(svg));
-        string memory attr = _attrs(labelLen, expiresAt, isSub);
+        string memory attr = _attrs(tierLen, labelLen, expiresAt, isSub);
 
         return string.concat(
             "data:application/json;base64,",
@@ -86,10 +90,10 @@ contract MegaNameRenderer is Ownable {
                           SVG
     //////////////////////////////////////////////////////////////*/
 
-    function _svg(string memory displayName, uint256 labelLen, uint64 expiresAt, bool isSub)
+    function _svg(string memory displayName, uint256 tierLen, uint256 labelLen, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
-        uint8 tier = labelLen >= 5 ? 5 : uint8(labelLen);
+        uint8 tier = tierLen >= 5 ? 5 : uint8(tierLen);
         string memory part1 = string.concat(_svgOpen(), _svgBg(tier));
         string memory part2 = string.concat(_svgCorners(), _svgTierIcon(tier));
         string memory part3 = string.concat(_svgName(displayName), _svgInfo(labelLen, expiresAt, isSub), _svgClose());
@@ -183,7 +187,8 @@ contract MegaNameRenderer is Ownable {
     }
 
     function _svgClose() internal pure returns (string memory) {
-        return '<text x="200" y="210" font-family="Impact,Arial Black,sans-serif" font-size="200" text-anchor="middle" fill="rgba(25,25,26,0.025)">M</text>'
+        return '<rect x="118" y="195" width="18" height="18" fill="rgba(25,25,26,0.04)"/>'
+            '<text x="148" y="260" font-family="Helvetica Neue,Arial,sans-serif" font-size="160" font-weight="400" fill="rgba(25,25,26,0.04)">m</text>'
             '<text x="200" y="388" font-family="monospace" font-size="7" text-anchor="middle" fill="rgba(25,25,26,0.18)" letter-spacing="2">.MEGA</text>'
             '<rect x="0" y="0" width="400" height="400" fill="none" stroke="rgba(25,25,26,0.12)" stroke-width="1"/>'
             '</svg>';
@@ -232,14 +237,14 @@ contract MegaNameRenderer is Ownable {
                           ATTRIBUTES
     //////////////////////////////////////////////////////////////*/
 
-    function _attrs(uint256 labelLen, uint64 expiresAt, bool isSub)
+    function _attrs(uint256 tierLen, uint256 labelLen, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
         string memory tierName;
-        if (labelLen == 1) tierName = "Legendary";
-        else if (labelLen == 2) tierName = "Epic";
-        else if (labelLen == 3) tierName = "Rare";
-        else if (labelLen == 4) tierName = "Uncommon";
+        if (tierLen == 1) tierName = "Legendary";
+        else if (tierLen == 2) tierName = "Epic";
+        else if (tierLen == 3) tierName = "Rare";
+        else if (tierLen == 4) tierName = "Uncommon";
         else tierName = "Standard";
 
         string memory a = string.concat(
@@ -258,6 +263,13 @@ contract MegaNameRenderer is Ownable {
     /*//////////////////////////////////////////////////////////////
                           HELPERS
     //////////////////////////////////////////////////////////////*/
+
+    /// @dev Walk up the parent chain to find the root (parentless) label length
+    function _rootLabelLen(uint256 tokenId) internal view returns (uint256) {
+        (string memory lbl, uint256 par,,,) = megaNames.records(tokenId);
+        if (par == 0) return bytes(lbl).length;
+        return _rootLabelLen(par);
+    }
 
     function _trunc(string memory s, uint256 maxLen) internal pure returns (string memory) {
         bytes memory b = bytes(s);
