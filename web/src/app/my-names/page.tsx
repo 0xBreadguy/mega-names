@@ -853,6 +853,7 @@ function RenewModal({ name, onClose, onSuccess }: RenewModalProps) {
 // Warren NFT contract address
 const WARREN_NFT_CONTRACT = '0xd1591a060BB8933869b16A248C77d1375389842B' as const
 const WARREN_APP_URL = 'https://thewarren.app'
+const WARREN_PROXY_URL = 'https://meganames-warren-proxy.0xbreadguy.workers.dev'
 
 // Warren Contenthash Modal
 interface WarrenModalProps {
@@ -861,24 +862,133 @@ interface WarrenModalProps {
   onSuccess: () => void
 }
 
+type WarrenView = 'menu' | 'namecard' | 'link'
+
 function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
+  const [view, setView] = useState<WarrenView>('menu')
   const [warrenTokenId, setWarrenTokenId] = useState('')
   const [isMaster, setIsMaster] = useState(true)
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<Hash | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
-  const [showLinkForm, setShowLinkForm] = useState(false)
-  
+  const [viewUrl, setViewUrl] = useState<string | null>(null)
+
+  // Namecard form state
+  const [ncDisplayName, setNcDisplayName] = useState('')
+  const [ncBio, setNcBio] = useState('')
+  const [ncAvatar, setNcAvatar] = useState('')
+  const [ncX, setNcX] = useState('')
+  const [ncGithub, setNcGithub] = useState('')
+  const [ncWebsite, setNcWebsite] = useState('')
+  const [namecardStep, setNamecardStep] = useState<'form' | 'deploying' | 'linking'>('form')
+
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
 
   const displayName = name.isSubdomain ? `${name.label}.${name.parentLabel || '?'}.mega` : `${name.label}.mega`
   const isValidTokenId = warrenTokenId !== '' && !isNaN(Number(warrenTokenId)) && Number(warrenTokenId) >= 0
 
+  // Fetch text records to pre-fill namecard
+  useEffect(() => {
+    if (view !== 'namecard' || !publicClient) return
+    const fetchRecords = async () => {
+      const keys = ['avatar', 'url', 'description', 'com.twitter', 'com.github']
+      for (const key of keys) {
+        try {
+          const val = await publicClient.readContract({
+            address: CONTRACTS.mainnet.megaNames,
+            abi: MEGA_NAMES_ABI,
+            functionName: 'text',
+            args: [name.tokenId, key],
+          }) as string
+          if (!val) continue
+          if (key === 'avatar' && !ncAvatar) setNcAvatar(val)
+          if (key === 'url' && !ncWebsite) setNcWebsite(val)
+          if (key === 'description' && !ncBio) setNcBio(val)
+          if (key === 'com.twitter' && !ncX) setNcX(val)
+          if (key === 'com.github' && !ncGithub) setNcGithub(val)
+        } catch { /* no record set */ }
+      }
+    }
+    fetchRecords()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view])
+
+  const handleDeployNamecard = async () => {
+    if (!walletClient || !publicClient) return
+    setError(null)
+    setNamecardStep('deploying')
+    setIsPending(true)
+
+    try {
+      // 1. Deploy namecard via proxy
+      const resp = await fetch(`${WARREN_PROXY_URL}/deploy-namecard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: displayName,
+          displayName: ncDisplayName || name.label,
+          bio: ncBio || '',
+          avatar: ncAvatar || '',
+          links: {
+            ...(ncX ? { x: ncX } : {}),
+            ...(ncGithub ? { github: ncGithub } : {}),
+            ...(ncWebsite ? { website: ncWebsite } : {}),
+          },
+        }),
+      })
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}))
+        throw new Error(errData.error || `Warren API error (${resp.status})`)
+      }
+
+      const data = await resp.json()
+      const wTokenId = data.tokenId
+      setWarrenTokenId(String(wTokenId))
+      setViewUrl(data.viewUrl || null)
+
+      // 2. Link on-chain
+      setNamecardStep('linking')
+
+      const txData = encodeFunctionData({
+        abi: MEGA_NAMES_ABI,
+        functionName: 'setWarrenContenthash',
+        args: [name.tokenId, wTokenId, true],
+      })
+
+      const hash = await walletClient.sendTransaction({
+        to: CONTRACTS.mainnet.megaNames,
+        data: txData,
+        chain: {
+          id: MEGAETH_CHAIN_ID,
+          name: 'MegaETH',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
+        },
+      })
+
+      setTxHash(hash)
+      const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 })
+
+      if (receipt.status === 'success') {
+        setIsSuccess(true)
+        setTimeout(() => { onSuccess(); onClose() }, 3000)
+      } else {
+        setError('On-chain linking failed')
+      }
+    } catch (err: any) {
+      console.error('Namecard deploy error:', err)
+      setError(err.shortMessage || err.message || 'Failed to create namecard')
+      setNamecardStep('form')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
   const handleSetWarren = async () => {
     if (!walletClient || !publicClient || !isValidTokenId) return
-    
     setError(null)
     setIsPending(true)
 
@@ -901,18 +1011,11 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
       })
 
       setTxHash(hash)
-
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash,
-        timeout: 30_000,
-      })
+      const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 })
 
       if (receipt.status === 'success') {
         setIsSuccess(true)
-        setTimeout(() => {
-          onSuccess()
-          onClose()
-        }, 2000)
+        setTimeout(() => { onSuccess(); onClose() }, 2000)
       } else {
         setError('Transaction failed')
       }
@@ -939,79 +1042,199 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
             <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
               <Check className="w-8 h-8 text-white" />
             </div>
-            <p className="font-label text-sm mb-2">WARREN SITE LINKED!</p>
+            <p className="font-label text-sm mb-2">WARREN SITE LINKED</p>
             <p className="text-[var(--muted)]">{displayName} now points to Warren #{warrenTokenId}</p>
+            {viewUrl && (
+              <a
+                href={viewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+              >
+                View namecard on Warren →
+              </a>
+            )}
             {txHash && (
               <a
                 href={`https://mega.etherscan.io/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline mt-4 inline-block"
+                className="text-sm text-[var(--muted)] hover:underline mt-2 block"
               >
-                View on Explorer →
+                View transaction →
               </a>
             )}
           </div>
-        ) : !showLinkForm ? (
+        ) : view === 'menu' ? (
           <>
-            {/* Warren Intro */}
             <div className="mb-6">
               <p className="font-label text-xs text-[var(--muted)] mb-2">NAME</p>
               <p className="font-display text-2xl mb-4">{displayName}</p>
-              
-              <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 mb-4">
-                <p className="text-sm text-purple-900 font-medium mb-2">
-                  🌐 What is Warren?
+
+              <div className="p-4 border border-[var(--border)] bg-[var(--surface-hover)] mb-4">
+                <p className="text-sm text-[var(--muted)] mb-2 font-medium">
+                  Warren is MegaETH&apos;s on-chain storage protocol. Host websites, namecards, and content permanently on-chain.
                 </p>
-                <p className="text-sm text-purple-800 mb-3">
-                  Warren is MegaETH&apos;s on-chain storage protocol. Store websites, images, and content permanently on-chain — immune to link rot and server shutdowns.
+                <p className="text-xs text-[var(--muted)]">
+                  Once linked, your name resolves at <strong>{name.label}.mega.thewarren.app</strong>
                 </p>
-                <ul className="text-sm text-purple-700 space-y-1">
-                  <li>• <strong>Direct Injector</strong> — Upload HTML, images, video</li>
-                  <li>• <strong>AI Architect</strong> — Generate sites with AI prompts</li>
-                  <li>• <strong>Identity Node</strong> — On-chain identity cards</li>
-                  <li>• <strong>Containers</strong> — Bundle assets as NFTs</li>
-                </ul>
               </div>
             </div>
 
-            {/* Primary CTA - Create on Warren */}
+            {/* Option 1: Create Namecard */}
+            <button
+              onClick={() => setView('namecard')}
+              className="btn-primary w-full py-4 text-lg font-label flex items-center justify-center gap-2 mb-3"
+            >
+              CREATE NAMECARD
+            </button>
+            <p className="text-center text-xs text-[var(--muted)] mb-5">
+              Auto-generate an on-chain profile card from your name&apos;s records
+            </p>
+
+            {/* Option 2: Create on Warren directly */}
             <a
               href={WARREN_APP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary w-full py-4 text-lg font-label flex items-center justify-center gap-2 mb-4"
+              className="w-full py-3 text-sm font-label flex items-center justify-center gap-2 border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors mb-3"
             >
-              CREATE ON WARREN
-              <ExternalLink className="w-5 h-5" />
+              BUILD ON WARREN
+              <ExternalLink className="w-4 h-4" />
             </a>
 
-            <p className="text-center text-sm text-[var(--muted)] mb-4">
-              Create your on-chain content, then come back with your token ID
-            </p>
-
-            <div className="border-t-2 border-[var(--border-light)] pt-4">
-              <button
-                onClick={() => setShowLinkForm(true)}
-                className="w-full text-center text-sm text-blue-600 hover:underline"
-              >
-                I already have a Warren NFT →
-              </button>
-            </div>
+            {/* Option 3: Link existing */}
+            <button
+              onClick={() => setView('link')}
+              className="w-full text-center text-sm text-[var(--muted)] hover:text-black py-2"
+            >
+              I already have a Warren NFT →
+            </button>
           </>
+
+        ) : view === 'namecard' ? (
+          <>
+            <button
+              onClick={() => { setView('menu'); setError(null) }}
+              className="text-sm text-[var(--muted)] hover:text-black flex items-center gap-1 mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+
+            <p className="font-label text-xs text-[var(--muted)] mb-1">NAMECARD FOR</p>
+            <p className="font-display text-xl mb-4 truncate">{displayName}</p>
+
+            {namecardStep === 'deploying' ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-[var(--muted)]" />
+                <p className="font-label text-sm">Deploying to Warren...</p>
+                <p className="text-xs text-[var(--muted)] mt-1">Storing your namecard on-chain</p>
+              </div>
+            ) : namecardStep === 'linking' ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-[var(--muted)]" />
+                <p className="font-label text-sm">Linking to {displayName}...</p>
+                <p className="text-xs text-[var(--muted)] mt-1">Confirm the transaction in your wallet</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="font-label text-xs text-[var(--muted)] mb-1 block">DISPLAY NAME</label>
+                    <input
+                      type="text"
+                      value={ncDisplayName}
+                      onChange={(e) => setNcDisplayName(e.target.value)}
+                      placeholder={name.label}
+                      className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-label text-xs text-[var(--muted)] mb-1 block">BIO</label>
+                    <input
+                      type="text"
+                      value={ncBio}
+                      onChange={(e) => setNcBio(e.target.value)}
+                      placeholder="A short bio..."
+                      className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-label text-xs text-[var(--muted)] mb-1 block">AVATAR URL</label>
+                    <input
+                      type="text"
+                      value={ncAvatar}
+                      onChange={(e) => setNcAvatar(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-label text-xs text-[var(--muted)] mb-1 block">X / TWITTER</label>
+                      <input
+                        type="text"
+                        value={ncX}
+                        onChange={(e) => setNcX(e.target.value)}
+                        placeholder="@handle"
+                        className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-label text-xs text-[var(--muted)] mb-1 block">GITHUB</label>
+                      <input
+                        type="text"
+                        value={ncGithub}
+                        onChange={(e) => setNcGithub(e.target.value)}
+                        placeholder="username"
+                        className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="font-label text-xs text-[var(--muted)] mb-1 block">WEBSITE</label>
+                    <input
+                      type="text"
+                      value={ncWebsite}
+                      onChange={(e) => setNcWebsite(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full p-2.5 border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-300">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleDeployNamecard}
+                  disabled={isPending}
+                  className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  DEPLOY NAMECARD ON-CHAIN
+                </button>
+
+                <p className="text-xs text-[var(--muted)] text-center mt-2">
+                  Creates a Warren site and links it to {displayName}
+                </p>
+              </>
+            )}
+          </>
+
         ) : (
           <>
             {/* Link Existing Warren NFT */}
-            <div className="mb-6">
-              <button 
-                onClick={() => setShowLinkForm(false)}
-                className="text-sm text-[var(--muted)] hover:text-black flex items-center gap-1 mb-4"
-              >
-                <ArrowLeft className="w-4 h-4" /> Back
-              </button>
-              <p className="font-label text-xs text-[var(--muted)] mb-2">LINKING TO</p>
-              <p className="font-display text-2xl truncate">{displayName}</p>
-            </div>
+            <button
+              onClick={() => { setView('menu'); setError(null) }}
+              className="text-sm text-[var(--muted)] hover:text-black flex items-center gap-1 mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+            <p className="font-label text-xs text-[var(--muted)] mb-2">LINKING TO</p>
+            <p className="font-display text-2xl truncate mb-4">{displayName}</p>
 
             <div className="mb-4">
               <label className="font-label text-xs text-[var(--muted)] mb-2 block">
@@ -1037,63 +1260,36 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={isMaster}
-                    onChange={() => setIsMaster(true)}
-                    className="w-4 h-4"
-                  />
+                  <input type="radio" checked={isMaster} onChange={() => setIsMaster(true)} className="w-4 h-4" />
                   <span className="text-sm">Master NFT (site)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={!isMaster}
-                    onChange={() => setIsMaster(false)}
-                    className="w-4 h-4"
-                  />
+                  <input type="radio" checked={!isMaster} onChange={() => setIsMaster(false)} className="w-4 h-4" />
                   <span className="text-sm">Container NFT (bundle)</span>
                 </label>
               </div>
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border-2 border-red-400">
+              <div className="mb-6 p-4 bg-red-50 border border-red-300">
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
 
-            <div className="text-xs text-[var(--muted)] mb-4">
-              <p>Warren NFT Contract:</p>
-              <a 
-                href={`https://mega.etherscan.io/address/${WARREN_NFT_CONTRACT}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-blue-600 hover:underline break-all"
-              >
-                {WARREN_NFT_CONTRACT}
-              </a>
-            </div>
+            <button
+              onClick={handleSetWarren}
+              disabled={!isValidTokenId || isPending}
+              className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? (
+                <><Loader2 className="w-5 h-5 animate-spin inline mr-2" />LINKING...</>
+              ) : (
+                'LINK WARREN SITE'
+              )}
+            </button>
           </>
         )}
       </div>
-
-      {!isSuccess && showLinkForm && (
-        <button
-          onClick={handleSetWarren}
-          disabled={!isValidTokenId || isPending}
-          className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
-              LINKING...
-            </>
-          ) : (
-            'LINK WARREN SITE'
-          )}
-        </button>
-      )}
     </Modal>
   )
 }
