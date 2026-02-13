@@ -2,128 +2,121 @@
 pragma solidity ^0.8.30;
 
 import "forge-std/Test.sol";
-import {MegaNames} from "../src/MegaNames.sol";
-import {MegaNameRenderer} from "../src/MegaNameRenderer.sol";
-
-contract MockUSDM {
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public allowance;
-    function mint(address to, uint256 amt) external { balanceOf[to] += amt; }
-    function approve(address sp, uint256 amt) external returns (bool) { allowance[msg.sender][sp] = amt; return true; }
-    function transferFrom(address f, address t, uint256 a) external returns (bool) {
-        allowance[f][msg.sender] -= a; balanceOf[f] -= a; balanceOf[t] += a; return true;
-    }
-    function permit(address,address,uint256,uint256,uint8,bytes32,bytes32) external {}
-}
+import "../src/MegaNames.sol";
+import "../src/MegaNameRenderer.sol";
 
 contract MegaNameRendererTest is Test {
     MegaNames names;
     MegaNameRenderer renderer;
-    MockUSDM usdm;
-    address user = address(0xBEEF);
-
+    address alice = address(0xA11CE);
+    address mockUSDM;
     address deployer;
 
     function setUp() public {
-        vm.warp(1770000000); // ~2026
-        deployer = tx.origin; // Solady Ownable uses tx.origin
-        usdm = new MockUSDM();
-        names = new MegaNames(address(usdm), address(0xFEE));
-        renderer = new MegaNameRenderer(address(names), 1);
-        vm.prank(deployer);
-        names.setRegistrationOpen(true);
-        usdm.mint(user, 10_000e18);
-    }
+        deployer = tx.origin;
+        mockUSDM = address(new MockERC20());
+        names = new MegaNames(mockUSDM, deployer);
+        renderer = new MegaNameRenderer(address(names));
 
-    function _reg(string memory label, address to, uint256 numYrs) internal {
-        address[] memory o = new address[](1); o[0] = to;
-        string[] memory l = new string[](1); l[0] = label;
-        vm.prank(deployer);
-        names.adminRegisterBatch(l, o, numYrs);
+        vm.startPrank(deployer);
+        names.setTokenURIRenderer(address(renderer));
+        names.setRegistrationOpen(true);
+        vm.stopPrank();
+
+        MockERC20(mockUSDM).mint(alice, 100000e18);
+        vm.prank(alice);
+        MockERC20(mockUSDM).approve(address(names), type(uint256).max);
     }
 
     function _nh(string memory label) internal pure returns (uint256) {
-        bytes32 mega = 0x892fab39f6d2ae901009febba7dbdd0fd85e8a1651be6b8901774cdef395852f;
-        return uint256(keccak256(abi.encodePacked(mega, keccak256(bytes(label)))));
+        bytes32 megaNode = keccak256(abi.encodePacked(bytes32(0), keccak256("mega")));
+        return uint256(keccak256(abi.encodePacked(megaNode, keccak256(bytes(label)))));
     }
 
     function test_RendererTokenURI() public {
-        _reg("bread", user, 3);
         vm.prank(deployer);
-        names.setTokenURIRenderer(address(renderer));
-        vm.prank(deployer);
-        renderer.setRegistrationNumber(_nh("bread"), 1);
+        names.adminRegister("bread", alice, 3);
 
         string memory uri = names.tokenURI(_nh("bread"));
         assertTrue(bytes(uri).length > 0);
-        // data:application/json;base64,...
-        assertEq(bytes(uri)[0], bytes1("d"));
+        assertTrue(_startsWith(uri, "data:application/json;base64,"));
+    }
+
+    function test_SubdomainURI() public {
+        vm.prank(deployer);
+        names.adminRegister("bread", alice, 3);
+        uint256 parentTid = _nh("bread");
+
+        vm.prank(alice);
+        names.registerSubdomain(parentTid, "dev");
+
+        bytes32 subNode = keccak256(abi.encodePacked(bytes32(parentTid), keccak256("dev")));
+        string memory uri = names.tokenURI(uint256(subNode));
+        assertTrue(bytes(uri).length > 0);
+    }
+
+    function test_Expired() public {
+        vm.prank(deployer);
+        names.adminRegister("old", alice, 1);
+
+        vm.warp(block.timestamp + 400 days);
+        string memory uri = names.tokenURI(_nh("old"));
+        assertTrue(bytes(uri).length > 0);
     }
 
     function test_AllTiers() public {
-        _reg("abc", user, 1);   // 3-char rare
-        _reg("abcd", user, 1);  // 4-char uncommon
-        _reg("abcde", user, 1); // 5-char standard
-        vm.prank(deployer);
-        names.setTokenURIRenderer(address(renderer));
+        vm.startPrank(deployer);
+        names.adminRegister("x", alice, 1);
+        names.adminRegister("ab", alice, 1);
+        names.adminRegister("abc", alice, 1);
+        names.adminRegister("abcd", alice, 1);
+        names.adminRegister("abcde", alice, 1);
+        vm.stopPrank();
 
+        assertTrue(bytes(names.tokenURI(_nh("x"))).length > 0);
+        assertTrue(bytes(names.tokenURI(_nh("ab"))).length > 0);
         assertTrue(bytes(names.tokenURI(_nh("abc"))).length > 0);
         assertTrue(bytes(names.tokenURI(_nh("abcd"))).length > 0);
         assertTrue(bytes(names.tokenURI(_nh("abcde"))).length > 0);
     }
 
-    function test_SubdomainCount() public {
-        _reg("bread", user, 3);
-        uint256 pid = _nh("bread");
-        vm.prank(user);
-        names.registerSubdomain(pid, "crumb");
-
+    function test_LongName() public {
         vm.prank(deployer);
-        renderer.incrementSubdomainCount(pid);
-        assertEq(renderer.subdomainCount(pid), 1);
-
-        vm.prank(deployer);
-        names.setTokenURIRenderer(address(renderer));
-        vm.prank(deployer);
-        renderer.setRegistrationNumber(pid, 1);
-        assertTrue(bytes(names.tokenURI(pid)).length > 0);
+        names.adminRegister("superlongnamethatis", alice, 1);
+        string memory uri = names.tokenURI(_nh("superlongnamethatis"));
+        assertTrue(bytes(uri).length > 0);
     }
 
-    function test_BatchRegNumbers() public {
-        _reg("alpha", user, 1);
-        _reg("beta", user, 1);
+    function _startsWith(string memory str, string memory prefix) internal pure returns (bool) {
+        bytes memory s = bytes(str);
+        bytes memory p = bytes(prefix);
+        if (s.length < p.length) return false;
+        for (uint256 i; i < p.length; i++) {
+            if (s[i] != p[i]) return false;
+        }
+        return true;
+    }
+}
 
-        uint256[] memory tids = new uint256[](2);
-        tids[0] = _nh("alpha");
-        tids[1] = _nh("beta");
-        vm.prank(deployer);
-        renderer.batchSetRegistrationNumbers(tids, 1);
+contract MockERC20 {
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
 
-        assertEq(renderer.registrationNumber(tids[0]), 1);
-        assertEq(renderer.registrationNumber(tids[1]), 2);
-        assertEq(renderer.nextRegistrationNumber(), 3);
+    function mint(address to, uint256 amount) external {
+        balanceOf[to] += amount;
     }
 
-    function test_Expired() public {
-        _reg("old", user, 1);
-        vm.prank(deployer);
-        names.setTokenURIRenderer(address(renderer));
-        vm.warp(block.timestamp + 365 days + 91 days);
-        assertTrue(bytes(names.tokenURI(_nh("old"))).length > 0);
+    function approve(address spender, uint256 amount) external returns (bool) {
+        allowance[msg.sender][spender] = amount;
+        return true;
     }
 
-    function test_SubdomainURI() public {
-        _reg("bread", user, 3);
-        uint256 pid = _nh("bread");
-        vm.prank(user);
-        names.registerSubdomain(pid, "crumb");
-
-        vm.prank(deployer);
-        names.setTokenURIRenderer(address(renderer));
-        // Subdomain tokenURI
-        bytes32 mega = 0x892fab39f6d2ae901009febba7dbdd0fd85e8a1651be6b8901774cdef395852f;
-        bytes32 parentNode = keccak256(abi.encodePacked(mega, keccak256(bytes("bread"))));
-        uint256 subId = uint256(keccak256(abi.encodePacked(parentNode, keccak256(bytes("crumb")))));
-        assertTrue(bytes(names.tokenURI(subId)).length > 0);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+        require(balanceOf[from] >= amount, "insufficient");
+        require(allowance[from][msg.sender] >= amount, "not approved");
+        balanceOf[from] -= amount;
+        balanceOf[to] += amount;
+        allowance[from][msg.sender] -= amount;
+        return true;
     }
 }

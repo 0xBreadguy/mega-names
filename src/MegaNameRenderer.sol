@@ -11,59 +11,18 @@ interface IMegaNames {
     function records(uint256 tokenId) external view returns (
         string memory label, uint256 parent, uint64 expiresAt, uint64 epoch, uint64 parentEpoch
     );
-    function totalRegistrations() external view returns (uint256);
 }
 
 /// @title MegaNameRenderer
-/// @notice External tokenURI renderer with registration #, tier graphics, subdomain count
+/// @notice Stateless external tokenURI renderer — reads only from MegaNames contract
 contract MegaNameRenderer is Ownable {
     using LibString for uint256;
 
     IMegaNames public immutable megaNames;
-    mapping(uint256 => uint256) public registrationNumber;
-    mapping(uint256 => uint256) public subdomainCount;
-    uint256 public nextRegistrationNumber;
 
-    constructor(address _megaNames, uint256 _startingNumber) payable {
+    constructor(address _megaNames) payable {
         _initializeOwner(tx.origin);
         megaNames = IMegaNames(_megaNames);
-        nextRegistrationNumber = _startingNumber;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                           ADMIN
-    //////////////////////////////////////////////////////////////*/
-
-    function batchSetRegistrationNumbers(uint256[] calldata tokenIds, uint256 startNumber) external onlyOwner {
-        for (uint256 i; i < tokenIds.length; i++) {
-            registrationNumber[tokenIds[i]] = startNumber + i;
-        }
-        uint256 end = startNumber + tokenIds.length;
-        if (end > nextRegistrationNumber) nextRegistrationNumber = end;
-    }
-
-    function setRegistrationNumber(uint256 tokenId, uint256 number) external onlyOwner {
-        registrationNumber[tokenId] = number;
-        if (number >= nextRegistrationNumber) nextRegistrationNumber = number + 1;
-    }
-
-    function batchSetSubdomainCounts(uint256[] calldata tokenIds, uint256[] calldata counts) external onlyOwner {
-        require(tokenIds.length == counts.length);
-        for (uint256 i; i < tokenIds.length; i++) {
-            subdomainCount[tokenIds[i]] = counts[i];
-        }
-    }
-
-    function incrementSubdomainCount(uint256 parentTokenId) external onlyOwner {
-        subdomainCount[parentTokenId]++;
-    }
-
-    function decrementSubdomainCount(uint256 parentTokenId) external onlyOwner {
-        if (subdomainCount[parentTokenId] > 0) subdomainCount[parentTokenId]--;
-    }
-
-    function recordRegistration(uint256 tokenId) external onlyOwner {
-        registrationNumber[tokenId] = nextRegistrationNumber++;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -80,32 +39,18 @@ contract MegaNameRenderer is Ownable {
             return MegaNamesSVG.expiredMetadata();
         }
 
-        return _render(tokenId, label, parent, expiresAt);
+        return _render(label, parent, expiresAt);
     }
 
-    /// @dev Pack all render data into a uint array to avoid stack depth issues
-    function _render(uint256 tokenId, string memory label, uint256 parent, uint64 expiresAt)
+    function _render(string memory label, uint256 parent, uint64 expiresAt)
         internal view returns (string memory)
     {
         string memory fullName = _buildName(label, parent);
         string memory displayName = _makeDisplay(fullName);
-        // Pack: [labelLen, regNum, subCount, totalRegs, expiresAt, isSub]
-        uint256[6] memory d;
-        d[0] = bytes(label).length;
-        d[1] = registrationNumber[tokenId];
-        d[2] = parent != 0 ? 0 : subdomainCount[tokenId];
-        d[3] = megaNames.totalRegistrations();
-        d[4] = uint256(expiresAt);
-        d[5] = parent != 0 ? 1 : 0;
-        return _encodeAll(fullName, displayName, d);
-    }
-
-    function _encodeAll(string memory fullName, string memory displayName, uint256[6] memory d)
-        internal pure returns (string memory)
-    {
-        bool isSub = d[5] == 1;
-        string memory svg = _svg(displayName, d[0], d[1], d[3], d[2], uint64(d[4]), isSub);
-        return _encode(fullName, svg, d[0], d[1], d[2], uint64(d[4]), isSub);
+        uint256 labelLen = bytes(label).length;
+        bool isSub = parent != 0;
+        string memory svg = _svg(displayName, labelLen, expiresAt, isSub);
+        return _encode(fullName, svg, labelLen, expiresAt, isSub);
     }
 
     function _buildName(string memory label, uint256 parent) internal view returns (string memory) {
@@ -121,13 +66,12 @@ contract MegaNameRenderer is Ownable {
         return MegaNamesSVG.toUpperCase(string.concat(_trunc(fullName, 17), "..."));
     }
 
-    function _encode(string memory fullName, string memory svg, uint256 labelLen,
-        uint256 regNum, uint256 subCount, uint64 expiresAt, bool isSub)
+    function _encode(string memory fullName, string memory svg, uint256 labelLen, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
         string memory n = MegaNamesSVG.escapeJSON(fullName);
         string memory img = Base64.encode(bytes(svg));
-        string memory attr = _attrs(labelLen, regNum, subCount, expiresAt, isSub);
+        string memory attr = _attrs(labelLen, expiresAt, isSub);
 
         return string.concat(
             "data:application/json;base64,",
@@ -139,17 +83,16 @@ contract MegaNameRenderer is Ownable {
     }
 
     /*//////////////////////////////////////////////////////////////
-                          SVG — synced with meganame.market aesthetic
+                          SVG
     //////////////////////////////////////////////////////////////*/
 
-    function _svg(string memory displayName, uint256 labelLen, uint256 regNum,
-        uint256 totalRegs, uint256 subCount, uint64 expiresAt, bool isSub)
+    function _svg(string memory displayName, uint256 labelLen, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
         uint8 tier = labelLen >= 5 ? 5 : uint8(labelLen);
         string memory part1 = string.concat(_svgOpen(), _svgBg(tier));
         string memory part2 = string.concat(_svgCorners(), _svgTierIcon(tier));
-        string memory part3 = string.concat(_svgName(displayName), _svgInfo(regNum, totalRegs, subCount, expiresAt, isSub), _svgClose());
+        string memory part3 = string.concat(_svgName(displayName), _svgInfo(labelLen, expiresAt, isSub), _svgClose());
         return string.concat(part1, part2, part3);
     }
 
@@ -179,31 +122,30 @@ contract MegaNameRenderer is Ownable {
     function _svgTierIcon(uint8 tier) internal pure returns (string memory) {
         string memory ac = _tierAccent(tier);
         string memory al = _tierBgFill(tier);
-        if (tier == 1) { // LEGENDARY — diamond
+        if (tier == 1) {
             return string.concat(
                 '<polygon points="360,28 370,42 360,56 350,42" fill="none" stroke="', ac, '" stroke-width="1.5"/>'
                 '<polygon points="360,34 364,42 360,50 356,42" fill="', al, '"/>'
             );
         }
-        if (tier == 2) { // EPIC — double diamond
+        if (tier == 2) {
             return string.concat(
                 '<polygon points="352,28 358,42 352,56 346,42" fill="none" stroke="', ac, '" stroke-width="1.2"/>'
                 '<polygon points="368,28 374,42 368,56 362,42" fill="none" stroke="', ac, '" stroke-width="1.2"/>'
             );
         }
-        if (tier == 3) { // RARE — hexagon
+        if (tier == 3) {
             return string.concat(
                 '<polygon points="360,28 372,35 372,49 360,56 348,49 348,35" fill="none" stroke="', ac, '" stroke-width="1.2"/>'
                 '<circle cx="360" cy="42" r="6" fill="', al, '"/>'
             );
         }
-        if (tier == 4) { // UNCOMMON — pentagon
+        if (tier == 4) {
             return string.concat(
                 '<polygon points="360,28 374,39 369,55 351,55 346,39" fill="none" stroke="', ac, '" stroke-width="1"/>'
                 '<circle cx="360" cy="42" r="4" fill="', al, '"/>'
             );
         }
-        // STANDARD — circle
         return string.concat(
             '<circle cx="360" cy="42" r="12" fill="none" stroke="', ac, '" stroke-width="0.8"/>'
             '<circle cx="360" cy="42" r="3" fill="', ac, '"/>'
@@ -224,11 +166,11 @@ contract MegaNameRenderer is Ownable {
         );
     }
 
-    function _svgInfo(uint256 regNum, uint256 totalRegs, uint256 subCount, uint64 expiresAt, bool isSub)
+    function _svgInfo(uint256 labelLen, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
-        string memory left = regNum > 0 ? string.concat("#", regNum.toString(), " / ", totalRegs.toString()) : "";
-        string memory center = isSub ? "SUBDOMAIN" : (subCount > 0 ? string.concat(subCount.toString(), subCount == 1 ? " SUB" : " SUBS") : "");
+        string memory left = string.concat(labelLen.toString(), labelLen == 1 ? " CHAR" : " CHARS");
+        string memory center = isSub ? "SUBDOMAIN" : "";
         string memory right = (!isSub && expiresAt > 0) ? string.concat("EXP ", _fmtDate(expiresAt)) : "";
 
         return string.concat(
@@ -271,7 +213,6 @@ contract MegaNameRenderer is Ownable {
                           DATE FORMAT
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev "FEB 2029" — civil date from unix timestamp
     function _fmtDate(uint64 ts) internal pure returns (string memory) {
         if (ts == 0) return "---";
         uint256 z = uint256(ts) / 86400 + 719468;
@@ -291,7 +232,7 @@ contract MegaNameRenderer is Ownable {
                           ATTRIBUTES
     //////////////////////////////////////////////////////////////*/
 
-    function _attrs(uint256 labelLen, uint256 regNum, uint256 subCount, uint64 expiresAt, bool isSub)
+    function _attrs(uint256 labelLen, uint64 expiresAt, bool isSub)
         internal pure returns (string memory)
     {
         string memory tierName;
@@ -306,16 +247,11 @@ contract MegaNameRenderer is Ownable {
             '"},{"trait_type":"Length","display_type":"number","value":', labelLen.toString(), '}'
         );
 
-        if (regNum > 0) {
-            a = string.concat(a, ',{"trait_type":"Registration #","display_type":"number","value":', regNum.toString(), '}');
-        }
-
         if (isSub) {
             return string.concat(a, ',{"trait_type":"Type","value":"Subdomain"}]');
         }
         return string.concat(a,
-            ',{"trait_type":"Subdomains","display_type":"number","value":', subCount.toString(),
-            '},{"trait_type":"Expires","display_type":"date","value":', uint256(expiresAt).toString(), '}]'
+            ',{"trait_type":"Expires","display_type":"date","value":', uint256(expiresAt).toString(), '}]'
         );
     }
 

@@ -13,7 +13,7 @@ contract DeployRenderer is Script {
         vm.startBroadcast(deployerKey);
 
         // Start numbering from 1 (we'll backfill existing 130+ names)
-        MegaNameRenderer renderer = new MegaNameRenderer(MEGA_NAMES, 1);
+        MegaNameRenderer renderer = new MegaNameRenderer(MEGA_NAMES);
 
         console.log("Renderer deployed at:", address(renderer));
 
