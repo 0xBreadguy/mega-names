@@ -332,14 +332,14 @@ export default function Home() {
           <div className="orbital-dot-hollow" style={{ top: '68%', left: '15%', animationDelay: '3.5s' }} />
           <div className="orbital-dot" style={{ top: '30%', left: '12%', animationDelay: '0.3s' }} />
 
-          {/* Planet-style labels */}
-          <div className="orbital-label" style={{ top: '8%', left: '52%' }}>mars</div>
-          <div className="orbital-label" style={{ top: '20%', left: '82%' }}>neptune</div>
-          <div className="orbital-label" style={{ top: '80%', left: '76%' }}>saturn</div>
-          <div className="orbital-label" style={{ top: '90%', left: '48%' }}>earth</div>
-          <div className="orbital-label" style={{ top: '70%', left: '12%' }}>uranus</div>
-          <div className="orbital-label" style={{ top: '28%', left: '8%' }}>mercury</div>
-          <div className="orbital-label" style={{ top: '50%', left: '97%' }}>jupiter</div>
+          {/* Grid coordinate labels */}
+          <div className="orbital-label" style={{ top: '8%', left: '52%' }}>0x4326</div>
+          <div className="orbital-label" style={{ top: '20%', left: '82%' }}>node.07</div>
+          <div className="orbital-label" style={{ top: '80%', left: '76%' }}>blk.height</div>
+          <div className="orbital-label" style={{ top: '90%', left: '48%' }}>10ms</div>
+          <div className="orbital-label" style={{ top: '70%', left: '12%' }}>rpc.02</div>
+          <div className="orbital-label" style={{ top: '28%', left: '8%' }}>chain.id</div>
+          <div className="orbital-label" style={{ top: '50%', left: '97%' }}>seq.ff</div>
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">

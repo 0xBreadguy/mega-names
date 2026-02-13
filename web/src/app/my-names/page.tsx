@@ -1591,7 +1591,7 @@ interface NameCardProps {
   onRenew: () => void
   onTextRecords: () => void
   onWarren: () => void
-  onSubdomainAction?: (sub: OwnedName, action: 'transfer' | 'setAddr' | 'textRecords' | 'revoke') => void
+  onSubdomainAction?: (sub: OwnedName, action: 'transfer' | 'setAddr' | 'textRecords' | 'revoke' | 'createSub' | 'warren') => void
   isSettingPrimary: boolean
 }
 
@@ -1747,6 +1747,22 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                     className="p-1 hover:bg-orange-100 transition-colors"
                   >
                     <UserCircle className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip label="Warren">
+                  <button
+                    onClick={() => onSubdomainAction?.(sub, 'warren')}
+                    className="p-1 hover:bg-purple-100 transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip label="Subdomain">
+                  <button
+                    onClick={() => onSubdomainAction?.(sub, 'createSub')}
+                    className="p-1 hover:bg-blue-100 transition-colors"
+                  >
+                    <FolderTree className="w-4 h-4" />
                   </button>
                 </Tooltip>
                 <Tooltip label="Transfer">
@@ -2062,6 +2078,8 @@ export default function MyNamesPage() {
                   else if (action === 'setAddr') setSettingAddrFor(sub)
                   else if (action === 'textRecords') setEditingTextRecordsFor(sub)
                   else if (action === 'revoke') handleRevokeSubdomain(sub)
+                  else if (action === 'createSub') setCreatingSubdomainFor(sub)
+                  else if (action === 'warren') setSettingWarrenFor(sub)
                 }}
                 isSettingPrimary={settingPrimaryFor === name.tokenId}
               />
@@ -2091,14 +2109,8 @@ export default function MyNamesPage() {
           </div>
         )}
 
-        {/* Info */}
-        <div className="mt-8 p-6 bg-[var(--surface)] border border-[var(--border)]">
-          <p className="font-label text-xs text-[var(--muted)] mb-2">TESTNET NOTICE</p>
-          <p className="text-sm text-[var(--muted)]">
-            MegaNames is in pre-registration phase. Public registration coming soon.
-            Need test USDM? Use the faucet in the MegaETH ecosystem bot.
-          </p>
-        </div>
+        {/* Spacer */}
+        <div className="mt-8" />
       </div>
 
       {/* Modals */}
