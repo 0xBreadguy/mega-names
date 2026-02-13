@@ -7,6 +7,9 @@ import { Footer } from "@/components/footer"
 export const metadata: Metadata = {
   title: "MEGANAMES",
   description: ".mega names on MegaETH",
+  icons: {
+    icon: "/favicon.svg",
+  },
 }
 
 export default function RootLayout({
