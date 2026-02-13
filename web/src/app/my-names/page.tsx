@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
 import { useReadContract } from 'wagmi'
 import { encodeFunctionData, isAddress, type Hash, erc20Abi } from 'viem'
@@ -21,6 +21,12 @@ interface OwnedName {
   isSubdomain: boolean
   parentLabel?: string
   subdomains?: OwnedName[]
+}
+
+// Build full display name for any OwnedName
+function getFullName(n: OwnedName): string {
+  if (n.isSubdomain && n.parentLabel) return `${n.label}.${n.parentLabel}.mega`
+  return `${n.label}.mega`
 }
 
 // Modal wrapper component
@@ -260,7 +266,8 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
   const { data: walletClient } = useWalletClient()
 
   const isValidLabel = label.length > 0 && /^[a-z0-9-]+$/.test(label)
-  const fullName = `${label}.${parentName.label}.mega`
+  const parentFullName = getFullName(parentName)
+  const fullName = `${label}.${parentFullName}`
 
   const handleCreate = async () => {
     if (!walletClient || !publicClient || !isValidLabel) return
@@ -342,7 +349,7 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
           <>
             <div className="mb-6">
               <p className="font-label text-xs text-[var(--muted)] mb-2">PARENT NAME</p>
-              <p className="font-display text-2xl">{parentName.label}.mega</p>
+              <p className="font-display text-2xl">{parentFullName}</p>
             </div>
 
             <div className="mb-6">
@@ -359,7 +366,7 @@ function SubdomainModal({ parentName, onClose, onSuccess }: SubdomainModalProps)
                   disabled={isPending}
                 />
                 <span className="px-3 py-3 bg-[var(--surface)] border-l border-[var(--border)] text-sm text-[var(--muted)]">
-                  .{parentName.label}.mega
+                  .{parentFullName}
                 </span>
               </div>
               {label && !isValidLabel && (
@@ -874,6 +881,10 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
   const [isSuccess, setIsSuccess] = useState(false)
   const [viewUrl, setViewUrl] = useState<string | null>(null)
 
+  // Existing Warren state
+  const [existingWarrenId, setExistingWarrenId] = useState<number | null>(null)
+  const [checkingExisting, setCheckingExisting] = useState(true)
+
   // Namecard form state
   const [ncDisplayName, setNcDisplayName] = useState('')
   const [ncBio, setNcBio] = useState('')
@@ -888,6 +899,28 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
 
   const displayName = name.isSubdomain ? `${name.label}.${name.parentLabel || '?'}.mega` : `${name.label}.mega`
   const isValidTokenId = warrenTokenId !== '' && !isNaN(Number(warrenTokenId)) && Number(warrenTokenId) >= 0
+
+  // Check for existing Warren contenthash on mount
+  useEffect(() => {
+    if (!publicClient) return
+    const check = async () => {
+      try {
+        const result = await publicClient.readContract({
+          address: CONTRACTS.mainnet.megaNames,
+          abi: MEGA_NAMES_ABI,
+          functionName: 'warren',
+          args: [name.tokenId],
+        }) as [number, boolean, boolean]
+        const [wId, wIsMaster, wIsWarren] = result
+        if (wIsWarren && wId > 0) {
+          setExistingWarrenId(wId)
+          setIsMaster(wIsMaster)
+        }
+      } catch { /* no warren set */ }
+      setCheckingExisting(false)
+    }
+    check()
+  }, [publicClient, name.tokenId])
 
   // Fetch text records to pre-fill namecard
   useEffect(() => {
@@ -1029,9 +1062,9 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
 
   return (
     <Modal onClose={onClose}>
-      <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
-        <h2 className="font-display text-2xl">WARREN ON-CHAIN SITE</h2>
-        <button onClick={onClose} className="p-1 hover:bg-[var(--surface-hover)]">
+      <div className="p-6 border-b border-[var(--border)] flex items-center justify-center relative">
+        <h2 className="font-display text-2xl text-center">WARREN ON-CHAIN SITE</h2>
+        <button onClick={onClose} className="absolute right-6 p-1 hover:bg-[var(--surface-hover)]">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -1064,6 +1097,43 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                 View transaction →
               </a>
             )}
+          </div>
+        ) : checkingExisting ? (
+          <div className="text-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[var(--muted)]" />
+            <p className="text-sm text-[var(--muted)]">Checking Warren status...</p>
+          </div>
+        ) : existingWarrenId && view === 'menu' ? (
+          <div className="text-center py-6">
+            <Globe className="w-10 h-10 mx-auto mb-3 text-[var(--muted-dark)]" />
+            <p className="font-label text-sm mb-1">WARREN SITE LINKED</p>
+            <p className="text-[var(--muted)] text-sm mb-4">{displayName} → Warren #{existingWarrenId}</p>
+            <a
+              href={`https://thewarren.app/v/site=${existingWarrenId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary inline-flex items-center gap-2 px-6 py-3 font-label mb-4"
+            >
+              VIEW NAMECARD
+              <ExternalLink className="w-4 h-4" />
+            </a>
+            <p className="text-xs text-[var(--muted)] mb-1">
+              {displayName}.thewarren.app
+            </p>
+            <div className="border-t border-[var(--border)] mt-6 pt-4 space-y-2">
+              <button
+                onClick={() => { setExistingWarrenId(null); setView('namecard') }}
+                className="w-full text-sm text-[var(--muted-dark)] hover:text-[var(--foreground)] py-1"
+              >
+                Redeploy namecard
+              </button>
+              <button
+                onClick={() => { setExistingWarrenId(null); setView('link') }}
+                className="w-full text-sm text-[var(--muted)] hover:text-[var(--foreground)] py-1"
+              >
+                Link a different Warren NFT
+              </button>
+            </div>
           </div>
         ) : view === 'menu' ? (
           <>
@@ -1618,10 +1688,23 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
 
   const days = daysUntilExpiry(name.expiresAt)
   const isExpiringSoon = days <= 30
-  const hasSubdomains = name.subdomains && name.subdomains.length > 0
+  // Flatten all nested subdomains (sub-subs, sub-sub-subs, etc.) into one list
+  const allSubdomains = useMemo(() => {
+    if (!name.subdomains) return []
+    const result: OwnedName[] = []
+    const collect = (subs: OwnedName[]) => {
+      for (const s of subs) {
+        result.push(s)
+        if (s.subdomains) collect(s.subdomains)
+      }
+    }
+    collect(name.subdomains)
+    return result
+  }, [name.subdomains])
+  const hasSubdomains = allSubdomains.length > 0
 
   return (
-    <div className={`border border-[var(--border)] shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)] ${isPrimary ? 'bg-[var(--surface)]' : ''}`}>
+    <div className={`border border-[var(--border)] shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)] ${isPrimary ? 'bg-[var(--surface)]' : 'bg-[var(--bg-card)]'}`}>
       <div className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
@@ -1720,7 +1803,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
           className="w-full px-6 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between hover:bg-[var(--surface-hover)]"
         >
           <span className="text-xs text-[var(--muted)] font-label">
-            {name.subdomains!.length} SUBDOMAIN{name.subdomains!.length > 1 ? 'S' : ''}
+            {allSubdomains.length} SUBDOMAIN{allSubdomains.length > 1 ? 'S' : ''}
           </span>
           {showSubdomains ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -1729,9 +1812,9 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
       {/* Subdomains list */}
       {showSubdomains && hasSubdomains && (
         <div className="border-t border-[var(--border)]">
-          {name.subdomains!.map((sub) => (
+          {allSubdomains.map((sub) => (
             <div key={sub.tokenId.toString()} className="px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] last:border-b-0 bg-[var(--background-light)]">
-              <span className="font-mono text-sm truncate flex-1 min-w-0 mr-2">{sub.label}.{name.label}.mega</span>
+              <span className="font-mono text-sm truncate flex-1 min-w-0 mr-2">{getFullName(sub)}</span>
               <div className="flex items-center gap-1 shrink-0">
                 <Tooltip label="Forward to">
                   <button
@@ -1982,7 +2065,15 @@ export default function MyNamesPage() {
         }
       }
 
+      // Build a lookup of all names by tokenId for resolving parents
+      const allNamesMap = new Map<string, OwnedName>()
+      for (const n of names) allNamesMap.set(n.tokenId.toString(), n)
+      for (const subs of subdomainsByParent.values()) {
+        for (const s of subs) allNamesMap.set(s.tokenId.toString(), s)
+      }
+
       // Attach subdomains to their parents and set parentLabel
+      // First pass: attach direct children of top-level names
       for (const name of names) {
         const subs = subdomainsByParent.get(name.tokenId.toString())
         if (subs) {
@@ -1990,6 +2081,22 @@ export default function MyNamesPage() {
             sub.parentLabel = name.label
           }
           name.subdomains = subs
+        }
+      }
+
+      // Second pass: attach sub-subs to their subdomain parents
+      for (const [parentStr, subs] of subdomainsByParent.entries()) {
+        const parentName = allNamesMap.get(parentStr)
+        if (parentName && parentName.isSubdomain) {
+          // Build full parent chain: e.g., "vault.bread" for sub-subs of vault.bread.mega
+          const parentChain = parentName.parentLabel
+            ? `${parentName.label}.${parentName.parentLabel}`
+            : parentName.label
+          for (const sub of subs) {
+            sub.parentLabel = parentChain
+          }
+          if (!parentName.subdomains) parentName.subdomains = []
+          parentName.subdomains.push(...subs)
         }
       }
 
@@ -2095,9 +2202,9 @@ export default function MyNamesPage() {
                 <p className="font-label text-xs text-[var(--muted)]">TOTAL NAMES</p>
                 <p className="font-display text-2xl">
                   {ownedNames.length}
-                  {ownedNames.reduce((acc, n) => acc + (n.subdomains?.length || 0), 0) > 0 && (
+                  {ownedNames.reduce((acc, n) => { const c = (s: OwnedName[]): number => s.reduce((a, x) => a + 1 + (x.subdomains ? c(x.subdomains) : 0), 0); return acc + (n.subdomains ? c(n.subdomains) : 0) }, 0) > 0 && (
                     <span className="text-lg text-[var(--muted)] ml-2">
-                      (+{ownedNames.reduce((acc, n) => acc + (n.subdomains?.length || 0), 0)} subdomains)
+                      (+{ownedNames.reduce((acc, n) => { const c = (s: OwnedName[]): number => s.reduce((a, x) => a + 1 + (x.subdomains ? c(x.subdomains) : 0), 0); return acc + (n.subdomains ? c(n.subdomains) : 0) }, 0)} subdomains)
                     </span>
                   )}
                 </p>

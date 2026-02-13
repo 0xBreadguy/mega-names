@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 const CONTRACT_ADDRESS = '0x5B424C6CCba77b32b9625a6fd5A30D409d20d997'
 const RPC_URL = 'https://mainnet.megaeth.com/rpc'
@@ -12,7 +14,7 @@ function CopyButton({ text }: { text: string }) {
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
       className="absolute top-3 right-3 font-mono text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--foreground)] transition-colors z-10"
     >
-      {copied ? '✓ copied' : 'copy'}
+      {copied ? 'copied' : 'copy'}
     </button>
   )
 }
@@ -20,13 +22,13 @@ function CopyButton({ text }: { text: string }) {
 function TabbedCode({ tabs }: { tabs: { label: string; code: string }[] }) {
   const [active, setActive] = useState(0)
   return (
-    <div className="relative">
+    <div className="relative shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)]">
       <div className="flex border-b border-[var(--border)] bg-[var(--foreground)]">
         {tabs.map((tab, i) => (
           <button
             key={tab.label}
             onClick={() => setActive(i)}
-            className={`px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors ${
+            className={`px-4 py-2.5 font-mono text-xs uppercase tracking-wider transition-colors ${
               active === i
                 ? 'text-[var(--background)] border-b-2 border-[var(--background)]'
                 : 'text-[var(--muted)] hover:text-[var(--background)]'
@@ -48,8 +50,8 @@ function TabbedCode({ tabs }: { tabs: { label: string; code: string }[] }) {
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-20">
-      <h2 className="text-lg font-black italic tracking-tight text-[var(--foreground)] mb-4 border-b border-[var(--border)] pb-2">
+    <section id={id} className="scroll-mt-20 bg-[var(--bg-card)] border border-[var(--border)] p-6 shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)]">
+      <h2 className="font-display text-xl text-[var(--foreground)] mb-4 pb-3 border-b border-[var(--border)]">
         {title}
       </h2>
       {children}
@@ -209,26 +211,31 @@ cast call ${CONTRACT_ADDRESS} \\
 
 export default function IntegratePage() {
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-12">
+        <Link href="/" className="inline-flex items-center gap-2 text-[var(--muted-dark)] hover:text-[var(--foreground)] transition-colors mb-8">
+          <ArrowLeft className="w-4 h-4" />
+          <span className="font-label text-sm">back</span>
+        </Link>
+
+        <div className="mb-10">
           <p className="font-label text-[var(--muted)] text-xs uppercase tracking-widest mb-2">for developers</p>
           <h1 className="font-display text-4xl sm:text-5xl text-[var(--foreground)] mb-3">
-            Integrate Mega Names
+            INTEGRATE MEGA NAMES
           </h1>
           <p className="text-[var(--muted-dark)] max-w-2xl leading-relaxed">
             Display .mega names in your app. Resolve names to addresses and addresses to names with a few lines of code.
           </p>
         </div>
 
-        <div className="space-y-12">
-          <Section id="overview" title="How It Works">
+        <div className="space-y-4">
+          <Section id="overview" title="HOW IT WORKS">
             <div className="space-y-3 text-[var(--muted-dark)] leading-relaxed">
               <p>
                 MegaNames is a single contract — no registry/resolver split, no subgraphs.
                 Two read calls cover most use cases:
               </p>
-              <div className="bg-[var(--surface)] border border-[var(--border)] p-4">
+              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                 <ul className="space-y-2 text-sm font-mono">
                   <li><span className="text-[var(--foreground)]">getName(address)</span> <span className="text-[var(--muted)]">→ resolve address to name</span></li>
                   <li><span className="text-[var(--foreground)]">addr(tokenId)</span> <span className="text-[var(--muted)]">→ resolve name to address</span></li>
@@ -237,8 +244,8 @@ export default function IntegratePage() {
             </div>
           </Section>
 
-          <Section id="contract" title="Contract">
-            <div className="bg-[var(--surface)] border border-[var(--border)] p-4 space-y-2 font-mono text-sm">
+          <Section id="contract" title="CONTRACT">
+            <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4 space-y-3 font-mono text-sm shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
               <div className="flex flex-col sm:flex-row sm:gap-2">
                 <span className="text-[var(--muted)] shrink-0">Address:</span>
                 <span className="text-[var(--foreground)] break-all">{CONTRACT_ADDRESS}</span>
@@ -254,21 +261,21 @@ export default function IntegratePage() {
             </div>
           </Section>
 
-          <Section id="reverse" title="Display a .mega Name">
+          <Section id="reverse" title="DISPLAY A .MEGA NAME">
             <p className="text-[var(--muted-dark)] mb-4 leading-relaxed">
               Show a user's .mega name instead of their raw address. This is the most common integration.
             </p>
             <TabbedCode tabs={REVERSE_RESOLVE_TABS} />
           </Section>
 
-          <Section id="resolve" title="Resolve a Name to Address">
+          <Section id="resolve" title="RESOLVE A NAME TO ADDRESS">
             <p className="text-[var(--muted-dark)] mb-4 leading-relaxed">
-              Look up the address a .mega name points to — for example, letting users type "bread.mega" instead of pasting an address.
+              Look up the address a .mega name points to — for example, letting users type &quot;bread.mega&quot; instead of pasting an address.
             </p>
             <TabbedCode tabs={RESOLVE_TABS} />
           </Section>
 
-          <Section id="links" title="Resources">
+          <Section id="links" title="RESOURCES">
             <div className="space-y-3">
               {[
                 { label: 'Source Code', url: 'https://github.com/0xBreadguy/mega-names/blob/main/src/MegaNames.sol', desc: 'Full contract source' },
@@ -282,7 +289,7 @@ export default function IntegratePage() {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block bg-[var(--surface)] border border-[var(--border)] p-4 hover:border-[var(--foreground)] transition-colors group"
+                  className="block bg-[var(--surface)] border border-[var(--border-light)] p-4 hover:border-[var(--foreground)] hover:bg-[var(--surface-hover)] transition-all group shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -295,7 +302,22 @@ export default function IntegratePage() {
               ))}
             </div>
           </Section>
+        </div>
 
+        {/* CTA */}
+        <div className="mt-8 p-8 border border-[var(--border)] bg-[var(--bg-card)] text-center shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)]">
+          <h2 className="font-display text-2xl mb-3">READY TO BUILD?</h2>
+          <p className="text-[var(--muted-dark)] text-sm mb-6">
+            Start resolving .mega names in your app today.
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            <Link href="/" className="btn-primary px-6 py-2 font-label">
+              SEARCH NAMES
+            </Link>
+            <Link href="/about" className="btn-secondary px-6 py-2 font-label">
+              LEARN MORE
+            </Link>
+          </div>
         </div>
       </div>
     </div>

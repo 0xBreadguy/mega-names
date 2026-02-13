@@ -1,6 +1,6 @@
 export function Footer() {
   return (
-    <footer className="border-t border-[var(--border)]">
+    <footer className="border-t border-[var(--border)] bg-[var(--surface)] shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">

@@ -9,13 +9,13 @@ import { ArrowLeft, ChevronDown, Star, MapPin, UserCircle, FolderTree, Send, Ref
 function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border border-[var(--border)] bg-[var(--bg-card)]">
+    <div className="border border-[var(--border)] bg-[var(--bg-card)] shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)]">
       <button
         onClick={() => setOpen(!open)}
         className="w-full px-6 py-5 flex items-center justify-between hover:bg-[var(--surface)] transition-colors"
       >
         <h2 className="font-display text-xl sm:text-2xl text-left">{title}</h2>
-        <ChevronDown className={`w-5 h-5 text-[var(--muted)] transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-5 h-5 text-[var(--muted)] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="px-6 pb-6 border-t border-[var(--border)]">
@@ -30,13 +30,13 @@ function Section({ title, children, defaultOpen = false }: { title: string; chil
 
 function Feature({ icon: Icon, label, description }: { icon: any; label: string; description: string }) {
   return (
-    <div className="flex items-start gap-3 py-3">
-      <div className="p-1.5 bg-[var(--bg-card)] border border-[var(--border)] flex-shrink-0 mt-0.5">
+    <div className="flex items-start gap-3 py-3 border-b border-[var(--border-light)] last:border-b-0">
+      <div className="p-2 bg-[var(--surface)] border border-[var(--border-light)] flex-shrink-0 mt-0.5">
         <Icon className="w-4 h-4 text-[var(--muted-dark)]" />
       </div>
       <div>
         <p className="font-label text-sm text-[var(--foreground)]">{label}</p>
-        <p className="text-sm text-[var(--muted-dark)] mt-0.5">{description}</p>
+        <p className="text-sm text-[var(--muted-dark)] mt-0.5 leading-relaxed">{description}</p>
       </div>
     </div>
   )
@@ -46,7 +46,7 @@ function Feature({ icon: Icon, label, description }: { icon: any; label: string;
 
 function PriceRow({ length, price }: { length: string; price: string }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-[var(--border-light)] last:border-b-0">
+    <div className="flex items-center justify-between py-3 border-b border-[var(--border-light)] last:border-b-0">
       <span className="font-label text-sm text-[var(--muted-dark)]">{length}</span>
       <span className="font-display text-lg">{price}</span>
     </div>
@@ -55,46 +55,39 @@ function PriceRow({ length, price }: { length: string; price: string }) {
 
 /* ── Use Case Card ── */
 
-const colorMap: Record<string, string> = {
-  purple: 'bg-purple-50 border-purple-200',
-  yellow: 'bg-yellow-50 border-yellow-200',
-  blue: 'bg-blue-50 border-blue-200',
-  green: 'bg-green-50 border-green-200',
-  orange: 'bg-orange-50 border-orange-200',
-}
-
-const iconColorMap: Record<string, string> = {
-  purple: 'text-purple-600',
-  yellow: 'text-yellow-600',
-  blue: 'text-blue-600',
-  green: 'text-green-600',
-  orange: 'text-orange-600',
+const accentMap: Record<string, { bg: string; border: string; icon: string; card: string }> = {
+  purple: { bg: 'bg-[#ece6f2]', border: 'border-[#bfb0d4]', icon: 'text-[#6b5b8a]', card: 'bg-[var(--bg-card-light)]' },
+  yellow: { bg: 'bg-[#f0eddc]', border: 'border-[#cdc4a0]', icon: 'text-[#7a7040]', card: 'bg-[var(--bg-card-light)]' },
+  blue:   { bg: 'bg-[#e2ebf2]', border: 'border-[#a8bed4]', icon: 'text-[#4a6a82]', card: 'bg-[var(--bg-card-light)]' },
+  green:  { bg: 'bg-[#e2efe4]', border: 'border-[#a0c8a6]', icon: 'text-[#3e6e44]', card: 'bg-[var(--bg-card-light)]' },
+  orange: { bg: 'bg-[#f2e8dc]', border: 'border-[#d4b89a]', icon: 'text-[#8a6040]', card: 'bg-[var(--bg-card-light)]' },
 }
 
 function UseCase({ icon: Icon, title, description, example, color }: {
   icon: any; title: string; description: string; color: string;
   example: { scenario: string; names: string[]; detail: string }
 }) {
+  const accent = accentMap[color] || accentMap.purple
   return (
-    <div className="border border-[var(--border)] bg-[#eee9de] shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)]">
+    <div className={`border border-[var(--border)] ${accent.card} shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)]`}>
       <div className="p-6">
         <div className="flex items-start gap-3 mb-3">
-          <div className={`p-1.5 border ${colorMap[color]}`}>
-            <Icon className={`w-4 h-4 ${iconColorMap[color]}`} />
+          <div className={`p-2 border ${accent.border} ${accent.bg}`}>
+            <Icon className={`w-4 h-4 ${accent.icon}`} />
           </div>
           <div>
             <h3 className="font-display text-lg">{title}</h3>
-            <p className="text-[var(--muted-dark)] text-sm mt-1">{description}</p>
+            <p className="text-[var(--muted-dark)] text-sm mt-1 leading-relaxed">{description}</p>
           </div>
         </div>
-        <div className={`mt-4 p-3 border shadow-[inset_0_1px_4px_rgba(25,25,26,0.04)] ${colorMap[color]}`}>
+        <div className={`mt-4 p-4 border ${accent.border} ${accent.bg}`}>
           <p className="text-xs font-label text-[var(--muted-dark)] mb-2">{example.scenario}</p>
           <div className="space-y-1">
             {example.names.map((name, j) => (
               <p key={j} className="font-mono text-xs">{name}</p>
             ))}
           </div>
-          <p className="text-xs text-[var(--muted-dark)] mt-2 border-t border-[var(--border)] pt-2">{example.detail}</p>
+          <p className="text-xs text-[var(--muted-dark)] mt-3 border-t border-[var(--border-light)] pt-2">{example.detail}</p>
         </div>
       </div>
     </div>
@@ -124,7 +117,7 @@ export default function AboutPage() {
 
           {/* HOW IT WORKS */}
           <Section title="HOW IT WORKS" defaultOpen={true}>
-            <div className="pt-4 space-y-4">
+            <div className="pt-4 space-y-5">
               <div>
                 <p className="font-label text-xs text-[var(--muted)] mb-1">REGISTRATION</p>
                 <p className="text-sm text-[var(--muted-dark)] leading-relaxed">
@@ -136,7 +129,7 @@ export default function AboutPage() {
               <div>
                 <p className="font-label text-xs text-[var(--muted)] mb-1">PRICING</p>
                 <p className="text-sm text-[var(--muted-dark)] mb-3">Annual registration in USDM, based on name length:</p>
-                <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4">
+                <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                   <PriceRow length="1 character" price="$1,000" />
                   <PriceRow length="2 characters" price="$500" />
                   <PriceRow length="3 characters" price="$100" />
@@ -166,7 +159,7 @@ export default function AboutPage() {
 
           {/* MANAGEMENT */}
           <Section title="MANAGING YOUR NAME">
-            <div className="pt-4 space-y-1">
+            <div className="pt-4">
               <Feature
                 icon={Star}
                 label="Set as Primary"
@@ -207,8 +200,8 @@ export default function AboutPage() {
 
           {/* IMPORTANT DETAILS */}
           <Section title="IMPORTANT DETAILS">
-            <div className="pt-4 grid gap-3">
-              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-5">
+            <div className="pt-4 space-y-3">
+              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-5 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                 <p className="font-label text-xs text-[var(--foreground)] mb-2">SUBDOMAIN REVOCATION</p>
                 <p className="text-sm text-[var(--muted-dark)] leading-relaxed">
                   Subdomains can be revoked by the parent name owner at any time. If you receive a subdomain, 
@@ -216,14 +209,14 @@ export default function AboutPage() {
                   it allows teams and projects to manage their namespace.
                 </p>
               </div>
-              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-5">
+              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-5 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                 <p className="font-label text-xs text-[var(--foreground)] mb-2">TRANSFERS ARE IRREVERSIBLE</p>
                 <p className="text-sm text-[var(--muted-dark)] leading-relaxed">
                   Transferring a parent name is permanent. Double-check the recipient address. 
                   Names sent to the wrong address cannot be recovered.
                 </p>
               </div>
-              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-5">
+              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-5 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                 <p className="font-label text-xs text-[var(--foreground)] mb-2">PRIMARY vs FORWARDING</p>
                 <p className="text-sm text-[var(--muted-dark)] leading-relaxed">
                   <strong>Primary</strong> = which name displays for your wallet (address → name).<br />
@@ -232,7 +225,7 @@ export default function AboutPage() {
                   displaying bread.mega as your personal wallet&apos;s primary name.
                 </p>
               </div>
-              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-5">
+              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-5 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                 <p className="font-label text-xs text-[var(--foreground)] mb-2">NO PAUSE / NO CUSTODY</p>
                 <p className="text-sm text-[var(--muted-dark)] leading-relaxed">
                   The contract has no pause mechanism and never holds your USDM. 
@@ -250,7 +243,7 @@ export default function AboutPage() {
                 .mega names support <a href="https://interopaddress.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--foreground)]">ERC-7930 interop addressing</a>, 
                 enabling cross-chain resolution. Reference any MegaETH address from other chains:
               </p>
-              <div className="bg-[var(--surface)] border border-[var(--border-light)] px-4 py-3 font-mono text-sm">
+              <div className="bg-[var(--surface)] border border-[var(--border-light)] px-4 py-3 font-mono text-sm shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                 bread.mega<span className="text-[var(--muted)]">@</span>megaeth
               </div>
               <p className="text-xs text-[var(--muted)] mt-2">
@@ -341,7 +334,7 @@ export default function AboutPage() {
           {/* CONTRACT INFO */}
           <Section title="CONTRACT">
             <div className="pt-4">
-              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4 font-mono text-xs space-y-2">
+              <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4 font-mono text-xs space-y-2 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                 <div className="flex justify-between gap-4">
                   <span className="text-[var(--muted)]">MegaNames</span>
                   <a href="https://mega.etherscan.io/address/0x5B424C6CCba77b32b9625a6fd5A30D409d20d997" target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline truncate">
@@ -369,7 +362,7 @@ export default function AboutPage() {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 p-8 border border-[var(--border)] bg-[var(--bg-card)] text-center">
+        <div className="mt-10 p-8 border border-[var(--border)] bg-[var(--bg-card)] text-center shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)]">
           <h2 className="font-display text-2xl mb-3">GET STARTED</h2>
           <p className="text-[var(--muted-dark)] text-sm mb-6">
             Register your .mega name or integrate name resolution into your app.
@@ -378,7 +371,7 @@ export default function AboutPage() {
             <Link href="/" className="btn-primary px-6 py-2 font-label">
               SEARCH NAMES
             </Link>
-            <Link href="/integrate" className="px-6 py-2 bg-[var(--bg-card)] border border-[var(--border)] font-label hover:border-[var(--foreground)] transition-colors">
+            <Link href="/integrate" className="btn-secondary px-6 py-2 font-label">
               INTEGRATE
             </Link>
           </div>

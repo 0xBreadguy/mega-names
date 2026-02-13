@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, ArrowRight } from 'lucide-react'
 import { useReadContract } from 'wagmi'
 import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
@@ -39,26 +39,6 @@ function useInView(threshold = 0.15) {
     return () => obs.disconnect()
   }, [threshold])
   return { ref, visible }
-}
-
-function useMouseParallax(strength = 0.02) {
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
-  useEffect(() => {
-    let rafId: number
-    const handleMove = (e: MouseEvent) => {
-      rafId = requestAnimationFrame(() => {
-        const cx = window.innerWidth / 2
-        const cy = window.innerHeight / 2
-        setOffset({
-          x: (e.clientX - cx) * strength,
-          y: (e.clientY - cy) * strength,
-        })
-      })
-    }
-    window.addEventListener('mousemove', handleMove)
-    return () => { window.removeEventListener('mousemove', handleMove); cancelAnimationFrame(rafId) }
-  }, [strength])
-  return offset
 }
 
 /* ── Interop Typewriter ── */
@@ -129,7 +109,6 @@ function PricingCard({ length, price, index }: { length: string; price: string; 
 
 function RecentTicker({ names }: { names: string[] }) {
   if (names.length === 0) return null
-  // Double the list for seamless loop
   const doubled = [...names, ...names]
   return (
     <div className="overflow-hidden bg-[var(--foreground)] py-3">
@@ -224,16 +203,8 @@ export default function Home() {
   const [searchedName, setSearchedName] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
   const [megaPulse, setMegaPulse] = useState(false)
-  const [scrollY, setScrollY] = useState(0)
-  const parallax = useMouseParallax(0.02)
 
-  useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
   const recentNames = useRecentRegistrations()
-
   const { namesRegistered, totalVolume, isLoading: statsLoading } = useContractStats()
 
   const tokenId = searchedName ? getTokenId(searchedName) : BigInt(0)
@@ -250,7 +221,6 @@ export default function Home() {
   const isTaken = searchedName && records && records[0] !== ''
   const price = searchedName ? getPrice(searchedName.length) : BigInt(0)
 
-  // Fetch owner when name is taken
   const { data: nameOwner } = useReadContract({
     address: CONTRACTS.mainnet.megaNames,
     abi: MEGA_NAMES_ABI,
@@ -271,14 +241,13 @@ export default function Home() {
       {/* Paper texture overlay */}
       <div className="paper-texture" />
 
-      {/* Faint MegaETH M logo watermark — scroll parallax (moves at 0.4x speed) */}
+      {/* Faint MegaETH M logo watermark */}
       <div
         className="fixed top-1/2 left-1/2 pointer-events-none z-0"
         style={{
           opacity: megaPulse ? 0.15 : 0.04,
-          transform: `translate(calc(-50% + ${parallax.x * -0.5}px), calc(-50% + ${parallax.y * -0.5}px + ${scrollY * -0.3}px)) scale(${megaPulse ? 1.08 : 1})`,
+          transform: `translate(-50%, -50%) scale(${megaPulse ? 1.08 : 1})`,
           transition: megaPulse ? 'opacity 0.2s ease-out' : 'opacity 0.8s ease-in',
-          willChange: 'transform',
         }}
       >
         <Image src="/megaeth-icon.png" alt="" width={700} height={700} />
@@ -286,62 +255,6 @@ export default function Home() {
 
       {/* Hero */}
       <section className="relative overflow-hidden min-h-[85vh] flex items-center">
-        {/* Blueprint grid */}
-        <div className="blueprint-grid" />
-
-        {/* Scan line */}
-        <div
-          className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--blueprint-strong)] to-transparent pointer-events-none opacity-40"
-          style={{ animation: 'scan-line 12s linear infinite' }}
-        />
-
-        {/* Crosshair lines — parallax layer 1 (subtle) */}
-        <div style={{ transform: `translate(${parallax.x * 0.3}px, ${parallax.y * 0.3}px)`, transition: 'transform 0.3s ease-out' }}>
-          <div className="crosshair-h" />
-          <div className="crosshair-v" />
-        </div>
-
-        {/* Diagonal lines — parallax layer 1 */}
-        <div style={{ transform: `translate(${parallax.x * 0.4}px, ${parallax.y * 0.4}px)`, transition: 'transform 0.3s ease-out' }}>
-          <div className="diag-line" style={{ transform: 'rotate(30deg)' }} />
-          <div className="diag-line" style={{ transform: 'rotate(-30deg)' }} />
-          <div className="diag-line" style={{ transform: 'rotate(60deg)' }} />
-          <div className="diag-line" style={{ transform: 'rotate(-60deg)' }} />
-        </div>
-
-        {/* Orbital rings — parallax layer 2 (stronger) */}
-        <div
-          className={`orbital-rings ${searchFocused ? 'search-focused' : ''}`}
-          style={{
-            transform: `translate(calc(-50% + ${parallax.x * 0.8}px), calc(-50% + ${parallax.y * 0.8}px))`,
-            transition: 'transform 0.3s ease-out',
-          }}
-        >
-          <div className="orbital-ring orbital-ring-1" />
-          <div className="orbital-ring orbital-ring-2" />
-          <div className={`orbital-ring orbital-ring-3 ${searchFocused ? 'ring-glow' : ''}`} />
-          <div className="orbital-ring orbital-ring-4" />
-          <div className="orbital-ring orbital-ring-5" />
-
-          {/* Dots on orbits (staggered pulse) */}
-          <div className="orbital-dot" style={{ top: '10%', left: '50%', animationDelay: '0s' }} />
-          <div className="orbital-dot-hollow" style={{ top: '22%', left: '78%', animationDelay: '0.7s' }} />
-          <div className="orbital-dot" style={{ top: '50%', left: '93%', animationDelay: '1.4s' }} />
-          <div className="orbital-dot-hollow" style={{ top: '78%', left: '72%', animationDelay: '2.1s' }} />
-          <div className="orbital-dot" style={{ top: '88%', left: '44%', animationDelay: '2.8s' }} />
-          <div className="orbital-dot-hollow" style={{ top: '68%', left: '15%', animationDelay: '3.5s' }} />
-          <div className="orbital-dot" style={{ top: '30%', left: '12%', animationDelay: '0.3s' }} />
-
-          {/* Grid coordinate labels */}
-          <div className="orbital-label" style={{ top: '8%', left: '52%' }}>0x4326</div>
-          <div className="orbital-label" style={{ top: '20%', left: '82%' }}>node.07</div>
-          <div className="orbital-label" style={{ top: '80%', left: '76%' }}>blk.height</div>
-          <div className="orbital-label" style={{ top: '90%', left: '48%' }}>10ms</div>
-          <div className="orbital-label" style={{ top: '70%', left: '12%' }}>rpc.02</div>
-          <div className="orbital-label" style={{ top: '28%', left: '8%' }}>chain.id</div>
-          <div className="orbital-label" style={{ top: '50%', left: '97%' }}>seq.ff</div>
-        </div>
-
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="text-center mb-16">
             <p className="font-label text-[var(--muted)] mb-6 tracking-[0.25em] animate-fade-in-up">
@@ -369,7 +282,6 @@ export default function Home() {
                   onChange={(e) => {
                     const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '')
                     setSearchQuery(val)
-                    // Easter egg: typing "mega" triggers M watermark pulse
                     if (val.toLowerCase() === 'mega' && !megaPulse) {
                       setMegaPulse(true)
                       setTimeout(() => setMegaPulse(false), 1200)
@@ -456,12 +368,6 @@ export default function Home() {
             )}
           </div>
         </div>
-
-        {/* Corner timestamp */}
-        <div className="absolute bottom-6 right-8 font-label text-[var(--muted)] text-[0.5rem] tracking-[0.15em]">
-          2026.
-        </div>
-
       </section>
 
       {/* Recently registered ticker */}
@@ -469,21 +375,21 @@ export default function Home() {
 
       {/* Stats */}
       <AnimatedSection className="border-t border-[var(--border)] relative">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
-            <div className="py-6 sm:py-10 pr-4 sm:pr-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="panel p-4 sm:p-6">
               <p className="font-label text-[var(--muted)] mb-2">total registered</p>
               <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">
                 {statsLoading ? '—' : namesRegistered.toLocaleString()}
               </p>
             </div>
-            <div className="py-6 sm:py-10 px-4 sm:px-8">
+            <div className="panel p-4 sm:p-6">
               <p className="font-label text-[var(--muted)] mb-2">total purchased</p>
               <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">
                 {statsLoading ? '—' : formatUSDM(totalVolume)}
               </p>
             </div>
-            <div className="py-6 sm:py-10 pl-4 sm:pl-8">
+            <div className="panel p-4 sm:p-6">
               <p className="font-label text-[var(--muted)] mb-2">chain</p>
               <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">MEGAETH</p>
             </div>
@@ -518,7 +424,7 @@ export default function Home() {
         </div>
       </AnimatedSection>
 
-      {/* Pricing — staggered cards */}
+      {/* Pricing */}
       <AnimatedSection className="border-t border-[var(--border)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <p className="font-label text-[var(--muted)] mb-8 tracking-[0.2em]">pricing / year</p>
