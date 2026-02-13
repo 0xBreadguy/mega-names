@@ -875,6 +875,8 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
   const [view, setView] = useState<WarrenView>('menu')
   const [warrenTokenId, setWarrenTokenId] = useState('')
   const [isMaster, setIsMaster] = useState(true)
+  const [contenthash, setContenthash] = useState('')
+  const [contenthashParsed, setContenthashParsed] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<Hash | null>(null)
@@ -899,6 +901,23 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
 
   const displayName = name.isSubdomain ? `${name.label}.${name.parentLabel || '?'}.mega` : `${name.label}.mega`
   const isValidTokenId = warrenTokenId !== '' && !isNaN(Number(warrenTokenId)) && Number(warrenTokenId) >= 0
+
+  // Parse Warren contenthash: 0x00e9 + type byte (01=Master, 02=Container) + 4 byte tokenId
+  const parseContenthash = (hash: string) => {
+    setContenthash(hash)
+    const h = hash.trim().toLowerCase()
+    if (h.length >= 16 && h.startsWith('0x00e9')) {
+      const typeByte = parseInt(h.slice(6, 8), 16)
+      const tokenId = parseInt(h.slice(8, 16), 16)
+      if ((typeByte === 1 || typeByte === 2) && tokenId > 0) {
+        setIsMaster(typeByte === 1)
+        setWarrenTokenId(String(tokenId))
+        setContenthashParsed(true)
+        return
+      }
+    }
+    setContenthashParsed(false)
+  }
 
   // Check for existing Warren contenthash on mount
   useEffect(() => {
@@ -1306,6 +1325,38 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
             <p className="font-label text-xs text-[var(--muted)] mb-2">LINKING TO</p>
             <p className="font-display text-2xl truncate mb-4">{displayName}</p>
 
+            {/* Contenthash paste field */}
+            <div className="mb-4">
+              <label className="font-label text-xs text-[var(--muted)] mb-2 block">
+                PASTE CONTENTHASH
+              </label>
+              <input
+                type="text"
+                value={contenthash}
+                onChange={(e) => parseContenthash(e.target.value)}
+                placeholder="0x00e9010000000a"
+                className="w-full p-3 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                disabled={isPending}
+              />
+              <p className="text-xs text-[var(--muted)] mt-1">
+                Copy from Warren dashboard &quot;COPY CONTENTHASH&quot; button
+              </p>
+              {contenthash && contenthashParsed && (
+                <p className="text-xs text-green-700 mt-1">
+                  Parsed: {isMaster ? 'Master' : 'Container'} NFT #{warrenTokenId}
+                </p>
+              )}
+              {contenthash && !contenthashParsed && contenthash.length > 4 && (
+                <p className="text-xs text-red-600 mt-1">Invalid contenthash format</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 border-t border-[var(--border)]" />
+              <span className="text-xs text-[var(--muted)] font-label">OR ENTER MANUALLY</span>
+              <div className="flex-1 border-t border-[var(--border)]" />
+            </div>
+
             <div className="mb-4">
               <label className="font-label text-xs text-[var(--muted)] mb-2 block">
                 WARREN NFT TOKEN ID
@@ -1313,7 +1364,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
               <input
                 type="number"
                 value={warrenTokenId}
-                onChange={(e) => setWarrenTokenId(e.target.value)}
+                onChange={(e) => { setWarrenTokenId(e.target.value); setContenthashParsed(false); setContenthash('') }}
                 placeholder="e.g., 42"
                 className="w-full p-3 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
                 disabled={isPending}
@@ -1330,11 +1381,11 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" checked={isMaster} onChange={() => setIsMaster(true)} className="w-4 h-4" />
+                  <input type="radio" checked={isMaster} onChange={() => { setIsMaster(true); setContenthashParsed(false); setContenthash('') }} className="w-4 h-4" />
                   <span className="text-sm">Master NFT (site)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" checked={!isMaster} onChange={() => setIsMaster(false)} className="w-4 h-4" />
+                  <input type="radio" checked={!isMaster} onChange={() => { setIsMaster(false); setContenthashParsed(false); setContenthash('') }} className="w-4 h-4" />
                   <span className="text-sm">Container NFT (bundle)</span>
                 </label>
               </div>
