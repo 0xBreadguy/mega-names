@@ -717,9 +717,9 @@ export default function Home() {
               </p>
             </div>
             <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
-              <h3 className="font-display text-xl text-[var(--foreground)] mb-2">SUBDOMAINS</h3>
+              <h3 className="font-display text-xl text-[var(--foreground)] mb-2">SUBDOMAIN MARKETPLACE</h3>
               <SubdomainTree />
-              <p className="text-[var(--muted-dark)] text-sm leading-relaxed mt-3">Create unlimited free subdomains. Give your team, projects, or apps their own identity.</p>
+              <p className="text-[var(--muted-dark)] text-sm leading-relaxed mt-3">Create free subdomains or sell them. Name owners set their own prices, token-gate access, and earn from every sale.</p>
             </div>
           </div>
         </div>

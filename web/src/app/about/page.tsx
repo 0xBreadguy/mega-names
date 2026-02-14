@@ -178,7 +178,7 @@ export default function AboutPage() {
               <Feature
                 icon={FolderTree}
                 label="Subdomains"
-                description="Create unlimited free subdomains under your name (e.g., dev.bread.mega). Subdomains are NFTs owned by the creator, but the parent name owner can revoke them at any time. Subdomains don't expire — they last as long as the parent name is active."
+                description="Create unlimited free subdomains under your name (e.g., dev.bread.mega), or sell them through the subdomain marketplace. Subdomains are NFTs owned by the buyer/creator, but the parent name owner can revoke them at any time. Subdomains don't expire — they last as long as the parent name is active."
               />
               <Feature
                 icon={Send}
@@ -195,6 +195,53 @@ export default function AboutPage() {
                 label="Warren Site"
                 description="Link your name to an on-chain website via Warren Protocol. Your HTML, CSS, and JS are stored directly in smart contract storage — fully permanent, no servers or IPFS needed."
               />
+            </div>
+          </Section>
+
+          {/* SUBDOMAIN MARKETPLACE */}
+          <Section title="SUBDOMAIN MARKETPLACE">
+            <div className="pt-4 space-y-5">
+              <div>
+                <p className="text-sm text-[var(--muted-dark)] leading-relaxed">
+                  Name owners can open a subdomain marketplace for their name. Set a price, optionally 
+                  token-gate access, and earn from every subdomain sold. Buyers search for a name, see 
+                  available subdomains, and purchase directly from the search results.
+                </p>
+              </div>
+              <div>
+                <p className="font-label text-xs text-[var(--muted)] mb-1">HOW IT WORKS</p>
+                <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4 space-y-3 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
+                  <div className="flex items-start gap-3">
+                    <span className="font-label text-xs text-[var(--muted)] mt-0.5 w-6 shrink-0">1.</span>
+                    <p className="text-sm text-[var(--muted-dark)]"><strong>Enable sales</strong> — Go to My Names, click the subdomain menu, and configure pricing. Set a USDM price per subdomain.</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="font-label text-xs text-[var(--muted)] mt-0.5 w-6 shrink-0">2.</span>
+                    <p className="text-sm text-[var(--muted-dark)]"><strong>Token gating (optional)</strong> — Restrict purchases to holders of a specific NFT or token contract. Only wallets holding the required token can buy subdomains.</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="font-label text-xs text-[var(--muted)] mt-0.5 w-6 shrink-0">3.</span>
+                    <p className="text-sm text-[var(--muted-dark)]"><strong>Buyers purchase</strong> — When someone searches for your name, they see &quot;subdomain sales active&quot; and can purchase a subdomain directly from the search results.</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="font-label text-xs text-[var(--muted)] mb-1">FEE STRUCTURE</p>
+                <p className="text-sm text-[var(--muted-dark)] leading-relaxed">
+                  97.5% of each sale goes directly to the name owner. 2.5% protocol fee. 
+                  No funds are ever held in the contracts — all payments transfer atomically in a single transaction. 
+                  Minimum price: $0.01 USDM.
+                </p>
+              </div>
+              <div>
+                <p className="font-label text-xs text-[var(--muted)] mb-1">TECHNICAL DETAILS</p>
+                <p className="text-sm text-[var(--muted-dark)] leading-relaxed">
+                  The subdomain marketplace uses a flash-based registration pattern. The parent NFT is temporarily 
+                  pulled into the router contract, the subdomain is registered, and the parent is returned — all 
+                  atomically in one transaction. This means the parent NFT never leaves the owner&apos;s wallet 
+                  for more than a single transaction. Owners can disable sales or update pricing at any time.
+                </p>
+              </div>
             </div>
           </Section>
 
@@ -264,11 +311,11 @@ export default function AboutPage() {
                 <UseCase
                   icon={Wallet}
                   title="EMBEDDED WALLET IDENTITY"
-                  description="Apps mint subdomains for users at signup — instant human-readable identity tied to embedded wallets."
+                  description="Apps mint subdomains for users at signup, or sell them through the marketplace — instant human-readable identity tied to embedded wallets."
                   example={{
                     scenario: 'A game creates embedded wallets for players:',
                     names: ['bread.stomp.mega → player wallet', 'alice.stomp.mega → player wallet'],
-                    detail: 'Players get identity across the ecosystem without ever seeing a 0x address. The app controls the namespace.'
+                    detail: 'Players get identity across the ecosystem without ever seeing a 0x address. The app controls the namespace and can monetize it.'
                   }}
                   color="purple"
                 />
@@ -339,6 +386,18 @@ export default function AboutPage() {
                   <span className="text-[var(--muted)]">MegaNames</span>
                   <a href="https://mega.etherscan.io/address/0x5B424C6CCba77b32b9625a6fd5A30D409d20d997" target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline truncate">
                     0x5B424C6CCba77b32b9625a6fd5A30D409d20d997
+                  </a>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-[var(--muted)]">SubdomainRouter</span>
+                  <a href="https://mega.etherscan.io/address/0xdB5e5Ab907e62714D7d9Ffde209A4E770a0507Fe" target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline truncate">
+                    0xdB5e5Ab907e62714D7d9Ffde209A4E770a0507Fe
+                  </a>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-[var(--muted)]">SubdomainLogic</span>
+                  <a href="https://mega.etherscan.io/address/0xf09fB5cB77b570A30D68b1Aa1d944256171C5172" target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline truncate">
+                    0xf09fB5cB77b570A30D68b1Aa1d944256171C5172
                   </a>
                 </div>
                 <div className="flex justify-between gap-4">
