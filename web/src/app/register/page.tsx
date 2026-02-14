@@ -259,7 +259,7 @@ function RegisterContent() {
         <div className="bg-[var(--bg-card)] border border-[var(--border)] mb-8">
           <div className="p-8 border-b border-[var(--border)]">
             <p className="font-label text-sm text-[var(--muted)] mb-2">REGISTERING</p>
-            <h1 className="font-display text-5xl lg:text-6xl truncate max-w-full">{name}.mega</h1>
+            <h1 className="font-display text-5xl lg:text-6xl truncate max-w-full pb-1">{name}.mega</h1>
           </div>
           <div className="p-8">
             <div className="flex items-center justify-between mb-6">

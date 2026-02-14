@@ -13,6 +13,56 @@ import { Tooltip } from '@/components/tooltip'
 
 const MEGAETH_CHAIN_ID = 4326
 
+/* ── Explorer Dropdown ── */
+function ExplorerDropdown({ tokenId, size = 'md' }: { tokenId: bigint; size?: 'sm' | 'md' }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const id = tokenId.toString()
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'
+  const btnClass = size === 'sm'
+    ? 'p-1 hover:bg-[var(--surface-hover)] transition-colors'
+    : 'p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]'
+
+  return (
+    <div className="relative inline-flex" ref={ref}>
+      <button onClick={() => setOpen(!open)} className={btnClass}>
+        <ExternalLink className={iconSize} />
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 top-full w-40 border border-[var(--border)] bg-[var(--background)] shadow-lg z-50">
+          <a
+            href={`https://mega.etherscan.io/nft/${CONTRACTS.mainnet.megaNames}/${id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="block w-full px-3 py-2 text-xs font-label text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors border-b border-[var(--border)]"
+          >
+            Etherscan
+          </a>
+          <a
+            href={`https://megaeth.blockscout.com/token/${CONTRACTS.mainnet.megaNames}/instance/${id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="block w-full px-3 py-2 text-xs font-label text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
+          >
+            Blockscout
+          </a>
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface OwnedName {
   tokenId: bigint
   label: string
@@ -2116,9 +2166,12 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
 
   // Read selling config
   const publicClient = usePublicClient()
+  const { address: connectedAddress } = useAccount()
   const [sellingActive, setSellingActive] = useState(false)
   const [sellingPrice, setSellingPrice] = useState<string | null>(null)
   const [sellingSold, setSellingSold] = useState<number>(0)
+  const [outstandingSubs, setOutstandingSubs] = useState<{ tokenId: bigint; label: string; owner: string }[]>([])
+  const [showOutstanding, setShowOutstanding] = useState(false)
 
   useEffect(() => {
     async function checkSelling() {
@@ -2155,6 +2208,53 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
     checkSelling()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name.tokenId])
+
+  // Fetch outstanding subdomains (owned by others) for parent names
+  useEffect(() => {
+    async function fetchOutstanding() {
+      if (!publicClient || name.isSubdomain) return
+      try {
+        const logs = await publicClient.getLogs({
+          address: CONTRACTS.mainnet.megaNames,
+          event: {
+            type: 'event',
+            name: 'SubdomainRegistered',
+            inputs: [
+              { name: 'tokenId', type: 'uint256', indexed: true },
+              { name: 'parentId', type: 'uint256', indexed: true },
+              { name: 'label', type: 'string', indexed: false },
+            ],
+          },
+          args: { parentId: name.tokenId },
+          fromBlock: BigInt(0),
+          toBlock: 'latest',
+        })
+
+        const subs: { tokenId: bigint; label: string; owner: string }[] = []
+        for (const log of logs) {
+          const subTokenId = log.args.tokenId!
+          const label = log.args.label!
+          try {
+            const owner = await publicClient.readContract({
+              address: CONTRACTS.mainnet.megaNames,
+              abi: MEGA_NAMES_ABI,
+              functionName: 'ownerOf',
+              args: [subTokenId],
+            }) as string
+            // Only show subs NOT owned by the connected wallet (those show in the normal list)
+            if (owner.toLowerCase() !== connectedAddress?.toLowerCase()) {
+              subs.push({ tokenId: subTokenId, label, owner })
+            }
+          } catch {
+            // Token doesn't exist (revoked/burned) — skip
+          }
+        }
+        setOutstandingSubs(subs)
+      } catch {}
+    }
+    fetchOutstanding()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name.tokenId, connectedAddress])
 
   // Close sub-menu on outside click
   useEffect(() => {
@@ -2312,16 +2412,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                 <Send className="w-5 h-5" />
               </button>
             </Tooltip>
-            <Tooltip label="Explorer">
-              <a
-                href={`https://mega.etherscan.io/token/${CONTRACTS.mainnet.megaNames}/instance/${name.tokenId.toString()}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
-              >
-                <ExternalLink className="w-5 h-5" />
-              </a>
-            </Tooltip>
+            <ExplorerDropdown tokenId={name.tokenId} size="md" />
           </div>
         </div>
         {sellingActive && (
@@ -2399,24 +2490,53 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                     <X className="w-4 h-4 text-red-500" />
                   </button>
                 </Tooltip>
-                <Tooltip label="Explorer">
-                  <a
-                    href={`https://mega.etherscan.io/token/${CONTRACTS.mainnet.megaNames}/instance/${sub.tokenId.toString()}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 hover:bg-[var(--surface-hover)]"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </Tooltip>
+                <ExplorerDropdown tokenId={sub.tokenId} size="sm" />
               </div>
             </div>
           ))}
         </div>
       )}
       
+      {/* Outstanding subdomains (owned by others) */}
+      {!name.isSubdomain && outstandingSubs.length > 0 && (
+        <>
+          <button
+            onClick={() => setShowOutstanding(!showOutstanding)}
+            className="w-full px-6 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between hover:bg-[var(--surface-hover)]"
+          >
+            <span className="text-xs text-[var(--muted)] font-label">
+              {outstandingSubs.length} OUTSTANDING SUBDOMAIN{outstandingSubs.length > 1 ? 'S' : ''}
+            </span>
+            {showOutstanding ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          {showOutstanding && (
+            <div className="border-t border-[var(--border)]">
+              {outstandingSubs.map((sub) => (
+                <div key={sub.tokenId.toString()} className="px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] last:border-b-0 bg-[var(--background-light)]">
+                  <div className="flex-1 min-w-0 mr-2">
+                    <span className="font-mono text-sm truncate block">{sub.label}.{name.label}.mega</span>
+                    <span className="font-mono text-[10px] text-[var(--muted)]">{sub.owner.slice(0, 6)}...{sub.owner.slice(-4)}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <ExplorerDropdown tokenId={sub.tokenId} size="sm" />
+                    <Tooltip label="Revoke">
+                      <button
+                        onClick={() => onSubdomainAction?.({ tokenId: sub.tokenId, label: sub.label, expiresAt: BigInt(0), parent: name.tokenId, isSubdomain: true, parentLabel: name.label } as OwnedName, 'revoke')}
+                        className="p-1 hover:bg-red-100 transition-colors"
+                      >
+                        <X className="w-4 h-4 text-red-500" />
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
       {/* Renewal section - only for top-level names without visible subdomains */}
-      {!hasSubdomains && !name.isSubdomain && (
+      {!hasSubdomains && !name.isSubdomain && outstandingSubs.length === 0 && (
         <button
           onClick={onRenew}
           className="w-full px-6 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between hover:bg-[var(--surface-hover)] transition-colors"

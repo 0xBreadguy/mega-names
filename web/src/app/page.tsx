@@ -704,10 +704,6 @@ export default function Home() {
           <p className="font-label text-[var(--muted)] mb-8 tracking-[0.2em]">features</p>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
-              <h3 className="font-display text-xl text-[var(--foreground)] mb-2">HUMAN-READABLE</h3>
-              <p className="text-[var(--muted-dark)] text-sm leading-relaxed">Replace 0x addresses with memorable names like bread.mega</p>
-            </div>
-            <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
               <h3 className="font-display text-xl text-[var(--foreground)] mb-2">CROSSCHAIN COMPLIANT</h3>
               <div className="bg-[var(--background)] border border-[var(--border-light)] px-4 py-3 mb-3 rounded-sm">
                 <InteropTypewriter />
@@ -715,6 +711,10 @@ export default function Home() {
               <p className="text-[var(--muted-dark)] text-sm leading-relaxed">
                 Future-proof addressing built on the <a href="https://interopaddress.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--foreground)] transition-colors">interop address standard ↗</a>
               </p>
+            </div>
+            <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
+              <h3 className="font-display text-xl text-[var(--foreground)] mb-2">HUMAN-READABLE</h3>
+              <p className="text-[var(--muted-dark)] text-sm leading-relaxed">Replace 0x addresses with memorable names like bread.mega</p>
             </div>
             <div className="panel p-5 hover:border-[var(--foreground)]/20 transition-all hover:-translate-y-0.5">
               <h3 className="font-display text-xl text-[var(--foreground)] mb-2">SUBDOMAIN MARKETPLACE</h3>
