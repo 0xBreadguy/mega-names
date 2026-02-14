@@ -34,9 +34,11 @@ function ExplorerDropdown({ tokenId, size = 'md' }: { tokenId: bigint; size?: 's
 
   return (
     <div className="relative inline-flex" ref={ref}>
-      <button onClick={() => setOpen(!open)} className={btnClass}>
-        <ExternalLink className={iconSize} />
-      </button>
+      <Tooltip label="Explorer">
+        <button onClick={() => setOpen(!open)} className={btnClass}>
+          <ExternalLink className={iconSize} />
+        </button>
+      </Tooltip>
       {open && (
         <div className="absolute right-0 mt-1 top-full w-40 border border-[var(--border)] bg-[var(--background)] shadow-lg z-50">
           <a
@@ -2566,6 +2568,8 @@ export default function MyNamesPage() {
   const [editingTextRecordsFor, setEditingTextRecordsFor] = useState<OwnedName | null>(null)
   const [settingWarrenFor, setSettingWarrenFor] = useState<OwnedName | null>(null)
   const [sellingSubsFor, setSellingSubsFor] = useState<OwnedName | null>(null)
+  const [revokingSubdomain, setRevokingSubdomain] = useState<OwnedName | null>(null)
+  const [isRevoking, setIsRevoking] = useState(false)
   const [settingPrimaryFor, setSettingPrimaryFor] = useState<bigint | null>(null)
 
   // Get primary name using getName
@@ -2578,14 +2582,18 @@ export default function MyNamesPage() {
   })
 
   const handleRevokeSubdomain = async (sub: OwnedName) => {
-    if (!walletClient || !publicClient) return
-    if (!confirm(`Revoke ${sub.label} subdomain? This will burn the token.`)) return
+    setRevokingSubdomain(sub)
+  }
+
+  const confirmRevoke = async () => {
+    if (!walletClient || !publicClient || !revokingSubdomain) return
+    setIsRevoking(true)
 
     try {
       const data = encodeFunctionData({
         abi: MEGA_NAMES_ABI,
         functionName: 'revokeSubdomain',
-        args: [sub.tokenId],
+        args: [revokingSubdomain.tokenId],
       })
 
       const hash = await walletClient.sendTransaction({
@@ -2600,10 +2608,12 @@ export default function MyNamesPage() {
       })
 
       await publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 })
+      setRevokingSubdomain(null)
+      setIsRevoking(false)
       fetchOwnedNames()
     } catch (err: any) {
       console.error('Revoke subdomain error:', err)
-      alert(err.shortMessage || err.message || 'Failed to revoke subdomain')
+      setIsRevoking(false)
     }
   }
 
@@ -2982,6 +2992,49 @@ export default function MyNamesPage() {
           onSuccess={handleSuccess}
           address={address}
         />
+      )}
+
+      {/* Revoke Confirmation Modal */}
+      {revokingSubdomain && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] shadow-lg max-w-md w-full">
+            <div className="p-6 flex items-center justify-between border-b border-[var(--border)]">
+              <h2 className="font-display text-xl">REVOKE SUBDOMAIN</h2>
+              <button onClick={() => { setRevokingSubdomain(null); setIsRevoking(false) }} className="p-1 hover:bg-[var(--surface-hover)]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              {isRevoking ? (
+                <div className="text-center py-4">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[var(--muted)]" />
+                  <p className="font-label text-sm">Revoking...</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-[var(--muted-dark)] mb-4">
+                    This will permanently burn <strong>{revokingSubdomain.label}{revokingSubdomain.parentLabel ? `.${revokingSubdomain.parentLabel}` : ''}.mega</strong>. The subdomain NFT will be destroyed and the name will become available again.
+                  </p>
+                  <p className="text-xs text-[var(--muted)] mb-6">This action cannot be undone.</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setRevokingSubdomain(null)}
+                      className="flex-1 py-2.5 border border-[var(--border)] font-label text-sm hover:bg-[var(--surface)] transition-colors"
+                    >
+                      CANCEL
+                    </button>
+                    <button
+                      onClick={confirmRevoke}
+                      className="flex-1 py-2.5 bg-red-600 text-white font-label text-sm hover:bg-red-700 transition-colors"
+                    >
+                      REVOKE
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
