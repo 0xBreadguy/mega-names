@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi'
 import { useReadContract } from 'wagmi'
-import { encodeFunctionData, isAddress, type Hash, erc20Abi } from 'viem'
-import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
+import { encodeFunctionData, isAddress, parseUnits, formatUnits, type Hash, erc20Abi } from 'viem'
+import { CONTRACTS, MEGA_NAMES_ABI, SUBDOMAIN_ROUTER_ABI, SUBDOMAIN_LOGIC_ABI, ERC20_ABI } from '@/lib/contracts'
 import { shortenAddress, formatUSDM, getPrice, calculateFee, getDiscountLabel } from '@/lib/utils'
 import { useMegaName, useResolveMegaName } from '@/lib/hooks'
-import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, FolderTree, ChevronDown, ChevronUp, MapPin, RefreshCw, UserCircle, Trash2, Globe } from 'lucide-react'
+import { Loader2, ArrowLeft, ExternalLink, Send, X, Check, Star, FolderTree, ChevronDown, ChevronUp, MapPin, RefreshCw, UserCircle, Trash2, Globe, Tag } from 'lucide-react'
 import Link from 'next/link'
 import { Tooltip } from '@/components/tooltip'
 
@@ -896,7 +896,8 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
   const [ncX, setNcX] = useState('')
   const [ncGithub, setNcGithub] = useState('')
   const [ncWebsite, setNcWebsite] = useState('')
-  const [namecardStep, setNamecardStep] = useState<'form' | 'deploying' | 'linking'>('form')
+  const [namecardStep, setNamecardStep] = useState<'form' | 'estimating' | 'paying' | 'deploying' | 'linking'>('form')
+  const [feeEstimate, setFeeEstimate] = useState<{ totalWei: string; relayerAddress: string; gasCostEth: string } | null>(null)
 
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
@@ -969,28 +970,71 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view])
 
+  // Build namecard payload (reused across steps)
+  const buildNamecardBody = (extra: Record<string, string> = {}) => ({
+    name: displayName,
+    displayName: ncDisplayName || name.label,
+    bio: ncBio || '',
+    avatar: ncAvatar || '',
+    links: {
+      ...(ncX ? { x: ncX } : {}),
+      ...(ncGithub ? { github: ncGithub } : {}),
+      ...(ncWebsite ? { website: ncWebsite } : {}),
+    },
+    ...extra,
+  })
+
+  // Estimate HTML size (rough) for fee estimation
+  const estimateHtmlSize = () => {
+    const body = buildNamecardBody()
+    // Rough estimate: JSON size * 3 for HTML template expansion + base template ~2KB
+    return Math.max(2048, JSON.stringify(body).length * 3 + 2048)
+  }
+
   const handleDeployNamecard = async () => {
     if (!walletClient || !publicClient) return
+    const address = walletClient.account.address
     setError(null)
-    setNamecardStep('deploying')
     setIsPending(true)
 
     try {
-      // 1. Deploy namecard via proxy
+      // Step 1: Estimate fee
+      setNamecardStep('estimating')
+      const estResp = await fetch(`${WARREN_PROXY_URL}/estimate-fee`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ size: estimateHtmlSize() }),
+      })
+      if (!estResp.ok) {
+        const errData = await estResp.json().catch(() => ({}))
+        throw new Error(errData.error || `Fee estimation failed (${estResp.status})`)
+      }
+      const fee = await estResp.json()
+      setFeeEstimate(fee)
+
+      // Step 2: User pays relayer
+      setNamecardStep('paying')
+      const payHash = await walletClient.sendTransaction({
+        to: fee.relayerAddress as `0x${string}`,
+        value: BigInt(fee.totalWei),
+        chain: {
+          id: MEGAETH_CHAIN_ID,
+          name: 'MegaETH',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] } },
+        },
+      })
+      await publicClient.waitForTransactionReceipt({ hash: payHash, timeout: 30_000 })
+
+      // Step 3: Deploy namecard with payment proof
+      setNamecardStep('deploying')
       const resp = await fetch(`${WARREN_PROXY_URL}/deploy-namecard`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: displayName,
-          displayName: ncDisplayName || name.label,
-          bio: ncBio || '',
-          avatar: ncAvatar || '',
-          links: {
-            ...(ncX ? { x: ncX } : {}),
-            ...(ncGithub ? { github: ncGithub } : {}),
-            ...(ncWebsite ? { website: ncWebsite } : {}),
-          },
-        }),
+        body: JSON.stringify(buildNamecardBody({
+          senderAddress: address,
+          paymentTxHash: payHash,
+        })),
       })
 
       if (!resp.ok) {
@@ -1001,11 +1045,10 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
       const data = await resp.json()
       const wTokenId = data.tokenId
       setWarrenTokenId(String(wTokenId))
-      setViewUrl(data.viewUrl || null)
+      setViewUrl(`https://${displayName}.thewarren.app`)
 
-      // 2. Link on-chain
+      // Step 4: Link contenthash on-chain
       setNamecardStep('linking')
-
       const txData = encodeFunctionData({
         abi: MEGA_NAMES_ABI,
         functionName: 'setWarrenContenthash',
@@ -1036,6 +1079,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
       console.error('Namecard deploy error:', err)
       setError(err.shortMessage || err.message || 'Failed to create namecard')
       setNamecardStep('form')
+      setFeeEstimate(null)
     } finally {
       setIsPending(false)
     }
@@ -1130,7 +1174,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
             <p className="font-label text-sm mb-1">WARREN SITE LINKED</p>
             <p className="text-[var(--muted)] text-sm mb-4">{displayName} → Warren #{existingWarrenId}</p>
             <a
-              href={`https://thewarren.app/v/site=${existingWarrenId}`}
+              href={`https://${displayName}.thewarren.app`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary inline-flex items-center gap-2 px-6 py-3 font-label mb-4"
@@ -1215,17 +1259,51 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
             <p className="font-label text-xs text-[var(--muted)] mb-1">NAMECARD FOR</p>
             <p className="font-display text-xl mb-4 truncate">{displayName}</p>
 
-            {namecardStep === 'deploying' ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-[var(--muted)]" />
-                <p className="font-label text-sm">Deploying to Warren...</p>
-                <p className="text-xs text-[var(--muted)] mt-1">Storing your namecard on-chain</p>
-              </div>
-            ) : namecardStep === 'linking' ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-[var(--muted)]" />
-                <p className="font-label text-sm">Linking to {displayName}...</p>
-                <p className="text-xs text-[var(--muted)] mt-1">Confirm the transaction in your wallet</p>
+            {namecardStep !== 'form' ? (
+              <div className="py-6">
+                {/* Stepper */}
+                <div className="flex items-center justify-between mb-6 px-2">
+                  {(['estimating', 'paying', 'deploying', 'linking'] as const).map((step, i) => {
+                    const labels = ['Estimate', 'Pay', 'Deploy', 'Link']
+                    const steps = ['estimating', 'paying', 'deploying', 'linking'] as const
+                    const currentIdx = steps.indexOf(namecardStep)
+                    const isDone = i < currentIdx
+                    const isCurrent = i === currentIdx
+                    return (
+                      <div key={step} className="flex items-center flex-1">
+                        <div className="flex flex-col items-center flex-1">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-label mb-1 ${
+                            isDone ? 'bg-[var(--foreground)] text-[var(--background)]' :
+                            isCurrent ? 'border-2 border-[var(--foreground)] text-[var(--foreground)]' :
+                            'border border-[var(--border)] text-[var(--muted)]'
+                          }`}>
+                            {isDone ? <Check className="w-3 h-3" /> : i + 1}
+                          </div>
+                          <span className={`text-[10px] font-label ${isCurrent ? 'text-[var(--foreground)]' : 'text-[var(--muted)]'}`}>
+                            {labels[i]}
+                          </span>
+                        </div>
+                        {i < 3 && <div className={`h-px flex-1 mx-1 mb-4 ${isDone ? 'bg-[var(--foreground)]' : 'bg-[var(--border)]'}`} />}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="text-center">
+                  <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-[var(--muted)]" />
+                  <p className="font-label text-sm">
+                    {namecardStep === 'estimating' && 'Estimating deployment cost...'}
+                    {namecardStep === 'paying' && `Pay ${feeEstimate?.gasCostEth || '...'} ETH for on-chain storage`}
+                    {namecardStep === 'deploying' && 'Deploying to Warren...'}
+                    {namecardStep === 'linking' && `Linking to ${displayName}...`}
+                  </p>
+                  <p className="text-xs text-[var(--muted)] mt-1">
+                    {namecardStep === 'estimating' && 'Calculating storage costs'}
+                    {namecardStep === 'paying' && 'Confirm the payment in your wallet'}
+                    {namecardStep === 'deploying' && 'Storing your namecard on-chain'}
+                    {namecardStep === 'linking' && 'Confirm the transaction in your wallet'}
+                  </p>
+                </div>
               </div>
             ) : (
               <>
@@ -1703,6 +1781,318 @@ function TextRecordsModal({ name, onClose, onSuccess }: TextRecordsModalProps) {
   )
 }
 
+// Sell Subdomains Modal
+interface SellSubdomainsModalProps {
+  name: OwnedName
+  onClose: () => void
+  onSuccess: () => void
+  address: `0x${string}`
+}
+
+function SellSubdomainsModal({ name, onClose, onSuccess, address }: SellSubdomainsModalProps) {
+  const [price, setPrice] = useState('')
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [step, setStep] = useState<'form' | 'approving' | 'pricing' | 'configuring'>('form')
+  const [mode, setMode] = useState<0 | 1>(0) // 0 = OPEN, 1 = ALLOWLIST
+  const [gateToken, setGateToken] = useState('')
+  const [gateMinBalance, setGateMinBalance] = useState('1')
+
+  // Current config state
+  const [configLoaded, setConfigLoaded] = useState(false)
+  const [currentEnabled, setCurrentEnabled] = useState(false)
+  const [currentPrice, setCurrentPrice] = useState<string>('')
+
+  const publicClient = usePublicClient()
+  const { data: walletClient } = useWalletClient()
+
+  const displayName = name.isSubdomain ? `${name.label}.${name.parentLabel || '?'}.mega` : `${name.label}.mega`
+
+  const MEGAETH_CHAIN = {
+    id: 4326 as const,
+    name: 'MegaETH',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: { default: { http: ['https://mainnet.megaeth.com/rpc'] as const } },
+  }
+
+  // Load current config
+  useEffect(() => {
+    async function loadConfig() {
+      if (!publicClient) return
+      try {
+        const [config, priceData, isApproved] = await Promise.all([
+          publicClient.readContract({
+            address: CONTRACTS.mainnet.subdomainRouter,
+            abi: SUBDOMAIN_ROUTER_ABI,
+            functionName: 'getConfig',
+            args: [name.tokenId],
+          }),
+          publicClient.readContract({
+            address: CONTRACTS.mainnet.subdomainLogic,
+            abi: SUBDOMAIN_LOGIC_ABI,
+            functionName: 'prices',
+            args: [name.tokenId],
+          }),
+          publicClient.readContract({
+            address: CONTRACTS.mainnet.megaNames,
+            abi: MEGA_NAMES_ABI,
+            functionName: 'isApprovedForAll',
+            args: [address, CONTRACTS.mainnet.subdomainRouter],
+          }),
+        ])
+        const [, enabled, configMode] = config as [string, boolean, number]
+        setCurrentEnabled(enabled)
+        setMode(configMode as 0 | 1)
+        const p = priceData as bigint
+        if (p > BigInt(0)) {
+          setCurrentPrice(formatUnits(p, 18))
+          setPrice(formatUnits(p, 18))
+        }
+        setConfigLoaded(true)
+      } catch {
+        setConfigLoaded(true)
+      }
+    }
+    loadConfig()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleEnable = async () => {
+    if (!walletClient || !publicClient || !price) return
+    setError(null)
+    setIsPending(true)
+
+    try {
+      const priceWei = parseUnits(price, 18)
+
+      // Step 1: Check and set approval
+      const isApproved = await publicClient.readContract({
+        address: CONTRACTS.mainnet.megaNames,
+        abi: MEGA_NAMES_ABI,
+        functionName: 'isApprovedForAll',
+        args: [address, CONTRACTS.mainnet.subdomainRouter],
+      })
+
+      if (!isApproved) {
+        setStep('approving')
+        const approveTx = await walletClient.writeContract({
+          address: CONTRACTS.mainnet.megaNames,
+          abi: MEGA_NAMES_ABI,
+          functionName: 'setApprovalForAll',
+          args: [CONTRACTS.mainnet.subdomainRouter, true],
+          chain: MEGAETH_CHAIN,
+        })
+        await publicClient.waitForTransactionReceipt({ hash: approveTx, timeout: 30_000 })
+      }
+
+      // Step 2: Set price on logic contract
+      setStep('pricing')
+      const priceTx = await walletClient.writeContract({
+        address: CONTRACTS.mainnet.subdomainLogic,
+        abi: SUBDOMAIN_LOGIC_ABI,
+        functionName: 'setPrice',
+        args: [name.tokenId, priceWei],
+        chain: MEGAETH_CHAIN,
+      })
+      await publicClient.waitForTransactionReceipt({ hash: priceTx, timeout: 30_000 })
+
+      // Step 2.5: Set token gate if in allowlist mode
+      if (mode === 1 && gateToken) {
+        const gateTx = await walletClient.writeContract({
+          address: CONTRACTS.mainnet.subdomainLogic,
+          abi: SUBDOMAIN_LOGIC_ABI,
+          functionName: 'setTokenGate',
+          args: [name.tokenId, gateToken as `0x${string}`, parseUnits(gateMinBalance, 0)],
+          chain: MEGAETH_CHAIN,
+        })
+        await publicClient.waitForTransactionReceipt({ hash: gateTx, timeout: 30_000 })
+      }
+
+      // Step 3: Configure router
+      setStep('configuring')
+      const configTx = await walletClient.writeContract({
+        address: CONTRACTS.mainnet.subdomainRouter,
+        abi: SUBDOMAIN_ROUTER_ABI,
+        functionName: 'configure',
+        args: [name.tokenId, address, true, mode],
+        chain: MEGAETH_CHAIN,
+      })
+      await publicClient.waitForTransactionReceipt({ hash: configTx, timeout: 30_000 })
+
+      setCurrentEnabled(true)
+      setIsSuccess(true)
+      setTimeout(() => { onSuccess(); onClose() }, 2000)
+    } catch (err: any) {
+      console.error('Sell subdomains error:', err)
+      setError(err.shortMessage || err.message || 'Failed to configure')
+      setStep('form')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleDisable = async () => {
+    if (!walletClient || !publicClient) return
+    setError(null)
+    setIsPending(true)
+    try {
+      const tx = await walletClient.writeContract({
+        address: CONTRACTS.mainnet.subdomainRouter,
+        abi: SUBDOMAIN_ROUTER_ABI,
+        functionName: 'disable',
+        args: [name.tokenId],
+        chain: MEGAETH_CHAIN,
+      })
+      await publicClient.waitForTransactionReceipt({ hash: tx, timeout: 30_000 })
+      setCurrentEnabled(false)
+      setIsSuccess(true)
+      setTimeout(() => { onSuccess(); onClose() }, 2000)
+    } catch (err: any) {
+      setError(err.shortMessage || err.message || 'Failed to disable')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-6 border-b border-[var(--border)] flex items-center justify-center relative">
+        <h2 className="font-display text-2xl text-center">SELL SUBDOMAINS</h2>
+        <button onClick={onClose} className="absolute right-6 p-1 hover:bg-[var(--surface-hover)]">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="p-6">
+        {isSuccess ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-green-500 flex items-center justify-center">
+              <Check className="w-8 h-8 text-white" />
+            </div>
+            <p className="font-label text-sm mb-2">
+              {currentEnabled ? 'SUBDOMAIN SALES ENABLED' : 'SUBDOMAIN SALES DISABLED'}
+            </p>
+            <p className="text-[var(--muted)]">{displayName}</p>
+          </div>
+        ) : step !== 'form' ? (
+          <div className="text-center py-8">
+            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-[var(--muted)]" />
+            <p className="font-label text-sm">
+              {step === 'approving' && 'Approving router...'}
+              {step === 'pricing' && 'Setting price...'}
+              {step === 'configuring' && 'Enabling sales...'}
+            </p>
+            <p className="text-xs text-[var(--muted)] mt-1">Confirm in your wallet</p>
+          </div>
+        ) : (
+          <>
+            <p className="font-label text-xs text-[var(--muted)] mb-1">SELLING FOR</p>
+            <p className="font-display text-xl mb-4 truncate">{displayName}</p>
+
+            {currentEnabled && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 text-sm">
+                <p className="font-label text-xs text-green-700 mb-1">SALES ACTIVE</p>
+                <p className="text-green-800">
+                  {currentPrice ? `$${currentPrice} USDM per subdomain` : 'Configured'}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="font-label text-xs text-[var(--muted)] mb-1 block">PRICE PER SUBDOMAIN (USDM)</label>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="5.00"
+                  min="0.01"
+                  step="0.01"
+                  className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                  autoFocus
+                />
+                <p className="text-[10px] text-[var(--muted)] mt-1">Minimum $0.01 — 2.5% protocol fee on each sale</p>
+              </div>
+
+              <div>
+                <label className="font-label text-xs text-[var(--muted)] mb-1 block">ACCESS MODE</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setMode(0)}
+                    className={`flex-1 p-2 text-xs font-label border ${mode === 0 ? 'border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]' : 'border-[var(--border)]'}`}
+                  >
+                    OPEN
+                  </button>
+                  <button
+                    onClick={() => setMode(1)}
+                    className={`flex-1 p-2 text-xs font-label border ${mode === 1 ? 'border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]' : 'border-[var(--border)]'}`}
+                  >
+                    TOKEN GATED
+                  </button>
+                </div>
+              </div>
+
+              {mode === 1 && (
+                <div className="space-y-3 p-3 border border-[var(--border)]">
+                  <div>
+                    <label className="font-label text-xs text-[var(--muted)] mb-1 block">TOKEN CONTRACT</label>
+                    <input
+                      type="text"
+                      value={gateToken}
+                      onChange={(e) => setGateToken(e.target.value)}
+                      placeholder="0x..."
+                      className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-xs focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                    />
+                    <p className="text-[10px] text-[var(--muted)] mt-1">ERC-20 or ERC-721 contract address</p>
+                  </div>
+                  <div>
+                    <label className="font-label text-xs text-[var(--muted)] mb-1 block">MINIMUM BALANCE</label>
+                    <input
+                      type="number"
+                      value={gateMinBalance}
+                      onChange={(e) => setGateMinBalance(e.target.value)}
+                      placeholder="1"
+                      min="1"
+                      className="w-full p-2.5 bg-[var(--bg-card)] border border-[var(--border)] font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--foreground)]"
+                    />
+                    <p className="text-[10px] text-[var(--muted)] mt-1">1 for NFTs, token amount for ERC-20</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 border border-red-300 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleEnable}
+                disabled={isPending || !price || parseFloat(price) < 0.01}
+                className="btn-primary flex-1 py-2.5 font-label disabled:opacity-50"
+              >
+                {currentEnabled ? 'UPDATE' : 'ENABLE SALES'}
+              </button>
+              {currentEnabled && (
+                <button
+                  onClick={handleDisable}
+                  disabled={isPending}
+                  className="px-4 py-2.5 border border-red-300 text-red-600 font-label text-sm hover:bg-red-50 disabled:opacity-50"
+                >
+                  DISABLE
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
 // Name Card Component
 interface NameCardProps {
   name: OwnedName
@@ -1714,12 +2104,68 @@ interface NameCardProps {
   onRenew: () => void
   onTextRecords: () => void
   onWarren: () => void
-  onSubdomainAction?: (sub: OwnedName, action: 'transfer' | 'setAddr' | 'textRecords' | 'revoke' | 'createSub' | 'warren') => void
+  onSellSubdomains: () => void
+  onSubdomainAction?: (sub: OwnedName, action: 'transfer' | 'setAddr' | 'textRecords' | 'revoke' | 'createSub' | 'warren' | 'sellSubs') => void
   isSettingPrimary: boolean
 }
 
-function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, onTextRecords, onWarren, onSubdomainAction, isSettingPrimary }: NameCardProps) {
+function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain, onSetAddr, onRenew, onTextRecords, onWarren, onSellSubdomains, onSubdomainAction, isSettingPrimary }: NameCardProps) {
   const [showSubdomains, setShowSubdomains] = useState(false)
+  const [showSubMenu, setShowSubMenu] = useState(false)
+  const subMenuRef = useRef<HTMLDivElement>(null)
+
+  // Read selling config
+  const publicClient = usePublicClient()
+  const [sellingActive, setSellingActive] = useState(false)
+  const [sellingPrice, setSellingPrice] = useState<string | null>(null)
+  const [sellingSold, setSellingSold] = useState<number>(0)
+
+  useEffect(() => {
+    async function checkSelling() {
+      if (!publicClient || name.isSubdomain) return
+      try {
+        const [config, priceData, counters] = await Promise.all([
+          publicClient.readContract({
+            address: CONTRACTS.mainnet.subdomainRouter,
+            abi: SUBDOMAIN_ROUTER_ABI,
+            functionName: 'getConfig',
+            args: [name.tokenId],
+          }),
+          publicClient.readContract({
+            address: CONTRACTS.mainnet.subdomainLogic,
+            abi: SUBDOMAIN_LOGIC_ABI,
+            functionName: 'prices',
+            args: [name.tokenId],
+          }),
+          publicClient.readContract({
+            address: CONTRACTS.mainnet.subdomainRouter,
+            abi: SUBDOMAIN_ROUTER_ABI,
+            functionName: 'getCounters',
+            args: [name.tokenId],
+          }),
+        ])
+        const [, enabled] = config as [string, boolean, number]
+        const price = priceData as bigint
+        const [sold] = counters as [bigint, bigint, bigint]
+        setSellingActive(enabled)
+        if (price > BigInt(0)) setSellingPrice(formatUnits(price, 18))
+        setSellingSold(Number(sold))
+      } catch { /* not configured */ }
+    }
+    checkSelling()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name.tokenId])
+
+  // Close sub-menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (subMenuRef.current && !subMenuRef.current.contains(e.target as Node)) {
+        setShowSubMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
   
   const formatExpiry = (expiresAt: bigint) => {
     const date = new Date(Number(expiresAt) * 1000)
@@ -1762,21 +2208,27 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap min-w-0">
-              <h2 className="font-display text-3xl truncate">{name.label}.mega</h2>
+              <h2 className="font-display text-3xl truncate">
+                {name.isSubdomain && name.parentLabel ? `${name.label}.${name.parentLabel}.mega` : `${name.label}.mega`}
+              </h2>
               {isPrimary && (
                 <span className="px-2 py-1 text-xs font-label bg-[var(--foreground)] text-[var(--background)]">
                   PRIMARY
                 </span>
               )}
             </div>
-            <p className="text-sm text-[var(--muted)] mt-1">
-              Expires {formatExpiry(name.expiresAt)}
-              {isExpiringSoon && (
-                <span className="text-orange-600 ml-2">
-                  ({days} days left)
-                </span>
-              )}
-            </p>
+            {name.isSubdomain ? (
+              <p className="text-sm text-[var(--muted)] mt-1">subdomain</p>
+            ) : (
+              <p className="text-sm text-[var(--muted)] mt-1">
+                Expires {formatExpiry(name.expiresAt)}
+                {isExpiringSoon && (
+                  <span className="text-orange-600 ml-2">
+                    ({days} days left)
+                  </span>
+                )}
+              </p>
+            )}
           </div>
           
           <div className="flex items-center gap-2">
@@ -1819,14 +2271,39 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                 <Globe className="w-5 h-5" />
               </button>
             </Tooltip>
-            <Tooltip label="Subdomain">
-              <button
-                onClick={onCreateSubdomain}
-                className="p-2 hover:bg-blue-100 transition-colors border border-[var(--border)]"
-              >
-                <FolderTree className="w-5 h-5" />
-              </button>
-            </Tooltip>
+            <div className="relative inline-flex" ref={subMenuRef}>
+              <Tooltip label="Subdomains">
+                <button
+                  onClick={() => setShowSubMenu(!showSubMenu)}
+                  className="p-2 transition-colors border border-[var(--border)] hover:bg-green-100"
+                >
+                  <FolderTree className="w-5 h-5" />
+                </button>
+              </Tooltip>
+              {showSubMenu && (
+                <div className="absolute right-0 mt-1 w-48 border border-[var(--border)] bg-[var(--background)] shadow-lg z-50">
+                  <button
+                    onClick={() => { setShowSubMenu(false); onCreateSubdomain() }}
+                    className={`w-full px-3 py-2.5 flex items-center gap-2 text-xs font-label text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors ${!name.isSubdomain ? 'border-b border-[var(--border)]' : ''}`}
+                  >
+                    <span className="text-base">+</span> Mint subdomain
+                  </button>
+                  {!name.isSubdomain && (
+                    <button
+                      onClick={() => { setShowSubMenu(false); onSellSubdomains() }}
+                      className="w-full px-3 py-2.5 flex items-center gap-2 text-xs font-label text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
+                    >
+                      <Tag className="w-3.5 h-3.5" />
+                      {sellingActive ? (
+                        <span>Selling — <span className="text-green-700">${sellingPrice}</span></span>
+                      ) : (
+                        'Sell subdomains'
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <Tooltip label="Transfer">
               <button
                 onClick={onTransfer}
@@ -1847,6 +2324,11 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             </Tooltip>
           </div>
         </div>
+        {sellingActive && (
+          <div className="text-right mt-2">
+            <span className="text-xs text-green-700 font-label tracking-wider uppercase">subdomain sales active</span>
+          </div>
+        )}
       </div>
       
       {/* Subdomains toggle */}
@@ -1893,7 +2375,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
                     <Globe className="w-4 h-4" />
                   </button>
                 </Tooltip>
-                <Tooltip label="Subdomain">
+                <Tooltip label="Mint subdomain">
                   <button
                     onClick={() => onSubdomainAction?.(sub, 'createSub')}
                     className="p-1 hover:bg-blue-100 transition-colors"
@@ -1933,8 +2415,8 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
         </div>
       )}
       
-      {/* Renewal section - only for parent names */}
-      {!hasSubdomains && (
+      {/* Renewal section - only for top-level names without visible subdomains */}
+      {!hasSubdomains && !name.isSubdomain && (
         <button
           onClick={onRenew}
           className="w-full px-6 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between hover:bg-[var(--surface-hover)] transition-colors"
@@ -1963,6 +2445,7 @@ export default function MyNamesPage() {
   const [renewingName, setRenewingName] = useState<OwnedName | null>(null)
   const [editingTextRecordsFor, setEditingTextRecordsFor] = useState<OwnedName | null>(null)
   const [settingWarrenFor, setSettingWarrenFor] = useState<OwnedName | null>(null)
+  const [sellingSubsFor, setSellingSubsFor] = useState<OwnedName | null>(null)
   const [settingPrimaryFor, setSettingPrimaryFor] = useState<bigint | null>(null)
 
   // Get primary name using getName
@@ -2153,8 +2636,55 @@ export default function MyNamesPage() {
         }
       }
 
-      // Sort by expiration date (soonest first)
-      names.sort((a, b) => Number(a.expiresAt - b.expiresAt))
+      // Collect orphaned subdomains (user owns sub but not parent)
+      for (const [parentStr, subs] of subdomainsByParent.entries()) {
+        const parentInNames = names.find(n => n.tokenId.toString() === parentStr)
+        const parentInSubs = allNamesMap.get(parentStr)
+        if (!parentInNames && (!parentInSubs || !parentInSubs.isSubdomain)) {
+          // Orphaned: fetch parent label for display
+          for (const sub of subs) {
+            if (!sub.parentLabel) {
+              try {
+                const parentRecord = await publicClient.readContract({
+                  address: CONTRACTS.mainnet.megaNames,
+                  abi: MEGA_NAMES_ABI,
+                  functionName: 'records',
+                  args: [BigInt(parentStr)],
+                })
+                const [parentLabel, grandParent] = parentRecord as [string, bigint, bigint, bigint, bigint]
+                if (grandParent !== BigInt(0)) {
+                  // Parent is itself a subdomain — resolve grandparent label
+                  try {
+                    const gpRecord = await publicClient.readContract({
+                      address: CONTRACTS.mainnet.megaNames,
+                      abi: MEGA_NAMES_ABI,
+                      functionName: 'records',
+                      args: [grandParent],
+                    })
+                    sub.parentLabel = `${parentLabel}.${(gpRecord as [string, bigint, bigint, bigint, bigint])[0]}`
+                  } catch {
+                    sub.parentLabel = parentLabel
+                  }
+                } else {
+                  sub.parentLabel = parentLabel
+                }
+              } catch {}
+            }
+            names.push(sub)
+          }
+        }
+      }
+
+      // Sort by expiration date (soonest first), subdomains (expiresAt=0) at end
+      names.sort((a, b) => {
+        // Top-level names first, subdomains after
+        if (a.isSubdomain && !b.isSubdomain) return 1
+        if (!a.isSubdomain && b.isSubdomain) return -1
+        if (a.expiresAt === BigInt(0) && b.expiresAt === BigInt(0)) return a.label.localeCompare(b.label)
+        if (a.expiresAt === BigInt(0)) return 1
+        if (b.expiresAt === BigInt(0)) return -1
+        return Number(a.expiresAt - b.expiresAt)
+      })
 
       setOwnedNames(names)
     } catch (error) {
@@ -2233,6 +2763,7 @@ export default function MyNamesPage() {
                 onRenew={() => setRenewingName(name)}
                 onTextRecords={() => setEditingTextRecordsFor(name)}
                 onWarren={() => setSettingWarrenFor(name)}
+                onSellSubdomains={() => setSellingSubsFor(name)}
                 onSubdomainAction={(sub, action) => {
                   if (action === 'transfer') setTransferringName(sub)
                   else if (action === 'setAddr') setSettingAddrFor(sub)
@@ -2240,6 +2771,7 @@ export default function MyNamesPage() {
                   else if (action === 'revoke') handleRevokeSubdomain(sub)
                   else if (action === 'createSub') setCreatingSubdomainFor(sub)
                   else if (action === 'warren') setSettingWarrenFor(sub)
+                  else if (action === 'sellSubs') setSellingSubsFor(sub)
                 }}
                 isSettingPrimary={settingPrimaryFor === name.tokenId}
               />
@@ -2320,6 +2852,15 @@ export default function MyNamesPage() {
           name={settingWarrenFor}
           onClose={() => setSettingWarrenFor(null)}
           onSuccess={handleSuccess}
+        />
+      )}
+
+      {sellingSubsFor && address && (
+        <SellSubdomainsModal
+          name={sellingSubsFor}
+          onClose={() => setSellingSubsFor(null)}
+          onSuccess={handleSuccess}
+          address={address}
         />
       )}
     </div>

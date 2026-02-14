@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import { useAccount, useConnect, useDisconnect, useSwitchChain, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { useResolvedName } from '@/lib/hooks'
@@ -18,6 +19,7 @@ export function Header() {
   const [copied, setCopied] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const pathname = usePathname()
   const MEGAETH_CHAIN_ID = 4326
   const isWrongChain = isConnected && chainId !== MEGAETH_CHAIN_ID
 
@@ -46,13 +48,22 @@ export function Header() {
     query: { enabled: !!address },
   })
 
+  // USDM allowance for SubdomainRouter
+  const { data: routerAllowance, refetch: refetchRouterAllowance } = useReadContract({
+    address: CONTRACTS.mainnet.usdm,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: address ? [address, CONTRACTS.mainnet.subdomainRouter] : undefined,
+    query: { enabled: !!address },
+  })
+
   // Revoke approval
   const { writeContract: revokeApproval, data: revokeTxHash, isPending: isRevoking } = useWriteContract()
   const { isSuccess: revokeConfirmed } = useWaitForTransactionReceipt({ hash: revokeTxHash })
 
   useEffect(() => {
-    if (revokeConfirmed) refetchAllowance()
-  }, [revokeConfirmed, refetchAllowance])
+    if (revokeConfirmed) { refetchAllowance(); refetchRouterAllowance() }
+  }, [revokeConfirmed, refetchAllowance, refetchRouterAllowance])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -84,18 +95,25 @@ export function Header() {
 
   const hasAllowance = usdmAllowance !== undefined && (usdmAllowance as bigint) > BigInt(0)
 
+  const hasRouterAllowance = routerAllowance !== undefined && (routerAllowance as bigint) > BigInt(0)
+  const formattedRouterAllowance = routerAllowance !== undefined
+    ? (routerAllowance as bigint) > BigInt('0xffffffffffffffffffffffffffffff')
+      ? '∞'
+      : parseFloat(formatUnits(routerAllowance as bigint, 18)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '—'
+
   return (
     <header className="border-b border-[var(--line-color)] sticky top-0 z-50 bg-[var(--bg-card)]">
       <div className="px-5">
-        <div className="flex items-center justify-between h-14">
-          <Link href="/" className="nav-bracket" style={{ fontSize: '12px', fontWeight: 700 }}>
+        <div className="flex items-center justify-between h-14 flex-nowrap min-w-0">
+          <Link href="/" className="nav-bracket shrink-0 whitespace-nowrap" style={{ fontSize: '12px', fontWeight: 700 }}>
             MegaNames
           </Link>
 
-          <nav className="flex items-center gap-2 sm:gap-4">
-            <Link href="/" className="nav-bracket">Search</Link>
-            <Link href="/about" className="nav-bracket">About</Link>
-            <Link href="/integrate" className="nav-bracket hidden sm:inline">Integrate</Link>
+          <nav className="flex items-center gap-2 sm:gap-4 overflow-x-auto whitespace-nowrap scrollbar-hide">
+            <Link href="/" className={`nav-bracket shrink-0 ${pathname === '/' ? 'nav-bracket-active' : ''}`}>Search</Link>
+            <Link href="/about" className={`nav-bracket shrink-0 ${pathname === '/about' ? 'nav-bracket-active' : ''}`}>About</Link>
+            <Link href="/integrate" className={`nav-bracket shrink-0 ${pathname === '/integrate' ? 'nav-bracket-active' : ''}`}>Integrate</Link>
           </nav>
 
           <div className="relative" ref={dropdownRef}>
@@ -155,28 +173,56 @@ export function Header() {
                       <div className="font-label text-[10px] text-[var(--muted)] mb-1.5 flex items-center gap-1">
                         <Shield className="w-3 h-3" /> APPROVALS
                       </div>
-                      {hasAllowance ? (
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-mono text-xs text-[var(--foreground)]">
-                              MegaNames
+                      {(hasAllowance || hasRouterAllowance) ? (
+                        <div className="space-y-2">
+                          {hasAllowance && (
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-mono text-xs text-[var(--foreground)]">
+                                  MegaNames
+                                </div>
+                                <div className="font-mono text-[10px] text-[var(--muted)]">
+                                  {formattedAllowance} USDM
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => revokeApproval({
+                                  address: CONTRACTS.mainnet.usdm,
+                                  abi: ERC20_ABI,
+                                  functionName: 'approve',
+                                  args: [CONTRACTS.mainnet.megaNames, BigInt(0)],
+                                })}
+                                disabled={isRevoking}
+                                className="px-2 py-1 text-[10px] font-label border border-red-300 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                              >
+                                {isRevoking ? 'revoking...' : 'revoke'}
+                              </button>
                             </div>
-                            <div className="font-mono text-[10px] text-[var(--muted)]">
-                              {formattedAllowance} USDM
+                          )}
+                          {hasRouterAllowance && (
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-mono text-xs text-[var(--foreground)]">
+                                  Subdomain Router
+                                </div>
+                                <div className="font-mono text-[10px] text-[var(--muted)]">
+                                  {formattedRouterAllowance} USDM
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => revokeApproval({
+                                  address: CONTRACTS.mainnet.usdm,
+                                  abi: ERC20_ABI,
+                                  functionName: 'approve',
+                                  args: [CONTRACTS.mainnet.subdomainRouter, BigInt(0)],
+                                })}
+                                disabled={isRevoking}
+                                className="px-2 py-1 text-[10px] font-label border border-red-300 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                              >
+                                {isRevoking ? 'revoking...' : 'revoke'}
+                              </button>
                             </div>
-                          </div>
-                          <button
-                            onClick={() => revokeApproval({
-                              address: CONTRACTS.mainnet.usdm,
-                              abi: ERC20_ABI,
-                              functionName: 'approve',
-                              args: [CONTRACTS.mainnet.megaNames, BigInt(0)],
-                            })}
-                            disabled={isRevoking}
-                            className="px-2 py-1 text-[10px] font-label border border-red-300 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                          >
-                            {isRevoking ? 'revoking...' : 'revoke'}
-                          </button>
+                          )}
                         </div>
                       ) : (
                         <div className="font-mono text-xs text-[var(--muted)]">

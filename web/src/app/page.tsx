@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Search, ArrowRight } from 'lucide-react'
-import { useReadContract } from 'wagmi'
-import { CONTRACTS, MEGA_NAMES_ABI } from '@/lib/contracts'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Search, ArrowRight, Loader2, Check } from 'lucide-react'
+import { useReadContract, useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { CONTRACTS, MEGA_NAMES_ABI, SUBDOMAIN_ROUTER_ABI, SUBDOMAIN_LOGIC_ABI, ERC20_ABI } from '@/lib/contracts'
 import { getTokenId, formatUSDM, getPrice, isValidName } from '@/lib/utils'
+import { formatUnits, parseUnits } from 'viem'
 import { useContractStats, useRecentRegistrations } from '@/lib/hooks'
+import { usePublicClient } from 'wagmi'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -198,6 +200,269 @@ function SubdomainTree() {
 
 /* ── Main Page ── */
 
+/* ── Subdomain Purchase Flow ── */
+function SubdomainPurchase({ parentName, parentTokenId }: { parentName: string; parentTokenId: bigint }) {
+  const { address, isConnected } = useAccount()
+  const publicClient = usePublicClient()
+  const [subLabel, setSubLabel] = useState('')
+  const [step, setStep] = useState<'input' | 'checking' | 'quoting' | 'approve' | 'approving' | 'register' | 'registering' | 'done'>('input')
+  const [quote, setQuote] = useState<{ allowed: boolean; price: bigint; total: bigint } | null>(null)
+  const [error, setError] = useState('')
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>()
+  const [subAvailable, setSubAvailable] = useState<boolean | null>(null)
+  const [gateInfo, setGateInfo] = useState<{ token: string; name: string; minBalance: string } | null>(null)
+  const [mode, setMode] = useState<number>(0)
+
+  const { writeContractAsync } = useWriteContract()
+  const { isSuccess: txConfirmed } = useWaitForTransactionReceipt({ hash: txHash })
+
+  // Fetch token gate info + mode on mount
+  useEffect(() => {
+    async function fetchGateInfo() {
+      if (!publicClient) return
+      try {
+        const [gateData, configData] = await Promise.all([
+          publicClient.readContract({
+            address: CONTRACTS.mainnet.subdomainLogic,
+            abi: SUBDOMAIN_LOGIC_ABI,
+            functionName: 'tokenGates',
+            args: [parentTokenId],
+          }),
+          publicClient.readContract({
+            address: CONTRACTS.mainnet.subdomainRouter,
+            abi: SUBDOMAIN_ROUTER_ABI,
+            functionName: 'getConfig',
+            args: [parentTokenId],
+          }),
+        ])
+        const [, , cfgMode] = configData as [string, boolean, number]
+        setMode(cfgMode)
+        const [token, minBal] = gateData as [string, bigint]
+        if (token !== '0x0000000000000000000000000000000000000000') {
+          let tokenName = token.slice(0, 6) + '...' + token.slice(-4)
+          try {
+            const n = await publicClient.readContract({
+              address: token as `0x${string}`,
+              abi: [{ type: 'function', name: 'name', inputs: [], outputs: [{ type: 'string' }], stateMutability: 'view' }],
+              functionName: 'name',
+            })
+            tokenName = n as string
+          } catch {}
+          setGateInfo({ token, name: tokenName, minBalance: minBal > BigInt(0) ? formatUnits(minBal, 0) : '1' })
+        }
+      } catch {}
+    }
+    fetchGateInfo()
+  }, [publicClient, parentTokenId])
+
+  // When tx confirms, advance step
+  useEffect(() => {
+    if (txConfirmed && step === 'approving') {
+      setStep('register')
+      setTxHash(undefined)
+    } else if (txConfirmed && step === 'registering') {
+      setStep('done')
+      setTxHash(undefined)
+    }
+  }, [txConfirmed, step])
+
+  const isValidLabel = (l: string) => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(l) && l.length >= 1
+
+  // Check availability when label changes
+  useEffect(() => {
+    setSubAvailable(null)
+    setQuote(null)
+    setError('')
+    if (!publicClient || !isValidLabel(subLabel)) return
+    const timeout = setTimeout(async () => {
+      try {
+        // Compute subdomain tokenId: keccak256(abi.encodePacked(bytes32(parentId), keccak256(label)))
+        const { keccak256: k, encodePacked: ep, toHex } = await import('viem')
+        const labelHash = k(ep(['string'], [subLabel]))
+        const subTokenId = k(ep(['bytes32', 'bytes32'], [toHex(parentTokenId, { size: 32 }), labelHash]))
+        const record = await publicClient.readContract({
+          address: CONTRACTS.mainnet.megaNames,
+          abi: MEGA_NAMES_ABI,
+          functionName: 'records',
+          args: [BigInt(subTokenId)],
+        })
+        const [label] = record as [string, bigint, bigint, bigint, bigint]
+        setSubAvailable(label === '')
+      } catch {
+        setSubAvailable(true) // assume available if lookup fails
+      }
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [subLabel, publicClient, parentTokenId])
+
+  const handleQuote = useCallback(async () => {
+    if (!publicClient || !address || !isValidLabel(subLabel)) return
+    setError('')
+    setStep('quoting')
+    try {
+      const result = await publicClient.readContract({
+        address: CONTRACTS.mainnet.subdomainRouter,
+        abi: SUBDOMAIN_ROUTER_ABI,
+        functionName: 'quote',
+        args: [parentTokenId, subLabel, address],
+      })
+      const [allowed, price, , total] = result as [boolean, bigint, bigint, bigint]
+      if (!allowed) {
+        setError(gateInfo
+          ? `Not allowed — requires holding ${gateInfo.name}`
+          : 'Not allowed — you may not meet token gate requirements')
+        setStep('input')
+        return
+      }
+      setQuote({ allowed, price, total })
+      // Check USDM balance
+      const balance = await publicClient.readContract({
+        address: CONTRACTS.mainnet.usdm,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [address],
+      }) as bigint
+      if (balance < total) {
+        setError(`Insufficient USDM — need $${formatUnits(total, 18)}, have $${parseFloat(formatUnits(balance, 18)).toFixed(2)}`)
+        setStep('input')
+        return
+      }
+      // Check allowance
+      const allowance = await publicClient.readContract({
+        address: CONTRACTS.mainnet.usdm,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args: [address, CONTRACTS.mainnet.subdomainRouter],
+      }) as bigint
+      setStep(allowance >= total ? 'register' : 'approve')
+    } catch (err: any) {
+      setError(err.shortMessage || err.message || 'Quote failed')
+      setStep('input')
+    }
+  }, [publicClient, address, subLabel, parentTokenId, gateInfo])
+
+  const handleApprove = async () => {
+    if (!quote) return
+    setStep('approving')
+    try {
+      const hash = await writeContractAsync({
+        address: CONTRACTS.mainnet.usdm,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [CONTRACTS.mainnet.subdomainRouter, quote.total],
+      })
+      setTxHash(hash)
+    } catch (err: any) {
+      setError(err.shortMessage || err.message || 'Approval failed')
+      setStep('approve')
+    }
+  }
+
+  const handleRegister = async () => {
+    setStep('registering')
+    setError('')
+    try {
+      const hash = await writeContractAsync({
+        address: CONTRACTS.mainnet.subdomainRouter,
+        abi: SUBDOMAIN_ROUTER_ABI,
+        functionName: 'register',
+        args: [parentTokenId, subLabel, '0x0000000000000000000000000000000000000000'],
+      })
+      setTxHash(hash)
+    } catch (err: any) {
+      setError(err.shortMessage || err.message || 'Registration failed')
+      setStep('register')
+    }
+  }
+
+  if (step === 'done') {
+    return (
+      <div className="mt-3 p-4 border border-green-300 bg-green-50">
+        <div className="flex items-center gap-2 text-green-700">
+          <Check className="w-4 h-4" />
+          <span className="text-sm font-label">{subLabel}.{parentName}.mega registered!</span>
+        </div>
+        <Link href="/my-names" className="text-xs text-green-700 underline mt-1 inline-block">
+          view in my names →
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-3 p-4 border border-[var(--border)] bg-[var(--surface)]">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-label text-[var(--muted)] uppercase tracking-wider">purchase subdomain</p>
+        {mode === 1 && gateInfo && (
+          <p className="text-xs text-[var(--muted)]">
+            requires: <a href={`https://mega.etherscan.io/address/${gateInfo.token}`} target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline">{gateInfo.name}</a>
+          </p>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <div className="flex flex-1 min-w-0">
+          <input
+            type="text"
+            value={subLabel}
+            onChange={(e) => { setSubLabel(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setStep('input') }}
+            placeholder="yourname"
+            className="flex-1 min-w-0 px-3 py-2 text-sm border border-[var(--border)] border-r-0 bg-[var(--background)]"
+            disabled={step !== 'input' && step !== 'approve' && step !== 'register'}
+          />
+          <span className="px-2 py-2 text-sm text-[var(--muted)] border border-l-0 border-[var(--border)] bg-[var(--background)] whitespace-nowrap">
+            .{parentName}.mega
+          </span>
+        </div>
+        {step === 'input' && (
+          <button
+            onClick={handleQuote}
+            disabled={!isConnected || !isValidLabel(subLabel) || subAvailable === false}
+            className="btn-primary px-4 py-2 text-sm disabled:opacity-40"
+          >
+            {!isConnected ? 'connect wallet' : subAvailable === false ? 'taken' : 'quote'}
+          </button>
+        )}
+        {step === 'quoting' && (
+          <button disabled className="btn-primary px-4 py-2 text-sm opacity-70">
+            <Loader2 className="w-4 h-4 animate-spin" />
+          </button>
+        )}
+        {step === 'approve' && (
+          <button onClick={handleApprove} className="btn-primary px-4 py-2 text-sm">
+            approve ${quote ? formatUnits(quote.total, 18) : ''}
+          </button>
+        )}
+        {step === 'approving' && (
+          <button disabled className="btn-primary px-4 py-2 text-sm opacity-70 flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" /> approving
+          </button>
+        )}
+        {step === 'register' && (
+          <button onClick={handleRegister} className="btn-primary px-4 py-2 text-sm">
+            register ${quote ? formatUnits(quote.total, 18) : ''}
+          </button>
+        )}
+        {step === 'registering' && (
+          <button disabled className="btn-primary px-4 py-2 text-sm opacity-70 flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" /> registering
+          </button>
+        )}
+      </div>
+      {subLabel && isValidLabel(subLabel) && subAvailable !== null && (
+        <p className={`text-xs mt-1.5 font-label ${subAvailable ? 'text-[#2d6b3f]' : 'text-[var(--muted)]'}`}>
+          {subAvailable ? `● ${subLabel}.${parentName}.mega is available` : `○ ${subLabel}.${parentName}.mega is registered`}
+        </p>
+      )}
+      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+      {quote && step !== 'input' && (
+        <p className="text-xs text-[var(--muted)] mt-2">
+          price: ${formatUnits(quote.price, 18)} USDM{quote.total > quote.price ? ` + ${formatUnits(quote.total - quote.price, 18)} fee` : ''}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchedName, setSearchedName] = useState('')
@@ -228,6 +493,28 @@ export default function Home() {
     args: [tokenId],
     query: { enabled: !!isTaken },
   })
+
+  // Subdomain sales info for taken names
+  const { data: subConfig } = useReadContract({
+    address: CONTRACTS.mainnet.subdomainRouter,
+    abi: SUBDOMAIN_ROUTER_ABI,
+    functionName: 'getConfig',
+    args: [tokenId],
+    query: { enabled: !!isTaken },
+  })
+
+  const { data: subPrice } = useReadContract({
+    address: CONTRACTS.mainnet.subdomainLogic,
+    abi: SUBDOMAIN_LOGIC_ABI,
+    functionName: 'prices',
+    args: [tokenId],
+    query: { enabled: !!isTaken },
+  })
+
+  const subEnabled = subConfig ? (subConfig as [string, boolean, number])[1] : false
+  const subPriceFormatted = subPrice && (subPrice as bigint) > BigInt(0)
+    ? formatUnits(subPrice as bigint, 18)
+    : null
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -334,7 +621,18 @@ export default function Home() {
                             owner: {nameOwner.slice(0, 6)}...{nameOwner.slice(-4)} <ArrowRight className="w-3.5 h-3.5" />
                           </Link>
                         )}
+                        {isTaken && subEnabled && (
+                          <p className="mt-2 text-xs font-label tracking-wider uppercase text-green-700">
+                            subdomain sales active{subPriceFormatted ? ` — $${subPriceFormatted}/sub` : ''}
+                          </p>
+                        )}
                       </div>
+                      {isTaken && subEnabled && subPriceFormatted && (
+                        <div className="text-right">
+                          <p className="font-label text-[var(--muted)] text-[0.6rem]">price/sub</p>
+                          <p className="font-display text-2xl text-[var(--foreground)]">${subPriceFormatted}</p>
+                        </div>
+                      )}
                       {isAvailable && (
                         <div className="text-right">
                           <p className="font-label text-[var(--muted)] text-[0.6rem]">price/yr</p>
@@ -349,6 +647,9 @@ export default function Home() {
                       >
                         register now <ArrowRight className="w-4 h-4" />
                       </Link>
+                    )}
+                    {isTaken && subEnabled && (
+                      <SubdomainPurchase parentName={searchedName} parentTokenId={tokenId} />
                     )}
                   </div>
                 )}
@@ -377,21 +678,21 @@ export default function Home() {
       <AnimatedSection className="border-t border-[var(--border)] relative">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
           <div className="grid grid-cols-3 gap-3">
-            <div className="panel p-4 sm:p-6">
+            <div className="panel p-4 sm:p-6 overflow-hidden">
               <p className="font-label text-[var(--muted)] mb-2">total registered</p>
-              <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">
+              <p className="font-display text-xl sm:text-3xl lg:text-5xl text-[var(--foreground)] truncate">
                 {statsLoading ? '—' : namesRegistered.toLocaleString()}
               </p>
             </div>
-            <div className="panel p-4 sm:p-6">
+            <div className="panel p-4 sm:p-6 overflow-hidden">
               <p className="font-label text-[var(--muted)] mb-2">total purchased</p>
-              <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">
+              <p className="font-display text-xl sm:text-3xl lg:text-5xl text-[var(--foreground)] truncate">
                 {statsLoading ? '—' : formatUSDM(totalVolume)}
               </p>
             </div>
-            <div className="panel p-4 sm:p-6">
+            <div className="panel p-4 sm:p-6 overflow-hidden">
               <p className="font-label text-[var(--muted)] mb-2">chain</p>
-              <p className="font-display text-3xl sm:text-5xl text-[var(--foreground)]">MEGAETH</p>
+              <p className="font-display text-xl sm:text-3xl lg:text-5xl text-[var(--foreground)] truncate">MEGAETH</p>
             </div>
           </div>
         </div>

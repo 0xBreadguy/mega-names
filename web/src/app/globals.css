@@ -86,6 +86,11 @@ body {
 .nav-bracket::before { content: '[ '; opacity: 0.4; }
 .nav-bracket::after { content: ' ]'; opacity: 0.4; }
 .nav-bracket:hover { opacity: 0.7; }
+.nav-bracket-active { font-weight: 700; }
+.nav-bracket-active::before, .nav-bracket-active::after { opacity: 0.8; }
+
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
 
 /* Grid cells with + markers */
 .grid-cell {

@@ -17,6 +17,7 @@ interface Env {
 
 const ALLOWED_PATHS: Record<string, string> = {
 	'/deploy-namecard': '/api/meganames/deploy-namecard',
+	'/estimate-fee': '/api/partner/estimate-fee',
 	'/check': '/api/meganames/check',
 	'/resolve': '/api/meganames/resolve',
 };
