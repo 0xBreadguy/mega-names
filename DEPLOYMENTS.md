@@ -29,11 +29,16 @@ Multi-year discounts: 2y 5% · 3y 10% · 5y 15% · 10y 25%
 
 ---
 
-## Testnet (Chain ID: 6343) — Legacy
+## Testnet (Chain ID: 6343)
 
 | Contract | Address |
 |----------|---------|
-| **MegaNames** | `0x8F0310eEDcfB71E5095ee5ce4f3676D9cEA65101` |
-| **MockUSDM** | `0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833` |
+| **MegaNames** | `0xf09fB5cB77b570A30D68b1Aa1d944256171C5172` |
+| **MegaNameRenderer** | `0xaF0753886b9969105F10798f8FFE96146916Fe33` |
+| **SubdomainRouter** | `0x90fF169a9E65b0cfF74b6EFB4eDab9baC6Ad7475` |
+| **SubdomainLogic** | `0x82606b9a4B6c6A2fab6dD8D6b2762f1C182ADf55` |
+| **MockUSDM** | `0xdB5e5Ab907e62714D7d9Ffde209A4E770a0507Fe` |
+| Fee Recipient | `0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38` |
 
 **RPC:** `https://carrot.megaeth.com/rpc`
+**Explorer:** [megaeth-testnet.blockscout.com](https://megaeth-testnet-v2.blockscout.com)

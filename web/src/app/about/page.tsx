@@ -389,6 +389,12 @@ export default function AboutPage() {
                   </a>
                 </div>
                 <div className="flex justify-between gap-4">
+                  <span className="text-[var(--muted)]">Renderer</span>
+                  <a href="https://mega.etherscan.io/address/0x8d206c277E709c8F4f8882fc0157bE76dA0C48C4" target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline truncate">
+                    0x8d206c277E709c8F4f8882fc0157bE76dA0C48C4
+                  </a>
+                </div>
+                <div className="flex justify-between gap-4">
                   <span className="text-[var(--muted)]">SubdomainRouter</span>
                   <a href="https://mega.etherscan.io/address/0xdB5e5Ab907e62714D7d9Ffde209A4E770a0507Fe" target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline truncate">
                     0xdB5e5Ab907e62714D7d9Ffde209A4E770a0507Fe
