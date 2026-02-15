@@ -1,4 +1,4 @@
-import { http, createConfig } from 'wagmi'
+import { http, createConfig, fallback } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
 
 // MegaETH Testnet
@@ -20,7 +20,7 @@ export const megaethMainnet = {
   name: 'MegaETH',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://meganames-rpc-proxy.0xbreadguy.workers.dev'] },
+    default: { http: ['https://mainnet.megaeth.com/rpc'] },
   },
   blockExplorers: {
     default: { name: 'Explorer', url: 'https://mega.etherscan.io' },
@@ -41,9 +41,18 @@ export const config = createConfig({
       },
     }),
   ],
+  batch: {
+    multicall: {
+      batchSize: 1024,  // max calls per Multicall3 batch
+      wait: 50,         // ms to wait before sending batch (collect hooks)
+    },
+  },
   transports: {
     [megaethTestnet.id]: http(),
-    [megaethMainnet.id]: http(),
+    [megaethMainnet.id]: fallback([
+      http('https://mainnet.megaeth.com/rpc'),
+      http('https://meganames-rpc-proxy.0xbreadguy.workers.dev'),
+    ]),
   },
 })
 

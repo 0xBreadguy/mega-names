@@ -2306,11 +2306,11 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
 
   return (
     <div className={`border border-[var(--border)] shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)] ${isPrimary ? 'bg-[var(--surface)]' : 'bg-[var(--bg-card)]'}`}>
-      <div className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col gap-3">
+          <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap min-w-0">
-              <h2 className="font-display text-3xl truncate">
+              <h2 className="font-display text-2xl sm:text-3xl truncate max-w-full">
                 {name.isSubdomain && name.parentLabel ? `${name.label}.${name.parentLabel}.mega` : `${name.label}.mega`}
               </h2>
               {isPrimary && (
@@ -2322,7 +2322,7 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             {name.isSubdomain ? (
               <p className="text-sm text-[var(--muted)] mt-1">subdomain</p>
             ) : (
-              <p className="text-sm text-[var(--muted)] mt-1">
+              <p className="text-sm text-[var(--muted)] mt-1 whitespace-nowrap">
                 Expires {formatExpiry(name.expiresAt)}
                 {isExpiringSoon && (
                   <span className="text-orange-600 ml-2">
@@ -2333,18 +2333,18 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             )}
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {!isPrimary && (
               <Tooltip label="Set as Primary">
                 <button
                   onClick={onSetPrimary}
                   disabled={isSettingPrimary}
-                  className="p-2 hover:bg-yellow-100 transition-colors border border-[var(--border)] disabled:opacity-50"
+                  className="p-1.5 sm:p-2 hover:bg-yellow-100 transition-colors border border-[var(--border)] disabled:opacity-50"
                 >
                   {isSettingPrimary ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                   ) : (
-                    <Star className="w-5 h-5" />
+                    <Star className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </button>
               </Tooltip>
@@ -2352,34 +2352,34 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             <Tooltip label="Forward to">
               <button
                 onClick={onSetAddr}
-                className="p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
+                className="p-1.5 sm:p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
               >
-                <MapPin className="w-5 h-5" />
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </Tooltip>
             <Tooltip label="Profile">
               <button
                 onClick={onTextRecords}
-                className="p-2 hover:bg-orange-100 transition-colors border border-[var(--border)]"
+                className="p-1.5 sm:p-2 hover:bg-orange-100 transition-colors border border-[var(--border)]"
               >
-                <UserCircle className="w-5 h-5" />
+                <UserCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </Tooltip>
             <Tooltip label="Warren Site">
               <button
                 onClick={onWarren}
-                className="p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
+                className="p-1.5 sm:p-2 hover:bg-purple-100 transition-colors border border-[var(--border)]"
               >
-                <Globe className="w-5 h-5" />
+                <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </Tooltip>
             <div className="relative inline-flex" ref={subMenuRef}>
               <Tooltip label="Subdomains">
                 <button
                   onClick={() => setShowSubMenu(!showSubMenu)}
-                  className="p-2 transition-colors border border-[var(--border)] hover:bg-green-100"
+                  className="p-1.5 sm:p-2 transition-colors border border-[var(--border)] hover:bg-green-100"
                 >
-                  <FolderTree className="w-5 h-5" />
+                  <FolderTree className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </Tooltip>
               {showSubMenu && (
@@ -2409,9 +2409,9 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
             <Tooltip label="Transfer">
               <button
                 onClick={onTransfer}
-                className="p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
+                className="p-1.5 sm:p-2 hover:bg-[var(--surface-hover)] transition-colors border border-[var(--border)]"
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </Tooltip>
             <ExplorerDropdown tokenId={name.tokenId} size="md" />
@@ -2516,14 +2516,14 @@ function NameCard({ name, isPrimary, onTransfer, onSetPrimary, onCreateSubdomain
               {outstandingSubs.map((sub) => (
                 <div key={sub.tokenId.toString()} className="px-6 py-3 flex items-center justify-between border-b border-[var(--border-light)] last:border-b-0 bg-[var(--background-light)]">
                   <div className="flex-1 min-w-0 mr-2">
-                    <span className="font-mono text-sm truncate block">{sub.label}.{name.label}.mega</span>
+                    <span className="font-mono text-sm truncate block">{sub.label}.{getFullName(name)}</span>
                     <span className="font-mono text-[10px] text-[var(--muted)]">{sub.owner.slice(0, 6)}...{sub.owner.slice(-4)}</span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <ExplorerDropdown tokenId={sub.tokenId} size="sm" />
                     <Tooltip label="Revoke">
                       <button
-                        onClick={() => onSubdomainAction?.({ tokenId: sub.tokenId, label: sub.label, expiresAt: BigInt(0), parent: name.tokenId, isSubdomain: true, parentLabel: name.label } as OwnedName, 'revoke')}
+                        onClick={() => onSubdomainAction?.({ tokenId: sub.tokenId, label: sub.label, expiresAt: BigInt(0), parent: name.tokenId, isSubdomain: true, parentLabel: getFullName(name).replace(/\.mega$/, '') } as OwnedName, 'revoke')}
                         className="p-1 hover:bg-red-100 transition-colors"
                       >
                         <X className="w-4 h-4 text-red-500" />
@@ -2679,23 +2679,15 @@ export default function MyNamesPage() {
         return
       }
 
-      // Batch fetch all records using individual calls (more reliable than multicall)
-      const recordResults = await Promise.all(
-        tokenIds.map(async (tokenId) => {
-          try {
-            const result = await publicClient.readContract({
-              address: CONTRACTS.mainnet.megaNames,
-              abi: MEGA_NAMES_ABI,
-              functionName: 'records',
-              args: [tokenId],
-            })
-            return { status: 'success' as const, result }
-          } catch (e) {
-            console.error('Failed to fetch record for token', tokenId, e)
-            return { status: 'failure' as const, result: null }
-          }
-        })
-      )
+      // Batch fetch all records via multicall (single RPC call)
+      const recordResults = await publicClient.multicall({
+        contracts: tokenIds.map((tokenId) => ({
+          address: CONTRACTS.mainnet.megaNames,
+          abi: MEGA_NAMES_ABI,
+          functionName: 'records' as const,
+          args: [tokenId],
+        })),
+      })
 
       // Process results
       const names: OwnedName[] = []
@@ -2738,29 +2730,56 @@ export default function MyNamesPage() {
         for (const s of subs) allNamesMap.set(s.tokenId.toString(), s)
       }
 
+      // Recursively resolve parent chain label (e.g. "max.jeets" for max.jeets.mega)
+      // Uses allNamesMap first, falls back to on-chain reads for parents not in wallet
+      async function resolveParentChain(tokenId: bigint): Promise<string> {
+        const key = tokenId.toString()
+        const cached = allNamesMap.get(key)
+        if (cached) {
+          if (!cached.isSubdomain) return cached.label // root name
+          if (cached.parentLabel) return `${cached.label}.${cached.parentLabel}`
+          // Resolve parent recursively
+          const parentChain = await resolveParentChain(cached.parent)
+          cached.parentLabel = parentChain
+          return `${cached.label}.${parentChain}`
+        }
+        // Not in wallet — read from chain
+        try {
+          const record = await publicClient.readContract({
+            address: CONTRACTS.mainnet.megaNames,
+            abi: MEGA_NAMES_ABI,
+            functionName: 'records',
+            args: [tokenId],
+          })
+          const [label, parent] = record as [string, bigint, bigint, bigint, bigint]
+          if (parent === BigInt(0)) return label // root
+          const parentChain = await resolveParentChain(parent)
+          return `${label}.${parentChain}`
+        } catch {
+          return '?'
+        }
+      }
+
       // Attach subdomains to their parents and set parentLabel
-      // First pass: attach direct children of top-level names
+      // First: resolve all parentLabels recursively
+      for (const subs of subdomainsByParent.values()) {
+        for (const sub of subs) {
+          sub.parentLabel = await resolveParentChain(sub.parent)
+        }
+      }
+
+      // Attach direct children of top-level names
       for (const name of names) {
         const subs = subdomainsByParent.get(name.tokenId.toString())
         if (subs) {
-          for (const sub of subs) {
-            sub.parentLabel = name.label
-          }
           name.subdomains = subs
         }
       }
 
-      // Second pass: attach sub-subs to their subdomain parents
+      // Attach sub-subs to their subdomain parents
       for (const [parentStr, subs] of subdomainsByParent.entries()) {
         const parentName = allNamesMap.get(parentStr)
         if (parentName && parentName.isSubdomain) {
-          // Build full parent chain: e.g., "vault.bread" for sub-subs of vault.bread.mega
-          const parentChain = parentName.parentLabel
-            ? `${parentName.label}.${parentName.parentLabel}`
-            : parentName.label
-          for (const sub of subs) {
-            sub.parentLabel = parentChain
-          }
           if (!parentName.subdomains) parentName.subdomains = []
           parentName.subdomains.push(...subs)
         }
@@ -2771,35 +2790,8 @@ export default function MyNamesPage() {
         const parentInNames = names.find(n => n.tokenId.toString() === parentStr)
         const parentInSubs = allNamesMap.get(parentStr)
         if (!parentInNames && (!parentInSubs || !parentInSubs.isSubdomain)) {
-          // Orphaned: fetch parent label for display
+          // Orphaned — parentLabel already resolved by resolveParentChain above
           for (const sub of subs) {
-            if (!sub.parentLabel) {
-              try {
-                const parentRecord = await publicClient.readContract({
-                  address: CONTRACTS.mainnet.megaNames,
-                  abi: MEGA_NAMES_ABI,
-                  functionName: 'records',
-                  args: [BigInt(parentStr)],
-                })
-                const [parentLabel, grandParent] = parentRecord as [string, bigint, bigint, bigint, bigint]
-                if (grandParent !== BigInt(0)) {
-                  // Parent is itself a subdomain — resolve grandparent label
-                  try {
-                    const gpRecord = await publicClient.readContract({
-                      address: CONTRACTS.mainnet.megaNames,
-                      abi: MEGA_NAMES_ABI,
-                      functionName: 'records',
-                      args: [grandParent],
-                    })
-                    sub.parentLabel = `${parentLabel}.${(gpRecord as [string, bigint, bigint, bigint, bigint])[0]}`
-                  } catch {
-                    sub.parentLabel = parentLabel
-                  }
-                } else {
-                  sub.parentLabel = parentLabel
-                }
-              } catch {}
-            }
             names.push(sub)
           }
         }
@@ -2857,7 +2849,20 @@ export default function MyNamesPage() {
               <ArrowLeft className="w-4 h-4" />
               <span className="font-label text-sm">BACK</span>
             </Link>
-            <h1 className="font-display text-4xl">MY NAMES</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="font-display text-4xl">MY NAMES</h1>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://meganame.market/profile?a=${address}`)
+                  const btn = document.getElementById('share-btn')
+                  if (btn) { btn.textContent = 'copied!'; setTimeout(() => { btn.textContent = 'SHARE' }, 1500) }
+                }}
+                id="share-btn"
+                className="px-3 py-1 text-[10px] font-label border border-[var(--border)] text-[var(--muted-dark)] hover:bg-[var(--surface)] transition-colors mt-1"
+              >
+                SHARE
+              </button>
+            </div>
           </div>
           <div className="text-right">
             <p className="font-label text-xs text-[var(--muted)]">CONNECTED AS</p>

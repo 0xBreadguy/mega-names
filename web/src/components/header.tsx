@@ -114,6 +114,7 @@ export function Header() {
             <Link href="/" className={`nav-bracket shrink-0 ${pathname === '/' ? 'nav-bracket-active' : ''}`}>Search</Link>
             <Link href="/about" className={`nav-bracket shrink-0 ${pathname === '/about' ? 'nav-bracket-active' : ''}`}>About</Link>
             <Link href="/integrate" className={`nav-bracket shrink-0 ${pathname === '/integrate' ? 'nav-bracket-active' : ''}`}>Integrate</Link>
+            <a href="https://rabbithole.megaeth.com/bridge" target="_blank" rel="noopener noreferrer" className="nav-bracket shrink-0">Bridge</a>
           </nav>
 
           <div className="relative" ref={dropdownRef}>

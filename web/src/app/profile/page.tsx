@@ -109,51 +109,56 @@ function ProfileContent() {
           args: [resolvedAddress],
         })
 
-        const nameData: ProfileName[] = []
-        for (const tokenId of tokenIds) {
-          const record = await publicClient.readContract({
-            address: CONTRACTS.mainnet.megaNames,
-            abi: MEGA_NAMES_ABI,
-            functionName: 'records',
-            args: [tokenId],
-          })
+        // Batch fetch all records + addr in one multicall
+        const recordCalls = tokenIds.flatMap((tokenId) => [
+          { address: CONTRACTS.mainnet.megaNames, abi: MEGA_NAMES_ABI, functionName: 'records' as const, args: [tokenId] },
+          { address: CONTRACTS.mainnet.megaNames, abi: MEGA_NAMES_ABI, functionName: 'addr' as const, args: [tokenId] },
+        ])
+        const batchResults = await publicClient.multicall({ contracts: recordCalls })
 
-          let parentLabel: string | undefined
-          if (record[1] !== BigInt(0)) {
-            try {
-              const parentRecord = await publicClient.readContract({
-                address: CONTRACTS.mainnet.megaNames,
-                abi: MEGA_NAMES_ABI,
-                functionName: 'records',
-                args: [record[1]],
-              })
-              parentLabel = parentRecord[0]
-            } catch {}
-          }
-
-          let forwardAddr: string | null = null
-          try {
-            const addr = await publicClient.readContract({
-              address: CONTRACTS.mainnet.megaNames,
-              abi: MEGA_NAMES_ABI,
-              functionName: 'addr',
-              args: [tokenId],
-            })
-            if (addr && addr !== '0x0000000000000000000000000000000000000000') {
-              forwardAddr = addr
-            }
-          } catch {}
-
-          nameData.push({
-            tokenId,
-            label: record[0],
-            parent: record[1],
-            expiresAt: Number(record[2]),
-            isPrimary: tokenId === primaryTokenId,
-            forwardAddr,
-            parentLabel,
-          })
+        // Parse records and collect parent IDs that need resolving
+        const parsedNames: { tokenId: bigint; record: any; addr: string | null }[] = []
+        const parentIdsToResolve = new Set<string>()
+        for (let i = 0; i < tokenIds.length; i++) {
+          const recordResult = batchResults[i * 2]
+          const addrResult = batchResults[i * 2 + 1]
+          const record = recordResult.status === 'success' ? recordResult.result : null
+          if (!record) continue
+          const parent = (record as any)[1] as bigint
+          if (parent !== BigInt(0)) parentIdsToResolve.add(parent.toString())
+          const addr = addrResult.status === 'success' ? addrResult.result as string : null
+          const forwardAddr = addr && addr !== '0x0000000000000000000000000000000000000000' ? addr : null
+          parsedNames.push({ tokenId: tokenIds[i], record, addr: forwardAddr })
         }
+
+        // Batch resolve parent labels
+        const parentIds = Array.from(parentIdsToResolve)
+        const parentLabels = new Map<string, string>()
+        if (parentIds.length > 0) {
+          const parentResults = await publicClient.multicall({
+            contracts: parentIds.map((pid) => ({
+              address: CONTRACTS.mainnet.megaNames, abi: MEGA_NAMES_ABI, functionName: 'records' as const, args: [BigInt(pid)],
+            })),
+          })
+          for (let i = 0; i < parentIds.length; i++) {
+            if (parentResults[i].status === 'success') {
+              parentLabels.set(parentIds[i], (parentResults[i].result as any)[0] as string)
+            }
+          }
+        }
+
+        const nameData: ProfileName[] = parsedNames.map(({ tokenId, record, addr }) => {
+          const [label, parent, expiresAt] = record as [string, bigint, bigint, bigint, bigint]
+          return {
+            tokenId,
+            label,
+            parent,
+            expiresAt: Number(expiresAt),
+            isPrimary: tokenId === primaryTokenId,
+            forwardAddr: addr,
+            parentLabel: parent !== BigInt(0) ? parentLabels.get(parent.toString()) : undefined,
+          }
+        })
 
         nameData.sort((a, b) => {
           if (a.isPrimary) return -1
@@ -171,17 +176,15 @@ function ProfileContent() {
           : tokenIds.length > 0 ? tokenIds[0] : null
 
         if (profileTokenId) {
+          const textResults = await publicClient.multicall({
+            contracts: TEXT_KEYS.map((key) => ({
+              address: CONTRACTS.mainnet.megaNames, abi: MEGA_NAMES_ABI, functionName: 'text' as const, args: [profileTokenId, key],
+            })),
+          })
           const records: Record<string, string> = {}
-          for (const key of TEXT_KEYS) {
-            try {
-              const val = await publicClient.readContract({
-                address: CONTRACTS.mainnet.megaNames,
-                abi: MEGA_NAMES_ABI,
-                functionName: 'text',
-                args: [profileTokenId, key],
-              })
-              if (val && val !== '') records[key] = val
-            } catch {}
+          for (let i = 0; i < TEXT_KEYS.length; i++) {
+            const r = textResults[i]
+            if (r.status === 'success' && r.result && r.result !== '') records[TEXT_KEYS[i]] = r.result as string
           }
           if (Object.keys(records).length > 0) {
             setTextRecords(records as unknown as TextRecords)
@@ -196,7 +199,7 @@ function ProfileContent() {
     load()
   }, [resolvedAddress, publicClient])
 
-  const displayName = primaryName ? `${primaryName}.mega` : resolvedAddress ? `${resolvedAddress.slice(0, 6)}...${resolvedAddress.slice(-4)}` : rawAddress
+  const displayName = primaryName ? (primaryName.endsWith('.mega') ? primaryName : `${primaryName}.mega`) : resolvedAddress ? `${resolvedAddress.slice(0, 6)}...${resolvedAddress.slice(-4)}` : rawAddress
   const fullDisplayName = (n: ProfileName) => {
     if (n.parent === BigInt(0)) return `${n.label}.mega`
     return `${n.label}.${n.parentLabel || '?'}.mega`

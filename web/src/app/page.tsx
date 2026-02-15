@@ -248,7 +248,28 @@ function SubdomainPurchase({ parentName, parentTokenId }: { parentName: string; 
             })
             tokenName = n as string
           } catch {}
-          setGateInfo({ token, name: tokenName, minBalance: minBal > BigInt(0) ? formatUnits(minBal, 0) : '1' })
+          let decimals = 0
+          try {
+            const d = await publicClient.readContract({
+              address: token as `0x${string}`,
+              abi: [{ type: 'function', name: 'decimals', inputs: [], outputs: [{ type: 'uint8' }], stateMutability: 'view' }],
+              functionName: 'decimals',
+            })
+            decimals = Number(d)
+          } catch {} // ERC-721s don't have decimals
+          // Format with decimals, but if the result is very small (< 0.01) the value
+          // was likely set as a human-readable number (not wei-scaled), so show raw
+          const formatted = minBal > BigInt(0)
+            ? (() => {
+                const withDecimals = formatUnits(minBal, decimals)
+                if (parseFloat(withDecimals) < 0.01 && decimals > 0) {
+                  return Number(minBal).toLocaleString()
+                }
+                const n = parseFloat(withDecimals)
+                return n % 1 === 0 ? n.toLocaleString() : withDecimals
+              })()
+            : '1'
+          setGateInfo({ token, name: tokenName, minBalance: formatted })
         }
       } catch {}
     }
@@ -395,7 +416,7 @@ function SubdomainPurchase({ parentName, parentTokenId }: { parentName: string; 
         <p className="text-xs font-label text-[var(--muted)] uppercase tracking-wider">purchase subdomain</p>
         {mode === 1 && gateInfo && (
           <p className="text-xs text-[var(--muted)]">
-            requires: <a href={`https://mega.etherscan.io/address/${gateInfo.token}`} target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline">{gateInfo.name}</a>
+            requires: {gateInfo.minBalance} <a href={`https://mega.etherscan.io/address/${gateInfo.token}`} target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline">{gateInfo.name}</a>
           </p>
         )}
       </div>
@@ -405,7 +426,7 @@ function SubdomainPurchase({ parentName, parentTokenId }: { parentName: string; 
             type="text"
             value={subLabel}
             onChange={(e) => { setSubLabel(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setStep('input') }}
-            placeholder="yourname"
+            placeholder="yourname" maxLength={255}
             className="flex-1 min-w-0 px-3 py-2 text-sm border border-[var(--border)] border-r-0 bg-[var(--background)]"
             disabled={step !== 'input' && step !== 'approve' && step !== 'register'}
           />
@@ -482,8 +503,9 @@ export default function Home() {
     query: { enabled: !!searchedName },
   })
 
-  const isAvailable = searchedName && records && records[0] === ''
-  const isTaken = searchedName && records && records[0] !== ''
+  const recordsLoaded = searchedName && records !== undefined
+  const isAvailable = recordsLoaded && records[0] === ''
+  const isTaken = recordsLoaded && records[0] !== ''
   const price = searchedName ? getPrice(searchedName.length) : BigInt(0)
 
   const { data: nameOwner } = useReadContract({
@@ -576,7 +598,7 @@ export default function Home() {
                   }}
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
-                  placeholder="yourname"
+                  placeholder="yourname" maxLength={255}
                   className="flex-1 min-w-0 px-3 sm:px-5 py-4 text-base sm:text-lg font-semibold"
                 />
                 <span className="px-2 sm:px-4 py-4 border border-l-0 border-[var(--border)] bg-[var(--surface)] text-sm sm:text-lg font-semibold text-[var(--muted)]">
@@ -596,7 +618,7 @@ export default function Home() {
             {/* Search Result */}
             {searchedName && (
               <div className="mt-4 relative">
-                {isLoading ? (
+                {isLoading || !recordsLoaded ? (
                   <div className="panel p-5">
                     <div className="animate-pulse">
                       <div className="h-6 bg-[var(--border)] w-1/2 mb-2 rounded" />
@@ -611,7 +633,7 @@ export default function Home() {
                           {searchedName}.mega
                         </p>
                         <p className={`font-label ${isAvailable ? 'text-[#2d6b3f]' : 'text-[var(--muted)]'}`}>
-                          {isAvailable ? '● available' : '○ registered'}
+                          {!recordsLoaded ? '...' : isAvailable ? '● available' : '○ registered'}
                         </p>
                         {isTaken && nameOwner && (
                           <Link
