@@ -6,19 +6,43 @@ import {Ownable} from "solady/auth/Ownable.sol";
 
 /// @notice Minimal interface for MegaNames
 interface IMegaNames {
-    function ownerOf(uint256 tokenId) external view returns (address);
-    function transferFrom(address from, address to, uint256 tokenId) external;
-    function registerSubdomain(uint256 parentId, string calldata label) external returns (uint256);
-    function isApprovedForAll(address owner, address operator) external view returns (bool);
-    function records(uint256 tokenId) external view returns (
-        string memory label, uint256 parent, uint64 expiresAt, uint64 epoch, uint64 parentEpoch
-    );
+    function ownerOf(
+        uint256 tokenId
+    ) external view returns (address);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) external;
+    function registerSubdomain(
+        uint256 parentId,
+        string calldata label
+    ) external returns (uint256);
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) external view returns (bool);
+    function records(
+        uint256 tokenId
+    )
+        external
+        view
+        returns (
+            string memory label,
+            uint256 parent,
+            uint64 expiresAt,
+            uint64 epoch,
+            uint64 parentEpoch
+        );
 }
 
 /// @notice Interface for swappable logic contract
 interface ISubdomainLogic {
-    function validate(uint256 parentId, string calldata label, address buyer)
-        external view returns (bool allowed, uint256 price);
+    function validate(
+        uint256 parentId,
+        string calldata label,
+        address buyer
+    ) external view returns (bool allowed, uint256 price);
 }
 
 /// @title SubdomainRouter
@@ -48,8 +72,11 @@ contract SubdomainRouter is Ownable {
     event Configured(uint256 indexed parentId, address payoutAddress, bool enabled, Mode mode);
     event Disabled(uint256 indexed parentId);
     event SubdomainSold(
-        uint256 indexed parentId, uint256 indexed subTokenId,
-        string label, address buyer, uint256 price
+        uint256 indexed parentId,
+        uint256 indexed subTokenId,
+        string label,
+        address buyer,
+        uint256 price
     );
     event LogicContractChanged(address newLogic);
     event ProtocolFeeChanged(uint256 newBps);
@@ -61,7 +88,10 @@ contract SubdomainRouter is Ownable {
                                  ENUMS
     //////////////////////////////////////////////////////////////*/
 
-    enum Mode { OPEN, ALLOWLIST }
+    enum Mode {
+        OPEN,
+        ALLOWLIST
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 CONSTANTS
@@ -146,17 +176,16 @@ contract SubdomainRouter is Ownable {
         // Verify approval is set
         if (!megaNames.isApprovedForAll(msg.sender, address(this))) revert ApprovalRequired();
 
-        parentConfigs[parentId] = ParentConfig({
-            payoutAddress: payoutAddress,
-            enabled: enabled,
-            mode: mode
-        });
+        parentConfigs[parentId] =
+            ParentConfig({payoutAddress: payoutAddress, enabled: enabled, mode: mode});
 
         emit Configured(parentId, payoutAddress, enabled, mode);
     }
 
     /// @notice Disable subdomain sales
-    function disable(uint256 parentId) external {
+    function disable(
+        uint256 parentId
+    ) external {
         if (megaNames.ownerOf(parentId) != msg.sender) revert NotParentOwner();
         parentConfigs[parentId].enabled = false;
         emit Disabled(parentId);
@@ -170,10 +199,11 @@ contract SubdomainRouter is Ownable {
     /// @param parentId Token ID of the parent name
     /// @param label Subdomain label to register
     /// @param referrer Referrer address (address(0) if none)
-    function register(uint256 parentId, string calldata label, address referrer)
-        external
-        returns (uint256 subTokenId)
-    {
+    function register(
+        uint256 parentId,
+        string calldata label,
+        address referrer
+    ) external returns (uint256 subTokenId) {
         return _register(parentId, label, msg.sender, referrer);
     }
 
@@ -208,9 +238,8 @@ contract SubdomainRouter is Ownable {
         uint256 totalPrice;
         uint256[] memory prices = new uint256[](labels.length);
         for (uint256 i; i < labels.length; ++i) {
-            (bool allowed, uint256 price) = ISubdomainLogic(logicContract).validate(
-                parentId, labels[i], msg.sender
-            );
+            (bool allowed, uint256 price) =
+                ISubdomainLogic(logicContract).validate(parentId, labels[i], msg.sender);
             if (!allowed) revert NotAllowed();
             if (price < MIN_PRICE) revert PriceBelowMinimum();
             prices[i] = price;
@@ -262,9 +291,8 @@ contract SubdomainRouter is Ownable {
         if (logicContract == address(0)) revert NoLogicContract();
 
         // Validate via logic contract
-        (bool allowed, uint256 price) = ISubdomainLogic(logicContract).validate(
-            parentId, label, msg.sender
-        );
+        (bool allowed, uint256 price) =
+            ISubdomainLogic(logicContract).validate(parentId, label, msg.sender);
         if (!allowed) revert NotAllowed();
         if (price < MIN_PRICE) revert PriceBelowMinimum();
 
@@ -299,11 +327,15 @@ contract SubdomainRouter is Ownable {
                             FEE DISTRIBUTION
     //////////////////////////////////////////////////////////////*/
 
-    function _distributePayment(uint256 price, address payoutAddress, address referrer) internal {
-        uint256 protocolFee = price * protocolFeeBps / 10000;
+    function _distributePayment(
+        uint256 price,
+        address payoutAddress,
+        address referrer
+    ) internal {
+        uint256 protocolFee = price * protocolFeeBps / 10_000;
         uint256 referralFee;
         if (referrer != address(0) && referralFeeBps > 0) {
-            referralFee = price * referralFeeBps / 10000;
+            referralFee = price * referralFeeBps / 10_000;
         }
         uint256 ownerPayout = price - protocolFee - referralFee;
 
@@ -338,9 +370,12 @@ contract SubdomainRouter is Ownable {
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Accept NFT transfers (needed for flash)
-    function onERC721Received(address, address, uint256, bytes calldata)
-        external pure returns (bytes4)
-    {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes4) {
         return this.onERC721Received.selector;
     }
 
@@ -348,30 +383,40 @@ contract SubdomainRouter is Ownable {
                               ADMIN
     //////////////////////////////////////////////////////////////*/
 
-    function setLogicContract(address _logic) external onlyOwner {
+    function setLogicContract(
+        address _logic
+    ) external onlyOwner {
         logicContract = _logic;
         emit LogicContractChanged(_logic);
     }
 
-    function setProtocolFee(uint256 _bps) external onlyOwner {
+    function setProtocolFee(
+        uint256 _bps
+    ) external onlyOwner {
         if (_bps > MAX_PROTOCOL_FEE_BPS) revert FeeTooHigh();
         protocolFeeBps = _bps;
         emit ProtocolFeeChanged(_bps);
     }
 
-    function setReferralFee(uint256 _bps) external onlyOwner {
+    function setReferralFee(
+        uint256 _bps
+    ) external onlyOwner {
         if (_bps > MAX_REFERRAL_FEE_BPS) revert FeeTooHigh();
         referralFeeBps = _bps;
         emit ReferralFeeChanged(_bps);
     }
 
-    function setFeeRecipient(address _recipient) external onlyOwner {
+    function setFeeRecipient(
+        address _recipient
+    ) external onlyOwner {
         if (_recipient == address(0)) revert InvalidAddress();
         feeRecipient = _recipient;
         emit FeeRecipientChanged(_recipient);
     }
 
-    function setMaxTokenGates(uint256 _max) external onlyOwner {
+    function setMaxTokenGates(
+        uint256 _max
+    ) external onlyOwner {
         maxTokenGates = _max;
         emit MaxTokenGatesChanged(_max);
     }
@@ -381,25 +426,27 @@ contract SubdomainRouter is Ownable {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Get parent config (for frontend)
-    function getConfig(uint256 parentId) external view returns (
-        address payoutAddress, bool enabled, Mode mode
-    ) {
+    function getConfig(
+        uint256 parentId
+    ) external view returns (address payoutAddress, bool enabled, Mode mode) {
         ParentConfig storage c = parentConfigs[parentId];
         return (c.payoutAddress, c.enabled, c.mode);
     }
 
     /// @notice Get counters (for renderer)
-    function getCounters(uint256 parentId) external view returns (
-        uint64 sold, uint64 active, uint128 volumeUsdm6
-    ) {
+    function getCounters(
+        uint256 parentId
+    ) external view returns (uint64 sold, uint64 active, uint128 volumeUsdm6) {
         Counters storage c = counters[parentId];
         return (c.subdomainsSold, c.subdomainsActive, c.subdomainVolume);
     }
 
     /// @notice Check if a subdomain can be registered and its price
-    function quote(uint256 parentId, string calldata label, address buyer)
-        external view returns (bool allowed, uint256 price, uint256 protocolFee, uint256 total)
-    {
+    function quote(
+        uint256 parentId,
+        string calldata label,
+        address buyer
+    ) external view returns (bool allowed, uint256 price, uint256 protocolFee, uint256 total) {
         ParentConfig storage config = parentConfigs[parentId];
         if (!config.enabled || logicContract == address(0)) {
             return (false, 0, 0, 0);
@@ -408,7 +455,7 @@ contract SubdomainRouter is Ownable {
         (allowed, price) = ISubdomainLogic(logicContract).validate(parentId, label, buyer);
         if (!allowed || price < MIN_PRICE) return (false, 0, 0, 0);
 
-        protocolFee = price * protocolFeeBps / 10000;
+        protocolFee = price * protocolFeeBps / 10_000;
         total = price;
     }
 }

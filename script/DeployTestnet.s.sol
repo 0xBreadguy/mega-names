@@ -36,12 +36,8 @@ contract DeployTestnet is Script {
         console.log("Renderer set on MegaNames");
 
         // 5. Deploy SubdomainRouter (with placeholder logic)
-        SubdomainRouter router = new SubdomainRouter(
-            address(megaNames),
-            address(usdm),
-            FEE_RECIPIENT,
-            address(0)
-        );
+        SubdomainRouter router =
+            new SubdomainRouter(address(megaNames), address(usdm), FEE_RECIPIENT, address(0));
         console.log("SubdomainRouter:", address(router));
 
         // 6. Deploy SubdomainLogic

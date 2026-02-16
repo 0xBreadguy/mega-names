@@ -8,7 +8,7 @@ import {MockUSDM} from "../src/MockUSDM.sol";
 contract MegaNamesTest is Test {
     MegaNames public names;
     MockUSDM public usdm;
-    
+
     address constant WARREN_SAFE = 0xd4aE3973244592ef06dfdf82470329aCfA62C187;
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
@@ -19,7 +19,7 @@ contract MegaNamesTest is Test {
         deployer = tx.origin; // Solady Ownable uses tx.origin
         usdm = new MockUSDM();
         names = new MegaNames(address(usdm), WARREN_SAFE);
-        
+
         usdm.mint(alice, 100_000e18);
         usdm.mint(bob, 100_000e18);
         usdm.mint(charlie, 100_000e18);
@@ -62,17 +62,17 @@ contract MegaNamesTest is Test {
 
     function test_MultiYearDiscounts() public view {
         uint256 yearly = names.registrationFee(5); // $1
-        
+
         // 1 year: no discount
         assertEq(names.calculateFee(5, 1), yearly);
         // 2 years: 5% off
-        assertEq(names.calculateFee(5, 2), yearly * 2 * 9500 / 10000);
+        assertEq(names.calculateFee(5, 2), yearly * 2 * 9500 / 10_000);
         // 3 years: 10% off
-        assertEq(names.calculateFee(5, 3), yearly * 3 * 9000 / 10000);
+        assertEq(names.calculateFee(5, 3), yearly * 3 * 9000 / 10_000);
         // 5 years: 15% off
-        assertEq(names.calculateFee(5, 5), yearly * 5 * 8500 / 10000);
+        assertEq(names.calculateFee(5, 5), yearly * 5 * 8500 / 10_000);
         // 10 years: 25% off
-        assertEq(names.calculateFee(5, 10), yearly * 10 * 7500 / 10000);
+        assertEq(names.calculateFee(5, 10), yearly * 10 * 7500 / 10_000);
     }
 
     // ─── Registration ───
@@ -85,7 +85,7 @@ contract MegaNamesTest is Test {
 
         assertEq(names.ownerOf(tokenId), alice);
         assertEq(names.totalRegistrations(), 1);
-        
+
         (string memory label, uint256 parent, uint64 expiresAt,,) = names.records(tokenId);
         assertEq(label, "bread");
         assertEq(parent, 0);
@@ -215,7 +215,7 @@ contract MegaNamesTest is Test {
         usdm.approve(address(names), type(uint256).max);
 
         uint256 tokenId = names.register("resolve", alice, 1);
-        
+
         // Before setAddr, addr() returns 0 (no explicit address set)
         assertEq(names.addr(tokenId), address(0));
 
@@ -249,7 +249,8 @@ contract MegaNamesTest is Test {
 
         uint256 tokenId = names.register("ipfs", alice, 1);
 
-        bytes memory ipfsHash = hex"e3010170122029f2d17be6139079dc48696d1f582a8530eb9805b561eda517e22a892c7e3f1f";
+        bytes memory ipfsHash =
+            hex"e3010170122029f2d17be6139079dc48696d1f582a8530eb9805b561eda517e22a892c7e3f1f";
         names.setContenthash(tokenId, ipfsHash);
         assertEq(names.contenthash(tokenId), ipfsHash);
 
@@ -387,7 +388,7 @@ contract MegaNamesTest is Test {
         // Day 0 after grace — max premium
         vm.warp(graceEnd + 1);
         uint256 premium = names.currentPremium(tokenId);
-        assertGt(premium, 9_999e18); // ~10k
+        assertGt(premium, 9999e18); // ~10k
 
         // Day 21+ — fully decayed
         vm.warp(graceEnd + 21 days + 1);
@@ -411,7 +412,7 @@ contract MegaNamesTest is Test {
 
         uint256 baseFee = names.calculateFee(7, 1);
         // Should pay significantly more than base fee
-        assertGt(paid, baseFee + 9_000e18);
+        assertGt(paid, baseFee + 9000e18);
 
         vm.stopPrank();
     }

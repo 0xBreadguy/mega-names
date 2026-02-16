@@ -23,12 +23,14 @@ contract MegaNameRendererTest is Test {
         names.setRegistrationOpen(true);
         vm.stopPrank();
 
-        MockERC20(mockUSDM).mint(alice, 100000e18);
+        MockERC20(mockUSDM).mint(alice, 100_000e18);
         vm.prank(alice);
         MockERC20(mockUSDM).approve(address(names), type(uint256).max);
     }
 
-    function _nh(string memory label) internal pure returns (uint256) {
+    function _nh(
+        string memory label
+    ) internal pure returns (uint256) {
         bytes32 megaNode = keccak256(abi.encodePacked(bytes32(0), keccak256("mega")));
         return uint256(keccak256(abi.encodePacked(megaNode, keccak256(bytes(label)))));
     }
@@ -87,7 +89,10 @@ contract MegaNameRendererTest is Test {
         assertTrue(bytes(uri).length > 0);
     }
 
-    function _startsWith(string memory str, string memory prefix) internal pure returns (bool) {
+    function _startsWith(
+        string memory str,
+        string memory prefix
+    ) internal pure returns (bool) {
         bytes memory s = bytes(str);
         bytes memory p = bytes(prefix);
         if (s.length < p.length) return false;
@@ -102,16 +107,26 @@ contract MockERC20 {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
 
-    function mint(address to, uint256 amount) external {
+    function mint(
+        address to,
+        uint256 amount
+    ) external {
         balanceOf[to] += amount;
     }
 
-    function approve(address spender, uint256 amount) external returns (bool) {
+    function approve(
+        address spender,
+        uint256 amount
+    ) external returns (bool) {
         allowance[msg.sender][spender] = amount;
         return true;
     }
 
-    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool) {
         require(balanceOf[from] >= amount, "insufficient");
         require(allowance[from][msg.sender] >= amount, "not approved");
         balanceOf[from] -= amount;

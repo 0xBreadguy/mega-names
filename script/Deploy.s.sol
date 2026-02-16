@@ -9,7 +9,7 @@ import {MockUSDM} from "../src/MockUSDM.sol";
 contract DeployMegaNames is Script {
     // Fee recipient
     address constant FEE_RECIPIENT = 0x25925C0191E8195aFb9dFA35Cd04071FF11D2e38;
-    
+
     // USDM on MegaETH Mainnet
     address constant USDM_MAINNET = 0xFAfDdbb3FC7688494971a79cc65DCa3EF82079E7;
 
@@ -17,7 +17,7 @@ contract DeployMegaNames is Script {
         vm.startBroadcast();
 
         address usdm;
-        
+
         if (block.chainid == 4326) {
             usdm = USDM_MAINNET;
             console.log("Using mainnet USDM:", usdm);

@@ -41,14 +41,18 @@ library WarrenLib {
     /// @notice Encode a Warren contenthash for a Master NFT
     /// @param tokenId The Warren Master NFT token ID
     /// @return contenthash The encoded contenthash bytes
-    function encodeMaster(uint32 tokenId) internal pure returns (bytes memory) {
+    function encodeMaster(
+        uint32 tokenId
+    ) internal pure returns (bytes memory) {
         return encode(tokenId, true);
     }
 
     /// @notice Encode a Warren contenthash for a Container NFT
     /// @param tokenId The Warren Container NFT token ID
     /// @return contenthash The encoded contenthash bytes
-    function encodeContainer(uint32 tokenId) internal pure returns (bytes memory) {
+    function encodeContainer(
+        uint32 tokenId
+    ) internal pure returns (bytes memory) {
         return encode(tokenId, false);
     }
 
@@ -56,12 +60,11 @@ library WarrenLib {
     /// @param tokenId The Warren NFT token ID
     /// @param isMaster True for Master NFT (0x01), false for Container NFT (0x02)
     /// @return contenthash The encoded contenthash bytes
-    function encode(uint32 tokenId, bool isMaster) internal pure returns (bytes memory) {
-        return abi.encodePacked(
-            WARREN_CODEC,
-            isMaster ? TYPE_MASTER : TYPE_CONTAINER,
-            tokenId
-        );
+    function encode(
+        uint32 tokenId,
+        bool isMaster
+    ) internal pure returns (bytes memory) {
+        return abi.encodePacked(WARREN_CODEC, isMaster ? TYPE_MASTER : TYPE_CONTAINER, tokenId);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -72,11 +75,9 @@ library WarrenLib {
     /// @param contenthash The encoded contenthash bytes
     /// @return tokenId The Warren NFT token ID
     /// @return isMaster True if Master NFT, false if Container NFT
-    function decode(bytes memory contenthash)
-        internal
-        pure
-        returns (uint32 tokenId, bool isMaster)
-    {
+    function decode(
+        bytes memory contenthash
+    ) internal pure returns (uint32 tokenId, bool isMaster) {
         if (contenthash.length != CONTENTHASH_LENGTH) {
             revert InvalidWarrenContenthashLength();
         }
@@ -95,10 +96,8 @@ library WarrenLib {
         isMaster = typeFlag == TYPE_MASTER;
 
         // Extract tokenId (bytes 3-6)
-        tokenId = uint32(uint8(contenthash[3])) << 24
-            | uint32(uint8(contenthash[4])) << 16
-            | uint32(uint8(contenthash[5])) << 8
-            | uint32(uint8(contenthash[6]));
+        tokenId = uint32(uint8(contenthash[3])) << 24 | uint32(uint8(contenthash[4])) << 16
+            | uint32(uint8(contenthash[5])) << 8 | uint32(uint8(contenthash[6]));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -108,7 +107,9 @@ library WarrenLib {
     /// @notice Check if contenthash is a valid Warren reference
     /// @param contenthash The contenthash to validate
     /// @return True if valid Warren contenthash
-    function isWarren(bytes memory contenthash) internal pure returns (bool) {
+    function isWarren(
+        bytes memory contenthash
+    ) internal pure returns (bool) {
         if (contenthash.length != CONTENTHASH_LENGTH) return false;
 
         // Check Warren codec
@@ -125,19 +126,21 @@ library WarrenLib {
     /// @notice Extract just the Warren token ID without full validation
     /// @param contenthash The contenthash bytes
     /// @return tokenId The Warren NFT token ID (0 if invalid)
-    function getTokenId(bytes memory contenthash) internal pure returns (uint32) {
+    function getTokenId(
+        bytes memory contenthash
+    ) internal pure returns (uint32) {
         if (!isWarren(contenthash)) return 0;
-        
-        return uint32(uint8(contenthash[3])) << 24
-            | uint32(uint8(contenthash[4])) << 16
-            | uint32(uint8(contenthash[5])) << 8
-            | uint32(uint8(contenthash[6]));
+
+        return uint32(uint8(contenthash[3])) << 24 | uint32(uint8(contenthash[4])) << 16
+            | uint32(uint8(contenthash[5])) << 8 | uint32(uint8(contenthash[6]));
     }
 
     /// @notice Check if contenthash points to a Master NFT
     /// @param contenthash The contenthash bytes
     /// @return True if Master NFT type
-    function isMasterType(bytes memory contenthash) internal pure returns (bool) {
+    function isMasterType(
+        bytes memory contenthash
+    ) internal pure returns (bool) {
         if (!isWarren(contenthash)) return false;
         return uint8(contenthash[2]) == TYPE_MASTER;
     }
@@ -145,7 +148,9 @@ library WarrenLib {
     /// @notice Check if contenthash points to a Container NFT
     /// @param contenthash The contenthash bytes
     /// @return True if Container NFT type
-    function isContainerType(bytes memory contenthash) internal pure returns (bool) {
+    function isContainerType(
+        bytes memory contenthash
+    ) internal pure returns (bool) {
         if (!isWarren(contenthash)) return false;
         return uint8(contenthash[2]) == TYPE_CONTAINER;
     }

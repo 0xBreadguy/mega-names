@@ -15,22 +15,35 @@ contract MockUSDM {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
 
-    function mint(address to, uint256 amount) external {
+    function mint(
+        address to,
+        uint256 amount
+    ) external {
         balanceOf[to] += amount;
     }
 
-    function approve(address spender, uint256 amount) external returns (bool) {
+    function approve(
+        address spender,
+        uint256 amount
+    ) external returns (bool) {
         allowance[msg.sender][spender] = amount;
         return true;
     }
 
-    function transfer(address to, uint256 amount) external returns (bool) {
+    function transfer(
+        address to,
+        uint256 amount
+    ) external returns (bool) {
         balanceOf[msg.sender] -= amount;
         balanceOf[to] += amount;
         return true;
     }
 
-    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool) {
         allowance[from][msg.sender] -= amount;
         balanceOf[from] -= amount;
         balanceOf[to] += amount;
@@ -42,7 +55,9 @@ contract MockUSDM {
 contract MockNFT {
     mapping(address => uint256) public balanceOf;
 
-    function mint(address to) external {
+    function mint(
+        address to
+    ) external {
         balanceOf[to]++;
     }
 }
@@ -113,7 +128,7 @@ contract SubdomainRouterTest is Test {
         vm.prank(parentOwner);
         router.configure(parentId, parentOwner, true, SubdomainRouter.Mode.ALLOWLIST);
 
-        (, , SubdomainRouter.Mode mode) = router.getConfig(parentId);
+        (,, SubdomainRouter.Mode mode) = router.getConfig(parentId);
         assertEq(uint8(mode), uint8(SubdomainRouter.Mode.ALLOWLIST));
     }
 
@@ -145,7 +160,7 @@ contract SubdomainRouterTest is Test {
         router.disable(parentId);
         vm.stopPrank();
 
-        (, bool enabled, ) = router.getConfig(parentId);
+        (, bool enabled,) = router.getConfig(parentId);
         assertFalse(enabled);
     }
 
@@ -185,10 +200,10 @@ contract SubdomainRouterTest is Test {
         uint256 ownerReceived = usdm.balanceOf(parentOwner) - parentOwnerBalBefore;
         uint256 feeReceived = usdm.balanceOf(feeRecipient) - feeBalBefore;
         assertEq(ownerReceived, 4.875e18); // 97.5%
-        assertEq(feeReceived, 0.125e18);   // 2.5%
+        assertEq(feeReceived, 0.125e18); // 2.5%
 
         // Counters
-        (uint64 sold, uint64 active, ) = router.getCounters(parentId);
+        (uint64 sold, uint64 active,) = router.getCounters(parentId);
         assertEq(sold, 1);
         assertEq(active, 1);
     }
@@ -329,7 +344,7 @@ contract SubdomainRouterTest is Test {
         assertEq(buyerPaid, 3e18);
 
         // Counters
-        (uint64 sold, uint64 active, ) = router.getCounters(parentId);
+        (uint64 sold, uint64 active,) = router.getCounters(parentId);
         assertEq(sold, 3);
         assertEq(active, 3);
 
@@ -470,7 +485,7 @@ contract SubdomainRouterTest is Test {
     }
 
     function test_quote_disabled() public {
-        (bool allowed, , , ) = router.quote(parentId, "test", buyer);
+        (bool allowed,,,) = router.quote(parentId, "test", buyer);
         assertFalse(allowed);
     }
 
@@ -488,12 +503,12 @@ contract SubdomainRouterTest is Test {
         router.setLogicContract(address(newLogic));
 
         // Config persists on router
-        (address payout, bool enabled, ) = router.getConfig(parentId);
+        (address payout, bool enabled,) = router.getConfig(parentId);
         assertEq(payout, parentOwner);
         assertTrue(enabled);
 
         // Counters persist
-        (uint64 sold, , ) = router.getCounters(parentId);
+        (uint64 sold,,) = router.getCounters(parentId);
         assertEq(sold, 1);
 
         // Need to re-set price on new logic
@@ -506,7 +521,7 @@ contract SubdomainRouterTest is Test {
         assertEq(megaNames.ownerOf(subId), buyer);
 
         // Counters incremented
-        (sold, , ) = router.getCounters(parentId);
+        (sold,,) = router.getCounters(parentId);
         assertEq(sold, 2);
     }
 }

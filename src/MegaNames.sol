@@ -13,7 +13,9 @@ import {MegaNamesSVG} from "./MegaNamesSVG.sol";
 
 /// @notice Interface for external tokenURI renderer
 interface ITokenURIRenderer {
-    function tokenURI(uint256 tokenId) external view returns (string memory);
+    function tokenURI(
+        uint256 tokenId
+    ) external view returns (string memory);
 }
 
 /// @title MegaNames
@@ -99,13 +101,13 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     uint256 constant MAX_DECAY_PERIOD = 3650 days;
     uint256 constant MIN_YEARS = 1;
     uint256 constant MAX_YEARS = 10;
-    
+
     // Multi-year discount basis points (100 = 1%)
-    uint256 constant DISCOUNT_2Y = 500;   // 5%
-    uint256 constant DISCOUNT_3Y = 1000;  // 10%
-    uint256 constant DISCOUNT_5Y = 1500;  // 15%
+    uint256 constant DISCOUNT_2Y = 500; // 5%
+    uint256 constant DISCOUNT_3Y = 1000; // 10%
+    uint256 constant DISCOUNT_5Y = 1500; // 15%
     uint256 constant DISCOUNT_10Y = 2500; // 25%
-    
+
     // Default fees in USDM (18 decimals)
     uint256 constant DEFAULT_FEE = 1e18; // $1 for 5+ chars
 
@@ -139,13 +141,13 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
     /// @notice Total number of names registered
     uint256 public totalRegistrations;
-    
+
     /// @notice Total number of renewals
     uint256 public totalRenewals;
-    
+
     /// @notice Total number of subdomains created
     uint256 public totalSubdomains;
-    
+
     /// @notice Total volume in USDM (18 decimals) from registrations + renewals
     uint256 public totalVolume;
 
@@ -170,7 +172,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
     /// @param _paymentToken USDM token address
     /// @param _feeRecipient Address to receive all registration fees (Warren safe)
-    constructor(address _paymentToken, address _feeRecipient) payable {
+    constructor(
+        address _paymentToken,
+        address _feeRecipient
+    ) payable {
         _initializeOwner(tx.origin);
         paymentToken = _paymentToken;
         feeRecipient = _feeRecipient;
@@ -180,13 +185,13 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
         // Set length-based fees in USDM (18 decimals)
         // Pricing: premium short names, cheap long names
-        lengthFees[1] = 1000e18;  // $1000/year for 1 char
+        lengthFees[1] = 1000e18; // $1000/year for 1 char
         lengthFeeSet[1] = true;
-        lengthFees[2] = 500e18;   // $500/year for 2 char
+        lengthFees[2] = 500e18; // $500/year for 2 char
         lengthFeeSet[2] = true;
-        lengthFees[3] = 100e18;   // $100/year for 3 char
+        lengthFees[3] = 100e18; // $100/year for 3 char
         lengthFeeSet[3] = true;
-        lengthFees[4] = 10e18;    // $10/year for 4 char
+        lengthFees[4] = 10e18; // $10/year for 4 char
         lengthFeeSet[4] = true;
         // 5+ chars = $1/year (defaultFee)
     }
@@ -204,11 +209,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     }
 
     /// @dev Blocks transfers of inactive tokens and maintains enumerable ownership
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId)
-        internal
-        virtual
-        override(ERC721)
-    {
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual override(ERC721) {
         if (from != address(0) && to != address(0)) {
             if (!_isActive(tokenId)) revert Expired();
         }
@@ -224,17 +229,23 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @notice Get all token IDs owned by an address
     /// @param owner Address to query
     /// @return tokenIds Array of token IDs owned by the address
-    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+    function tokensOfOwner(
+        address owner
+    ) external view returns (uint256[] memory) {
         return _ownedTokens[owner].values();
     }
 
     /// @notice Get number of unique tokens owned by an address
     /// @dev More gas-efficient than tokensOfOwner().length for just the count
-    function tokensOfOwnerCount(address owner) external view returns (uint256) {
+    function tokensOfOwnerCount(
+        address owner
+    ) external view returns (uint256) {
         return _ownedTokens[owner].length();
     }
 
-    function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721) returns (string memory) {
         if (!_recordExists(tokenId)) revert TokenDoesNotExist();
 
         // Delegate to external renderer if set
@@ -299,7 +310,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                             REGISTRATION
     //////////////////////////////////////////////////////////////*/
 
-    function registrationFee(uint256 labelLength) public view returns (uint256) {
+    function registrationFee(
+        uint256 labelLength
+    ) public view returns (uint256) {
         if (lengthFeeSet[labelLength]) {
             return lengthFees[labelLength];
         }
@@ -310,10 +323,13 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @param labelLength Length of the name label
     /// @param numYears Number of years (1-10)
     /// @return Total fee after discount
-    function calculateFee(uint256 labelLength, uint256 numYears) public view returns (uint256) {
+    function calculateFee(
+        uint256 labelLength,
+        uint256 numYears
+    ) public view returns (uint256) {
         uint256 yearlyFee = registrationFee(labelLength);
         uint256 baseFee = yearlyFee * numYears;
-        
+
         uint256 discount;
         if (numYears >= 10) {
             discount = DISCOUNT_10Y;
@@ -324,24 +340,26 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         } else if (numYears >= 2) {
             discount = DISCOUNT_2Y;
         }
-        
-        return baseFee - (baseFee * discount / 10000);
+
+        return baseFee - (baseFee * discount / 10_000);
     }
 
     /// @notice Calculate current premium for an expired name (Dutch auction after grace period)
     /// @param tokenId The name token ID
     /// @return premium The current premium in USDM (0 if not expired or fully decayed)
-    function currentPremium(uint256 tokenId) public view returns (uint256 premium) {
+    function currentPremium(
+        uint256 tokenId
+    ) public view returns (uint256 premium) {
         if (!_recordExists(tokenId)) return 0;
         if (_isActive(tokenId)) return 0;
         if (maxPremium == 0 || premiumDecayPeriod == 0) return 0;
-        
+
         uint256 graceEnd = uint256(records[tokenId].expiresAt) + GRACE_PERIOD;
         if (block.timestamp <= graceEnd) return 0; // still in grace period
-        
+
         uint256 elapsed = block.timestamp - graceEnd;
         if (elapsed >= premiumDecayPeriod) return 0; // fully decayed
-        
+
         // Linear decay: maxPremium * (remaining / total)
         return maxPremium * (premiumDecayPeriod - elapsed) / premiumDecayPeriod;
     }
@@ -350,21 +368,21 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @param label The name to register
     /// @param owner Address to own the name
     /// @param numYears Number of years to register (1-10)
-    function register(string calldata label, address owner, uint256 numYears)
-        public
-        nonReentrant
-        returns (uint256 tokenId)
-    {
+    function register(
+        string calldata label,
+        address owner,
+        uint256 numYears
+    ) public nonReentrant returns (uint256 tokenId) {
         if (!registrationOpen) revert RegistrationClosed();
         if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
-        
+
         bytes memory normalized = _validateAndNormalize(bytes(label));
 
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
         uint256 fee = calculateFee(normalized.length, numYears) + currentPremium(tokenId);
-        
+
         // Transfer USDM from caller
         if (fee > 0) {
             SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
@@ -418,14 +436,14 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     ) public nonReentrant returns (uint256 tokenId) {
         if (!registrationOpen) revert RegistrationClosed();
         if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
-        
+
         bytes memory normalized = _validateAndNormalize(bytes(label));
 
         tokenId = uint256(keccak256(abi.encodePacked(MEGA_NODE, keccak256(normalized))));
         if (_recordExists(tokenId) && _isActive(tokenId)) revert AlreadyRegistered();
 
         uint256 fee = calculateFee(normalized.length, numYears) + currentPremium(tokenId);
-        
+
         // Execute permit to approve spending, then transfer
         if (fee > 0) {
             // Call permit on the USDM token (Solady ERC20 has permit built-in)
@@ -443,7 +461,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
             );
             // Permit can fail silently if already approved - that's OK
             // The transferFrom below will revert if not approved
-            
+
             SafeTransferLib.safeTransferFrom(paymentToken, msg.sender, feeRecipient, fee);
         }
 
@@ -479,11 +497,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @param label The name to register
     /// @param owner Address to own the name
     /// @param numYears Number of years to register (1-10)
-    function adminRegister(string calldata label, address owner, uint256 numYears)
-        external
-        onlyOwner
-        returns (uint256 tokenId)
-    {
+    function adminRegister(
+        string calldata label,
+        address owner,
+        uint256 numYears
+    ) external onlyOwner returns (uint256 tokenId) {
         if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
 
         bytes memory normalized = _validateAndNormalize(bytes(label));
@@ -563,9 +581,12 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @notice Renew a name (must approve USDM first)
     /// @param tokenId The name token ID to renew
     /// @param numYears Number of years to renew (1-10)
-    function renew(uint256 tokenId, uint256 numYears) public nonReentrant {
+    function renew(
+        uint256 tokenId,
+        uint256 numYears
+    ) public nonReentrant {
         if (numYears < MIN_YEARS || numYears > MAX_YEARS) revert InvalidYears();
-        
+
         NameRecord storage record = records[tokenId];
         if (record.parent != 0) revert InvalidName();
         if (!_recordExists(tokenId)) revert InvalidName();
@@ -604,10 +625,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                              SUBDOMAINS
     //////////////////////////////////////////////////////////////*/
 
-    function registerSubdomain(uint256 parentId, string calldata label)
-        public
-        returns (uint256 tokenId)
-    {
+    function registerSubdomain(
+        uint256 parentId,
+        string calldata label
+    ) public returns (uint256 tokenId) {
         if (ownerOf(parentId) != msg.sender) revert NotParentOwner();
         if (!_isActive(parentId)) revert Expired();
 
@@ -646,7 +667,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
 
     /// @notice Revoke a subdomain (parent owner only)
     /// @param tokenId The subdomain token ID to revoke
-    function revokeSubdomain(uint256 tokenId) public {
+    function revokeSubdomain(
+        uint256 tokenId
+    ) public {
         NameRecord storage record = records[tokenId];
         uint256 parentId = record.parent;
         if (parentId == 0) revert InvalidName(); // not a subdomain
@@ -669,14 +692,20 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                               RESOLVER
     //////////////////////////////////////////////////////////////*/
 
-    function setAddr(uint256 tokenId, address addr_) public {
+    function setAddr(
+        uint256 tokenId,
+        address addr_
+    ) public {
         _requireOwner(tokenId);
         uint256 version = recordVersion[tokenId];
         _resolvedAddress[tokenId][version] = addr_;
         emit AddrChanged(bytes32(tokenId), addr_);
     }
 
-    function setContenthash(uint256 tokenId, bytes calldata hash) public {
+    function setContenthash(
+        uint256 tokenId,
+        bytes calldata hash
+    ) public {
         _requireOwner(tokenId);
         uint256 version = recordVersion[tokenId];
         _contenthash[tokenId][version] = hash;
@@ -687,7 +716,11 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @param tokenId The name token ID
     /// @param warrenTokenId The Warren NFT token ID
     /// @param isMaster True for Master NFT, false for Container NFT
-    function setWarrenContenthash(uint256 tokenId, uint32 warrenTokenId, bool isMaster) public {
+    function setWarrenContenthash(
+        uint256 tokenId,
+        uint32 warrenTokenId,
+        bool isMaster
+    ) public {
         _requireOwner(tokenId);
         bytes memory hash = WarrenLib.encode(warrenTokenId, isMaster);
         uint256 version = recordVersion[tokenId];
@@ -695,19 +728,27 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         emit ContenthashChanged(bytes32(tokenId), hash);
     }
 
-    function setText(uint256 tokenId, string calldata key, string calldata value) public {
+    function setText(
+        uint256 tokenId,
+        string calldata key,
+        string calldata value
+    ) public {
         _requireOwner(tokenId);
         uint256 version = recordVersion[tokenId];
         _text[tokenId][version][key] = value;
         emit TextChanged(bytes32(tokenId), key, value);
     }
 
-    function addr(uint256 tokenId) public view returns (address) {
+    function addr(
+        uint256 tokenId
+    ) public view returns (address) {
         if (!_isActive(tokenId)) return address(0);
         return _resolvedAddress[tokenId][recordVersion[tokenId]];
     }
 
-    function contenthash(uint256 tokenId) public view returns (bytes memory) {
+    function contenthash(
+        uint256 tokenId
+    ) public view returns (bytes memory) {
         if (!_isActive(tokenId)) return "";
         return _contenthash[tokenId][recordVersion[tokenId]];
     }
@@ -716,12 +757,14 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @dev Binary format: Version(2) | ChainType(2) | ChainRefLen(1) | ChainRef(var) | AddrLen(1) | Address(20)
     /// @param tokenId The name token ID
     /// @return The ERC-7930 encoded interoperable address (empty if unresolvable)
-    function interopAddress(uint256 tokenId) public view returns (bytes memory) {
+    function interopAddress(
+        uint256 tokenId
+    ) public view returns (bytes memory) {
         address resolved = addr(tokenId);
         if (resolved == address(0)) return "";
 
         uint256 chainId = block.chainid;
-        
+
         // Encode chain ID as minimal big-endian bytes
         uint8 chainRefLen;
         if (chainId <= 0xFF) chainRefLen = 1;
@@ -730,7 +773,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         else chainRefLen = 4;
 
         bytes memory result = new bytes(6 + chainRefLen + 20);
-        
+
         // Version 1
         result[0] = 0x00;
         result[1] = 0x01;
@@ -750,7 +793,7 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         for (uint8 i = 0; i < 20; i++) {
             result[6 + chainRefLen + i] = addrBytes[i];
         }
-        
+
         return result;
     }
 
@@ -759,17 +802,22 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
     /// @return warrenTokenId The Warren NFT token ID (0 if not Warren)
     /// @return isMaster True if Master NFT type
     /// @return isWarren True if contenthash is Warren format
-    function warren(uint256 tokenId) public view returns (uint32 warrenTokenId, bool isMaster, bool isWarren) {
+    function warren(
+        uint256 tokenId
+    ) public view returns (uint32 warrenTokenId, bool isMaster, bool isWarren) {
         bytes memory hash = contenthash(tokenId);
         if (hash.length == 0) return (0, false, false);
-        
+
         isWarren = WarrenLib.isWarren(hash);
         if (!isWarren) return (0, false, false);
-        
+
         (warrenTokenId, isMaster) = WarrenLib.decode(hash);
     }
 
-    function text(uint256 tokenId, string calldata key) public view returns (string memory) {
+    function text(
+        uint256 tokenId,
+        string calldata key
+    ) public view returns (string memory) {
         if (!_isActive(tokenId)) return "";
         return _text[tokenId][recordVersion[tokenId]][key];
     }
@@ -778,7 +826,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                            REVERSE RESOLUTION
     //////////////////////////////////////////////////////////////*/
 
-    function setPrimaryName(uint256 tokenId) public {
+    function setPrimaryName(
+        uint256 tokenId
+    ) public {
         if (ownerOf(tokenId) != msg.sender) revert NotParentOwner();
         if (!_isActive(tokenId)) revert Expired();
         primaryName[msg.sender] = tokenId;
@@ -790,7 +840,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         emit PrimaryNameSet(msg.sender, 0);
     }
 
-    function getName(address addr_) public view returns (string memory) {
+    function getName(
+        address addr_
+    ) public view returns (string memory) {
         uint256 tokenId = primaryName[addr_];
         if (tokenId == 0) return "";
         if (!_isActive(tokenId)) return "";
@@ -802,48 +854,66 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                                ADMIN
     //////////////////////////////////////////////////////////////*/
 
-    function setPaymentToken(address newToken) public onlyOwner {
+    function setPaymentToken(
+        address newToken
+    ) public onlyOwner {
         if (newToken == address(0)) revert InvalidPaymentToken();
         paymentToken = newToken;
         emit PaymentTokenChanged(newToken);
     }
 
     /// @notice Toggle public registration open/closed (admin can always register)
-    function setRegistrationOpen(bool open) public onlyOwner {
+    function setRegistrationOpen(
+        bool open
+    ) public onlyOwner {
         registrationOpen = open;
         emit RegistrationOpenChanged(open);
     }
 
     /// @notice Set external tokenURI renderer (address(0) to use built-in SVG)
-    function setTokenURIRenderer(address renderer) public onlyOwner {
+    function setTokenURIRenderer(
+        address renderer
+    ) public onlyOwner {
         tokenURIRenderer = renderer;
         emit TokenURIRendererChanged(renderer);
     }
 
-    function setFeeRecipient(address newRecipient) public onlyOwner {
+    function setFeeRecipient(
+        address newRecipient
+    ) public onlyOwner {
         if (newRecipient == address(0)) revert InvalidAddress();
         feeRecipient = newRecipient;
         emit FeeRecipientChanged(newRecipient);
     }
 
-    function setDefaultFee(uint256 fee) public onlyOwner {
+    function setDefaultFee(
+        uint256 fee
+    ) public onlyOwner {
         defaultFee = fee;
         emit DefaultFeeChanged(fee);
     }
 
-    function setLengthFee(uint256 length, uint256 fee) public onlyOwner {
+    function setLengthFee(
+        uint256 length,
+        uint256 fee
+    ) public onlyOwner {
         if (length == 0) revert InvalidLength();
         lengthFees[length] = fee;
         lengthFeeSet[length] = true;
         emit LengthFeeChanged(length, fee);
     }
 
-    function clearLengthFee(uint256 length) public onlyOwner {
+    function clearLengthFee(
+        uint256 length
+    ) public onlyOwner {
         lengthFeeSet[length] = false;
         emit LengthFeeCleared(length);
     }
 
-    function setPremiumSettings(uint256 _maxPremium, uint256 _decayPeriod) public onlyOwner {
+    function setPremiumSettings(
+        uint256 _maxPremium,
+        uint256 _decayPeriod
+    ) public onlyOwner {
         if (_maxPremium > MAX_PREMIUM_CAP) revert PremiumTooHigh();
         if (_decayPeriod > MAX_DECAY_PERIOD) revert DecayPeriodTooLong();
         maxPremium = _maxPremium;
@@ -855,16 +925,22 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
                             INTERNAL HELPERS
     //////////////////////////////////////////////////////////////*/
 
-    function _requireOwner(uint256 tokenId) internal view {
+    function _requireOwner(
+        uint256 tokenId
+    ) internal view {
         if (ownerOf(tokenId) != msg.sender) revert NotParentOwner();
         if (!_isActive(tokenId)) revert Expired();
     }
 
-    function _recordExists(uint256 tokenId) internal view returns (bool) {
+    function _recordExists(
+        uint256 tokenId
+    ) internal view returns (bool) {
         return bytes(records[tokenId].label).length > 0;
     }
 
-    function _isActive(uint256 tokenId) internal view returns (bool) {
+    function _isActive(
+        uint256 tokenId
+    ) internal view returns (bool) {
         NameRecord storage record = records[tokenId];
         if (!_recordExists(tokenId)) return false;
 
@@ -877,7 +953,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         }
     }
 
-    function _isSubdomainValid(uint256 tokenId) internal view returns (bool) {
+    function _isSubdomainValid(
+        uint256 tokenId
+    ) internal view returns (bool) {
         NameRecord storage record = records[tokenId];
         if (record.parent == 0) return false;
 
@@ -887,7 +965,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return _isActive(record.parent);
     }
 
-    function _getDepth(uint256 tokenId) internal view returns (uint256 depth) {
+    function _getDepth(
+        uint256 tokenId
+    ) internal view returns (uint256 depth) {
         uint256 current = tokenId;
         while (records[current].parent != 0) {
             current = records[current].parent;
@@ -895,7 +975,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         }
     }
 
-    function _buildFullName(uint256 tokenId) internal view returns (string memory) {
+    function _buildFullName(
+        uint256 tokenId
+    ) internal view returns (string memory) {
         NameRecord storage record = records[tokenId];
         if (record.parent == 0) {
             return record.label;
@@ -903,7 +985,9 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return string.concat(record.label, ".", _buildFullName(record.parent));
     }
 
-    function _validateAndNormalize(bytes memory label) internal pure returns (bytes memory) {
+    function _validateAndNormalize(
+        bytes memory label
+    ) internal pure returns (bytes memory) {
         uint256 len = label.length;
         if (len == 0) revert EmptyLabel();
         if (len > MAX_LABEL_LENGTH) revert InvalidLength();
@@ -936,7 +1020,10 @@ contract MegaNames is ERC721, Ownable, ReentrancyGuard {
         return result;
     }
 
-    function _truncateUTF8(string memory s, uint256 maxLen) internal pure returns (string memory) {
+    function _truncateUTF8(
+        string memory s,
+        uint256 maxLen
+    ) internal pure returns (string memory) {
         bytes memory sb = bytes(s);
         if (sb.length <= maxLen) return s;
 

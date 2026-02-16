@@ -5,14 +5,21 @@ import {Base64} from "solady/utils/Base64.sol";
 import {LibString} from "solady/utils/LibString.sol";
 
 interface IMegaNames {
-    function records(uint256 tokenId) external view returns (
-        string memory label,
-        uint256 parent,
-        uint64 expiresAt,
-        uint64 epoch,
-        uint64 parentEpoch
-    );
-    function ownerOf(uint256 tokenId) external view returns (address);
+    function records(
+        uint256 tokenId
+    )
+        external
+        view
+        returns (
+            string memory label,
+            uint256 parent,
+            uint64 expiresAt,
+            uint64 epoch,
+            uint64 parentEpoch
+        );
+    function ownerOf(
+        uint256 tokenId
+    ) external view returns (address);
 }
 
 /// @title MegaNamesSVGRenderer
@@ -22,12 +29,17 @@ contract MegaNamesSVGRenderer {
 
     IMegaNames public immutable megaNames;
 
-    constructor(address _megaNames) {
+    constructor(
+        address _megaNames
+    ) {
         megaNames = IMegaNames(_megaNames);
     }
 
-    function tokenURI(uint256 tokenId) external view returns (string memory) {
-        (string memory label, uint256 parent, uint64 expiresAt,,uint64 parentEpoch) = megaNames.records(tokenId);
+    function tokenURI(
+        uint256 tokenId
+    ) external view returns (string memory) {
+        (string memory label, uint256 parent, uint64 expiresAt,, uint64 parentEpoch) =
+            megaNames.records(tokenId);
 
         if (bytes(label).length == 0) revert("Token does not exist");
 
@@ -39,7 +51,8 @@ contract MegaNamesSVGRenderer {
             // Check stale
             (,,, uint64 parentEpoch2,) = megaNames.records(parent);
             if (parentEpoch != parentEpoch2) {
-                return _statusMetadata("[Invalid]", "This subdomain is no longer valid.", "[INVALID]");
+                return
+                    _statusMetadata("[Invalid]", "This subdomain is no longer valid.", "[INVALID]");
             }
             fullName = string.concat(label, ".", parentLabel, ".mega");
         } else {
@@ -57,7 +70,8 @@ contract MegaNamesSVGRenderer {
         if (!isSubdomain) {
             attributes = string.concat(
                 ',"attributes":[{"trait_type":"Expires","display_type":"date","value":',
-                uint256(expiresAt).toString(), "}]"
+                uint256(expiresAt).toString(),
+                "}]"
             );
         } else {
             attributes = ',"attributes":[{"trait_type":"Type","value":"Subdomain"}]';
@@ -78,24 +92,33 @@ contract MegaNamesSVGRenderer {
 
         return string.concat(
             "data:application/json;base64,",
-            Base64.encode(bytes(string.concat(
-                '{"name":"', escaped,
-                '","description":"MegaNames: ', escaped,
-                '","image":"data:image/svg+xml;base64,', Base64.encode(bytes(svg)),
-                '"', attributes, "}"
-            )))
+            Base64.encode(
+                bytes(
+                    string.concat(
+                        '{"name":"',
+                        escaped,
+                        '","description":"MegaNames: ',
+                        escaped,
+                        '","image":"data:image/svg+xml;base64,',
+                        Base64.encode(bytes(svg)),
+                        '"',
+                        attributes,
+                        "}"
+                    )
+                )
+            )
         );
     }
 
     // ── SVG Generation ──
 
-    function _generateSVG(string memory displayName, uint64 expiresAt, bool isSubdomain) private view returns (string memory) {
-        string memory top = string.concat(
-            _svgHeader(), _svgBackground(), _svgRings(), _svgLines()
-        );
-        string memory mid = string.concat(
-            _svgDots(), _svgLabels(), _svgNameText(displayName)
-        );
+    function _generateSVG(
+        string memory displayName,
+        uint64 expiresAt,
+        bool isSubdomain
+    ) private view returns (string memory) {
+        string memory top = string.concat(_svgHeader(), _svgBackground(), _svgRings(), _svgLines());
+        string memory mid = string.concat(_svgDots(), _svgLabels(), _svgNameText(displayName));
         string memory bottom = isSubdomain
             ? string.concat(_svgSubdomainBadge(), _svgClose())
             : string.concat(_svgExpiryPanel(expiresAt), _svgClose());
@@ -106,12 +129,12 @@ contract MegaNamesSVGRenderer {
     function _svgHeader() private pure returns (string memory) {
         return string.concat(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">',
-            '<defs>',
+            "<defs>",
             '<pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">',
             '<path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(25,25,26,0.06)" stroke-width="0.5"/></pattern>',
             '<pattern id="G" width="80" height="80" patternUnits="userSpaceOnUse">',
             '<path d="M 80 0 L 0 0 0 80" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.8"/></pattern>',
-            '</defs>'
+            "</defs>"
         );
     }
 
@@ -155,20 +178,29 @@ contract MegaNamesSVGRenderer {
         return '<text x="200" y="46" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.25)" letter-spacing="3">MEGANAMES</text>';
     }
 
-    function _svgNameText(string memory displayName) private pure returns (string memory) {
+    function _svgNameText(
+        string memory displayName
+    ) private pure returns (string memory) {
         uint256 len = bytes(displayName).length;
         string memory fontSize;
         string memory yPos;
-        if (len <= 6) { fontSize = "80"; yPos = "195"; }
-        else if (len <= 10) { fontSize = "52"; yPos = "190"; }
-        else if (len <= 15) { fontSize = "36"; yPos = "188"; }
-        else { fontSize = "28"; yPos = "186"; }
+        if (len <= 6) fontSize = "80";
+        yPos = "195";
+        else if (len <= 10) fontSize = "52";
+        yPos = "190";
+        else if (len <= 15) fontSize = "36";
+        yPos = "188";
+        else fontSize = "28";
+        yPos = "186";
 
         return string.concat(
-            '<text x="200" y="', yPos,
-            '" font-family="Impact,Arial Black,Helvetica Neue,sans-serif" font-size="', fontSize,
+            '<text x="200" y="',
+            yPos,
+            '" font-family="Impact,Arial Black,Helvetica Neue,sans-serif" font-size="',
+            fontSize,
             '" text-anchor="middle" fill="#19191a" letter-spacing="2">',
-            _escapeXML(displayName), '</text>'
+            _escapeXML(displayName),
+            "</text>"
         );
     }
 
@@ -179,7 +211,9 @@ contract MegaNamesSVGRenderer {
         );
     }
 
-    function _svgExpiryPanel(uint64 expiresAt) private view returns (string memory) {
+    function _svgExpiryPanel(
+        uint64 expiresAt
+    ) private view returns (string memory) {
         return string.concat(
             '<line x1="40" y1="300" x2="360" y2="300" stroke="rgba(25,25,26,0.10)" stroke-width="0.5"/>',
             _svgArc(expiresAt),
@@ -188,7 +222,9 @@ contract MegaNamesSVGRenderer {
         );
     }
 
-    function _svgArc(uint64 expiresAt) private view returns (string memory) {
+    function _svgArc(
+        uint64 expiresAt
+    ) private view returns (string memory) {
         uint256 expires = uint256(expiresAt);
         if (block.timestamp >= expires) {
             return '<circle cx="60" cy="340" r="18" fill="none" stroke="rgba(180,60,60,0.15)" stroke-width="2"/>';
@@ -202,20 +238,30 @@ contract MegaNamesSVGRenderer {
         return string.concat(
             '<circle cx="60" cy="340" r="18" fill="none" stroke="rgba(25,25,26,0.06)" stroke-width="2"/>',
             '<circle cx="60" cy="340" r="18" fill="none" stroke="rgba(25,25,26,0.30)" stroke-width="2" stroke-dasharray="',
-            filled.toString(), ' ', (113 - filled).toString(),
+            filled.toString(),
+            " ",
+            (113 - filled).toString(),
             '" stroke-dashoffset="28" stroke-linecap="round" transform="rotate(-90 60 340)"/>',
-            '<text x="60" y="344" font-family="Impact,Arial Black,sans-serif" font-size="11" text-anchor="middle" fill="rgba(25,25,26,0.40)">', pct.toString(), '%</text>'
+            '<text x="60" y="344" font-family="Impact,Arial Black,sans-serif" font-size="11" text-anchor="middle" fill="rgba(25,25,26,0.40)">',
+            pct.toString(),
+            "%</text>"
         );
     }
 
-    function _svgExpiryDate(uint64 expiresAt) private pure returns (string memory) {
+    function _svgExpiryDate(
+        uint64 expiresAt
+    ) private pure returns (string memory) {
         return string.concat(
             '<text x="200" y="330" font-family="monospace" font-size="7" text-anchor="middle" fill="rgba(25,25,26,0.30)" letter-spacing="2">EXPIRES</text>',
-            '<text x="200" y="348" font-family="monospace" font-size="10" text-anchor="middle" fill="rgba(25,25,26,0.50)" letter-spacing="1">', _formatDate(expiresAt), '</text>'
+            '<text x="200" y="348" font-family="monospace" font-size="10" text-anchor="middle" fill="rgba(25,25,26,0.50)" letter-spacing="1">',
+            _formatDate(expiresAt),
+            "</text>"
         );
     }
 
-    function _svgRemaining(uint64 expiresAt) private view returns (string memory) {
+    function _svgRemaining(
+        uint64 expiresAt
+    ) private view returns (string memory) {
         if (block.timestamp >= uint256(expiresAt)) {
             return string.concat(
                 '<text x="340" y="330" font-family="monospace" font-size="7" text-anchor="middle" fill="rgba(25,25,26,0.30)" letter-spacing="2">REMAINING</text>',
@@ -224,13 +270,17 @@ contract MegaNamesSVGRenderer {
         }
         return string.concat(
             '<text x="340" y="330" font-family="monospace" font-size="7" text-anchor="middle" fill="rgba(25,25,26,0.30)" letter-spacing="2">REMAINING</text>',
-            '<text x="340" y="348" font-family="Impact,Arial Black,sans-serif" font-size="14" text-anchor="middle" fill="rgba(25,25,26,0.50)" letter-spacing="1">', _formatRemaining(expiresAt), '</text>'
+            '<text x="340" y="348" font-family="Impact,Arial Black,sans-serif" font-size="14" text-anchor="middle" fill="rgba(25,25,26,0.50)" letter-spacing="1">',
+            _formatRemaining(expiresAt),
+            "</text>"
         );
     }
 
-    function _formatRemaining(uint64 expiresAt) private view returns (string memory) {
+    function _formatRemaining(
+        uint64 expiresAt
+    ) private view returns (string memory) {
         uint256 remaining = uint256(expiresAt) - block.timestamp;
-        uint256 days_ = remaining / 86400;
+        uint256 days_ = remaining / 86_400;
         if (days_ >= 365) {
             uint256 years_ = days_ / 365;
             uint256 months_ = (days_ % 365) / 30;
@@ -247,24 +297,29 @@ contract MegaNamesSVGRenderer {
             '<text x="200" y="215" font-family="Impact,Arial Black,sans-serif" font-size="200" text-anchor="middle" fill="rgba(25,25,26,0.02)">M</text>',
             '<text x="200" y="380" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.20)" letter-spacing="2">.MEGA</text>',
             '<rect x="8" y="8" width="384" height="384" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.5"/>',
-            '</svg>'
+            "</svg>"
         );
     }
 
     // ── Date Formatting ──
 
-    function _formatDate(uint64 timestamp) private pure returns (string memory) {
-        (uint256 year, uint256 month, uint256 day) = _daysToDate(uint256(timestamp) / 86400);
-        string[12] memory months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    function _formatDate(
+        uint64 timestamp
+    ) private pure returns (string memory) {
+        (uint256 year, uint256 month, uint256 day) = _daysToDate(uint256(timestamp) / 86_400);
+        string[12] memory months =
+            ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
         return string.concat(months[month - 1], " ", day.toString(), ", ", year.toString());
     }
 
-    function _daysToDate(uint256 _days) private pure returns (uint256 year, uint256 month, uint256 day) {
+    function _daysToDate(
+        uint256 _days
+    ) private pure returns (uint256 year, uint256 month, uint256 day) {
         int256 d = int256(_days);
-        int256 L = d + 68569 + 2440588;
-        int256 N = (4 * L) / 146097;
-        L = L - (146097 * N + 3) / 4;
-        int256 y = (4000 * (L + 1)) / 1461001;
+        int256 L = d + 68_569 + 2_440_588;
+        int256 N = (4 * L) / 146_097;
+        L = L - (146_097 * N + 3) / 4;
+        int256 y = (4000 * (L + 1)) / 1_461_001;
         L = L - (1461 * y) / 4 + 31;
         int256 m = (80 * L) / 2447;
         int256 dd = L - (2447 * m) / 80;
@@ -278,7 +333,9 @@ contract MegaNamesSVGRenderer {
 
     // ── String Utils ──
 
-    function _toUpperCase(string memory s) private pure returns (string memory) {
+    function _toUpperCase(
+        string memory s
+    ) private pure returns (string memory) {
         bytes memory b = bytes(s);
         for (uint256 i = 0; i < b.length; i++) {
             if (b[i] >= 0x61 && b[i] <= 0x7A) b[i] = bytes1(uint8(b[i]) - 32);
@@ -286,30 +343,56 @@ contract MegaNamesSVGRenderer {
         return string(b);
     }
 
-    function _truncate(string memory s, uint256 maxLen) private pure returns (string memory) {
+    function _truncate(
+        string memory s,
+        uint256 maxLen
+    ) private pure returns (string memory) {
         bytes memory b = bytes(s);
         if (b.length <= maxLen) return s;
         bytes memory result = new bytes(maxLen);
-        for (uint256 i = 0; i < maxLen; i++) result[i] = b[i];
+        for (uint256 i = 0; i < maxLen; i++) {
+            result[i] = b[i];
+        }
         return string(result);
     }
 
-    function _escapeXML(string memory s) private pure returns (string memory) {
+    function _escapeXML(
+        string memory s
+    ) private pure returns (string memory) {
         bytes memory sb = bytes(s);
         bytes memory result = new bytes(sb.length * 6);
         uint256 j;
         for (uint256 i; i < sb.length; i++) {
-            if (sb[i] == "&") { result[j++]="&"; result[j++]="a"; result[j++]="m"; result[j++]="p"; result[j++]=";"; }
-            else if (sb[i] == "<") { result[j++]="&"; result[j++]="l"; result[j++]="t"; result[j++]=";"; }
-            else if (sb[i] == ">") { result[j++]="&"; result[j++]="g"; result[j++]="t"; result[j++]=";"; }
-            else result[j++] = sb[i];
+            if (sb[i] == "&") {
+                result[j++] = "&";
+                result[j++] = "a";
+                result[j++] = "m";
+                result[j++] = "p";
+                result[j++] = ";";
+            } else if (sb[i] == "<") {
+                result[j++] = "&";
+                result[j++] = "l";
+                result[j++] = "t";
+                result[j++] = ";";
+            } else if (sb[i] == ">") {
+                result[j++] = "&";
+                result[j++] = "g";
+                result[j++] = "t";
+                result[j++] = ";";
+            } else {
+                result[j++] = sb[i];
+            }
         }
         bytes memory trimmed = new bytes(j);
-        for (uint256 i; i < j; i++) trimmed[i] = result[i];
+        for (uint256 i; i < j; i++) {
+            trimmed[i] = result[i];
+        }
         return string(trimmed);
     }
 
-    function _escapeJSON(string memory s) private pure returns (string memory) {
+    function _escapeJSON(
+        string memory s
+    ) private pure returns (string memory) {
         bytes memory sb = bytes(s);
         bytes memory result = new bytes(sb.length * 2);
         uint256 j;
@@ -318,24 +401,41 @@ contract MegaNamesSVGRenderer {
             result[j++] = sb[i];
         }
         bytes memory trimmed = new bytes(j);
-        for (uint256 i; i < j; i++) trimmed[i] = result[i];
+        for (uint256 i; i < j; i++) {
+            trimmed[i] = result[i];
+        }
         return string(trimmed);
     }
 
-    function _statusMetadata(string memory name, string memory desc, string memory label) private pure returns (string memory) {
+    function _statusMetadata(
+        string memory name,
+        string memory desc,
+        string memory label
+    ) private pure returns (string memory) {
         string memory svg = string.concat(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">',
             '<rect width="400" height="400" fill="#d4d0c8"/>',
-            '<text x="200" y="196" font-family="Impact,Arial Black,sans-serif" font-size="36" text-anchor="middle" fill="rgba(25,25,26,0.20)" letter-spacing="2">', label, '</text>',
+            '<text x="200" y="196" font-family="Impact,Arial Black,sans-serif" font-size="36" text-anchor="middle" fill="rgba(25,25,26,0.20)" letter-spacing="2">',
+            label,
+            "</text>",
             '<text x="200" y="360" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.12)" letter-spacing="2">.MEGA</text>',
-            '</svg>'
+            "</svg>"
         );
         return string.concat(
             "data:application/json;base64,",
-            Base64.encode(bytes(string.concat(
-                '{"name":"', name, '","description":"', desc,
-                '","image":"data:image/svg+xml;base64,', Base64.encode(bytes(svg)), '"}'
-            )))
+            Base64.encode(
+                bytes(
+                    string.concat(
+                        '{"name":"',
+                        name,
+                        '","description":"',
+                        desc,
+                        '","image":"data:image/svg+xml;base64,',
+                        Base64.encode(bytes(svg)),
+                        '"}'
+                    )
+                )
+            )
         );
     }
 }

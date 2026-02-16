@@ -15,12 +15,7 @@ contract DeploySubdomainRegistrar is Script {
         vm.startBroadcast();
 
         // Deploy router first (with address(0) logic)
-        SubdomainRouter router = new SubdomainRouter(
-            megaNames,
-            usdm,
-            feeRecipient,
-            address(0)
-        );
+        SubdomainRouter router = new SubdomainRouter(megaNames, usdm, feeRecipient, address(0));
         console.log("SubdomainRouter:", address(router));
 
         // Deploy logic with router reference

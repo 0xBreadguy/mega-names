@@ -9,7 +9,9 @@ import {LibString} from "solady/utils/LibString.sol";
 library MegaNamesSVG {
     using LibString for uint256;
 
-    function generateSVG(string memory displayName) internal pure returns (string memory) {
+    function generateSVG(
+        string memory displayName
+    ) internal pure returns (string memory) {
         return string.concat(
             _svgHeader(),
             _svgBackground(),
@@ -24,21 +26,29 @@ library MegaNamesSVG {
         return '<text x="200" y="46" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.25)" letter-spacing="3">MEGANAMES</text>';
     }
 
-    function _svgNameText(string memory displayName) private pure returns (string memory) {
+    function _svgNameText(
+        string memory displayName
+    ) private pure returns (string memory) {
         uint256 len = bytes(displayName).length;
         string memory fontSize;
         string memory yPos;
-        if (len <= 6) { fontSize = "80"; yPos = "206"; }
-        else if (len <= 10) { fontSize = "52"; yPos = "200"; }
-        else if (len <= 15) { fontSize = "36"; yPos = "196"; }
-        else { fontSize = "28"; yPos = "194"; }
+        if (len <= 6) fontSize = "80";
+        yPos = "206";
+        else if (len <= 10) fontSize = "52";
+        yPos = "200";
+        else if (len <= 15) fontSize = "36";
+        yPos = "196";
+        else fontSize = "28";
+        yPos = "194";
 
         return string.concat(
-            '<text x="200" y="', yPos,
-            '" font-family="Impact,Arial Black,Helvetica Neue,sans-serif" font-size="', fontSize,
+            '<text x="200" y="',
+            yPos,
+            '" font-family="Impact,Arial Black,Helvetica Neue,sans-serif" font-size="',
+            fontSize,
             '" text-anchor="middle" fill="#19191a" letter-spacing="2">',
             escapeXML(displayName),
-            '</text>'
+            "</text>"
         );
     }
 
@@ -47,19 +57,19 @@ library MegaNamesSVG {
             '<text x="200" y="215" font-family="Impact,Arial Black,sans-serif" font-size="200" text-anchor="middle" fill="rgba(25,25,26,0.02)">M</text>',
             '<text x="200" y="360" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.20)" letter-spacing="2">.MEGA</text>',
             '<rect x="8" y="8" width="384" height="384" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.5"/>',
-            '</svg>'
+            "</svg>"
         );
     }
 
     function _svgHeader() private pure returns (string memory) {
         return string.concat(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">',
-            '<defs>',
+            "<defs>",
             '<pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse">',
             '<path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(25,25,26,0.06)" stroke-width="0.5"/></pattern>',
             '<pattern id="G" width="80" height="80" patternUnits="userSpaceOnUse">',
             '<path d="M 80 0 L 0 0 0 80" fill="none" stroke="rgba(25,25,26,0.10)" stroke-width="0.8"/></pattern>',
-            '</defs>'
+            "</defs>"
         );
     }
 
@@ -103,7 +113,9 @@ library MegaNamesSVG {
         );
     }
 
-    function toUpperCase(string memory s) internal pure returns (string memory) {
+    function toUpperCase(
+        string memory s
+    ) internal pure returns (string memory) {
         bytes memory b = bytes(s);
         for (uint256 i = 0; i < b.length; i++) {
             if (b[i] >= 0x61 && b[i] <= 0x7A) {
@@ -113,7 +125,9 @@ library MegaNamesSVG {
         return string(b);
     }
 
-    function escapeXML(string memory s) internal pure returns (string memory) {
+    function escapeXML(
+        string memory s
+    ) internal pure returns (string memory) {
         bytes memory sb = bytes(s);
         bytes memory result = new bytes(sb.length * 6);
         uint256 j = 0;
@@ -121,11 +135,21 @@ library MegaNamesSVG {
         for (uint256 i = 0; i < sb.length; i++) {
             bytes1 c = sb[i];
             if (c == "&") {
-                result[j++] = "&"; result[j++] = "a"; result[j++] = "m"; result[j++] = "p"; result[j++] = ";";
+                result[j++] = "&";
+                result[j++] = "a";
+                result[j++] = "m";
+                result[j++] = "p";
+                result[j++] = ";";
             } else if (c == "<") {
-                result[j++] = "&"; result[j++] = "l"; result[j++] = "t"; result[j++] = ";";
+                result[j++] = "&";
+                result[j++] = "l";
+                result[j++] = "t";
+                result[j++] = ";";
             } else if (c == ">") {
-                result[j++] = "&"; result[j++] = "g"; result[j++] = "t"; result[j++] = ";";
+                result[j++] = "&";
+                result[j++] = "g";
+                result[j++] = "t";
+                result[j++] = ";";
             } else {
                 result[j++] = c;
             }
@@ -138,7 +162,9 @@ library MegaNamesSVG {
         return string(trimmed);
     }
 
-    function escapeJSON(string memory s) internal pure returns (string memory) {
+    function escapeJSON(
+        string memory s
+    ) internal pure returns (string memory) {
         bytes memory sb = bytes(s);
         bytes memory result = new bytes(sb.length * 2);
         uint256 j = 0;
@@ -166,19 +192,33 @@ library MegaNamesSVG {
         return _statusMetadata("[Expired]", "This name has expired.", "[EXPIRED]");
     }
 
-    function _statusMetadata(string memory name, string memory desc, string memory label) private pure returns (string memory) {
+    function _statusMetadata(
+        string memory name,
+        string memory desc,
+        string memory label
+    ) private pure returns (string memory) {
         string memory svg = string.concat(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">',
             '<rect width="400" height="400" fill="#d4d0c8"/>',
-            '<text x="200" y="196" font-family="Impact,Arial Black,sans-serif" font-size="36" text-anchor="middle" fill="rgba(25,25,26,0.20)" letter-spacing="2">', label, '</text>',
+            '<text x="200" y="196" font-family="Impact,Arial Black,sans-serif" font-size="36" text-anchor="middle" fill="rgba(25,25,26,0.20)" letter-spacing="2">',
+            label,
+            "</text>",
             '<text x="200" y="360" font-family="monospace" font-size="8" text-anchor="middle" fill="rgba(25,25,26,0.12)" letter-spacing="2">.MEGA</text>',
-            '</svg>'
+            "</svg>"
         );
         return string.concat(
             "data:application/json;base64,",
             Base64.encode(
                 bytes(
-                    string.concat('{"name":"', name, '","description":"', desc, '","image":"data:image/svg+xml;base64,', Base64.encode(bytes(svg)), '"}')
+                    string.concat(
+                        '{"name":"',
+                        name,
+                        '","description":"',
+                        desc,
+                        '","image":"data:image/svg+xml;base64,',
+                        Base64.encode(bytes(svg)),
+                        '"}'
+                    )
                 )
             )
         );
