@@ -224,7 +224,7 @@ export default function IntegratePage() {
             INTEGRATE .MEGA DOMAINS
           </h1>
           <p className="text-[var(--muted-dark)] max-w-2xl leading-relaxed">
-            Display .mega names in your app. Resolve names to addresses and addresses to names with a few lines of code.
+            Display .mega domains in your app. Resolve names to addresses and addresses to names with a few lines of code.
           </p>
         </div>
 
@@ -232,7 +232,7 @@ export default function IntegratePage() {
           <Section id="overview" title="HOW IT WORKS">
             <div className="space-y-3 text-[var(--muted-dark)] leading-relaxed">
               <p>
-                MegaNames is a single contract — no registry/resolver split, no subgraphs.
+                .MEGA is a single contract — no registry/resolver split, no subgraphs.
                 Two read calls cover most use cases:
               </p>
               <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
@@ -308,7 +308,7 @@ export default function IntegratePage() {
         <div className="mt-8 p-8 border border-[var(--border)] bg-[var(--bg-card)] text-center shadow-[0_2px_8px_rgba(25,25,26,0.06),0_1px_3px_rgba(25,25,26,0.04)]">
           <h2 className="font-display text-2xl mb-3">READY TO BUILD?</h2>
           <p className="text-[var(--muted-dark)] text-sm mb-6">
-            Start resolving .mega names in your app today.
+            Start resolving .mega domains in your app today.
           </p>
           <div className="flex items-center justify-center gap-4">
             <Link href="/" className="btn-primary px-6 py-2 font-label">

@@ -287,7 +287,7 @@ export default function AboutPage() {
           <Section title="CROSS-CHAIN SUPPORT">
             <div className="pt-4">
               <p className="text-sm text-[var(--muted-dark)] leading-relaxed mb-3">
-                .mega names support <a href="https://interopaddress.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--foreground)]">ERC-7930 interop addressing</a>, 
+                .mega domains support <a href="https://interopaddress.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--foreground)]">ERC-7930 interop addressing</a>, 
                 enabling cross-chain resolution. Reference any MegaETH address from other chains:
               </p>
               <div className="bg-[var(--surface)] border border-[var(--border-light)] px-4 py-3 font-mono text-sm shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
@@ -304,7 +304,7 @@ export default function AboutPage() {
           <Section title="WHAT CAN YOU BUILD?">
             <div className="pt-4 space-y-4">
               <p className="text-sm text-[var(--muted-dark)] mb-2">
-                .mega names are composable identity primitives. Here are some ways teams are using them:
+                .mega domains are composable identity primitives. Here are some ways teams are using them:
               </p>
 
               <div className="grid gap-4">
@@ -355,7 +355,7 @@ export default function AboutPage() {
                 <UseCase
                   icon={Globe}
                   title="ON-CHAIN WEBSITES"
-                  description="Link .mega names to permanent on-chain websites via Warren Protocol. No servers, no IPFS, no DNS."
+                  description="Link .mega domains to permanent on-chain websites via Warren Protocol. No servers, no IPFS, no DNS."
                   example={{
                     scenario: 'Host your site entirely on MegaETH:',
                     names: ['portfolio.mega → on-chain portfolio', 'docs.myproject.mega → on-chain documentation'],
@@ -383,7 +383,7 @@ export default function AboutPage() {
             <div className="pt-4">
               <div className="bg-[var(--surface)] border border-[var(--border-light)] p-4 font-mono text-xs space-y-2 shadow-[inset_0_1px_3px_rgba(25,25,26,0.04)]">
                 <div className="flex justify-between gap-4">
-                  <span className="text-[var(--muted)]">MegaNames</span>
+                  <span className="text-[var(--muted)]">.MEGA</span>
                   <a href="https://mega.etherscan.io/address/0x5B424C6CCba77b32b9625a6fd5A30D409d20d997" target="_blank" rel="noopener noreferrer" className="text-[var(--foreground)] hover:underline truncate">
                     0x5B424C6CCba77b32b9625a6fd5A30D409d20d997
                   </a>

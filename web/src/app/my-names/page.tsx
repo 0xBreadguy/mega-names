@@ -2879,7 +2879,7 @@ export default function MyNamesPage() {
         ) : ownedNames.length === 0 ? (
           <div className="bg-[var(--bg-card)] border border-[var(--border)] p-8 text-center">
             <p className="font-label text-sm mb-4">NO NAMES FOUND</p>
-            <p className="text-[var(--muted)] mb-6">You don&apos;t own any .mega names yet</p>
+            <p className="text-[var(--muted)] mb-6">You don&apos;t own any .mega domains yet</p>
             <Link href="/" className="btn-primary inline-block px-8 py-4">
               SEARCH FOR A NAME
             </Link>

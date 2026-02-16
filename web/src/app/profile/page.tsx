@@ -341,7 +341,7 @@ function ProfileContent() {
               </div>
               {names.length === 0 ? (
                 <div className="p-8 text-center">
-                  <p className="text-[var(--muted)]">No .mega names</p>
+                  <p className="text-[var(--muted)]">No .mega domains</p>
                 </div>
               ) : (
                 <div>

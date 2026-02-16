@@ -397,7 +397,7 @@ function RegisterContent() {
                 <strong>Step 1:</strong> Approve USDM spending
               </p>
               <p className="text-sm text-[var(--muted)]">
-                This is a one-time approval that allows .MEGA to use your USDM for registrations.
+                This is a one-time approval that allows .MEGA Domains to use your USDM for registrations.
                 You won&apos;t need to approve again for future names.
               </p>
             </div>
@@ -479,7 +479,7 @@ function RegisterContent() {
               <div>
                 <p className="font-label text-xs text-[var(--muted)]">USDM APPROVAL</p>
                 <p className="text-sm text-[var(--muted)] mt-1">
-                  .MEGA has permission to spend your USDM
+                  .MEGA Domains has permission to spend your USDM
                 </p>
               </div>
               <button

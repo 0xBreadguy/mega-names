@@ -40,7 +40,7 @@ export const config = createConfig({
       projectId: 'b33e4c58e0eb87e2ccab944c0f18dbf0',
       metadata: {
         name: '.MEGA Domains',
-        description: '.mega names on MegaETH',
+        description: '.mega domains on MegaETH',
         url: 'https://dotmega.domains',
         icons: ['https://dotmega.domains/megaeth-icon.png'],
       },

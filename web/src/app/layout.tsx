@@ -6,7 +6,7 @@ import { Footer } from "@/components/footer"
 
 export const metadata: Metadata = {
   title: ".MEGA DOMAINS",
-  description: ".mega names on MegaETH",
+  description: ".mega domains on MegaETH",
   icons: {
     icon: "/favicon.svg",
   },
