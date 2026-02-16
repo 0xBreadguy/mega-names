@@ -12,6 +12,10 @@ export function Footer() {
                 className="font-label text-[var(--muted)] text-[0.6rem] hover:text-[var(--foreground)] transition-colors">
                 megaeth
               </a>
+              <a href="https://x.com/dotmegadomains" target="_blank" rel="noopener noreferrer"
+                className="font-label text-[var(--muted)] text-[0.6rem] hover:text-[var(--foreground)] transition-colors">
+                x
+              </a>
               <a href="https://github.com/0xBreadguy/mega-names" target="_blank" rel="noopener noreferrer"
                 className="font-label text-[var(--muted)] text-[0.6rem] hover:text-[var(--foreground)] transition-colors">
                 github
