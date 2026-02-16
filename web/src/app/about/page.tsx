@@ -106,7 +106,7 @@ export default function AboutPage() {
         </Link>
 
         <div className="mb-10">
-          <h1 className="font-display text-4xl sm:text-5xl mb-3">ABOUT MEGA NAMES</h1>
+          <h1 className="font-display text-4xl sm:text-5xl mb-3">ABOUT .MEGA DOMAINS</h1>
           <p className="text-[var(--muted-dark)] max-w-2xl text-sm leading-relaxed">
             Human-readable on-chain identity for MegaETH. Register a .mega name, attach it to your wallet, 
             and use it everywhere — across apps, chains, and protocols.

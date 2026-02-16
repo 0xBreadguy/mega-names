@@ -5,7 +5,7 @@ export function Footer() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="font-label text-[var(--muted)] text-[0.6rem]">
-              meganames © 2026
+              .mega domains © 2026
             </p>
             <div className="flex items-center gap-6">
               <a href="https://rabbithole.megaeth.com" target="_blank" rel="noopener noreferrer"

@@ -570,10 +570,10 @@ export default function Home() {
               on-chain identity
             </p>
             <h1 className="font-display text-6xl sm:text-8xl lg:text-[10rem] leading-[0.8] mb-1 text-[var(--foreground)] animate-fade-in-up delay-100">
-              MEGA NAME
+              .MEGA
             </h1>
             <h2 className="font-display text-4xl sm:text-5xl lg:text-7xl leading-[0.85] text-[var(--muted-dark)] mb-8 animate-fade-in-up delay-200">
-              MARKET
+              DOMAINS
             </h2>
             <p className="text-[var(--muted-dark)] max-w-md mx-auto text-sm leading-relaxed animate-fade-in-up delay-300">
               Human-readable addresses on the real-time blockchain.

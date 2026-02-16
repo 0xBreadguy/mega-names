@@ -39,10 +39,10 @@ export const config = createConfig({
     walletConnect({ 
       projectId: 'b33e4c58e0eb87e2ccab944c0f18dbf0',
       metadata: {
-        name: 'MegaNames',
+        name: '.MEGA Domains',
         description: '.mega names on MegaETH',
-        url: 'https://meganame.market',
-        icons: ['https://meganame.market/megaeth-icon.png'],
+        url: 'https://dotmega.domains',
+        icons: ['https://dotmega.domains/megaeth-icon.png'],
       },
     }),
   ],

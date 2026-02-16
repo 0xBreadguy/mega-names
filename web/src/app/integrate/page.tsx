@@ -221,7 +221,7 @@ export default function IntegratePage() {
         <div className="mb-10">
           <p className="font-label text-[var(--muted)] text-xs uppercase tracking-widest mb-2">for developers</p>
           <h1 className="font-display text-4xl sm:text-5xl text-[var(--foreground)] mb-3">
-            INTEGRATE MEGA NAMES
+            INTEGRATE .MEGA DOMAINS
           </h1>
           <p className="text-[var(--muted-dark)] max-w-2xl leading-relaxed">
             Display .mega names in your app. Resolve names to addresses and addresses to names with a few lines of code.

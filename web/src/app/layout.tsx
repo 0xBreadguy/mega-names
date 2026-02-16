@@ -5,7 +5,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 
 export const metadata: Metadata = {
-  title: "MEGANAMES",
+  title: ".MEGA DOMAINS",
   description: ".mega names on MegaETH",
   icons: {
     icon: "/favicon.svg",

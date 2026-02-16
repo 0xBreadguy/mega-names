@@ -2853,7 +2853,7 @@ export default function MyNamesPage() {
               <h1 className="font-display text-4xl">MY NAMES</h1>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(`https://meganame.market/profile?a=${address}`)
+                  navigator.clipboard.writeText(`https://dotmega.domains/profile?a=${address}`)
                   const btn = document.getElementById('share-btn')
                   if (btn) { btn.textContent = 'copied!'; setTimeout(() => { btn.textContent = 'SHARE' }, 1500) }
                 }}

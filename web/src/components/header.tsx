@@ -107,7 +107,7 @@ export function Header() {
       <div className="px-5">
         <div className="flex items-center justify-between h-14 flex-nowrap min-w-0">
           <Link href="/" className="nav-bracket shrink-0 whitespace-nowrap" style={{ fontSize: '12px', fontWeight: 700 }}>
-            MegaNames
+            .MEGA
           </Link>
 
           <nav className="flex items-center gap-2 sm:gap-4 overflow-x-auto whitespace-nowrap scrollbar-hide">
@@ -180,7 +180,7 @@ export function Header() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <div className="font-mono text-xs text-[var(--foreground)]">
-                                  MegaNames
+                                  .MEGA
                                 </div>
                                 <div className="font-mono text-[10px] text-[var(--muted)]">
                                   {formattedAllowance} USDM
