@@ -1,0 +1,15 @@
+{
+  "name": "dotmega-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.7.0"
+  }
+}
