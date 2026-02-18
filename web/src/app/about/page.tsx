@@ -108,7 +108,7 @@ export default function AboutPage() {
         <div className="mb-10">
           <h1 className="font-display text-4xl sm:text-5xl mb-3">ABOUT .MEGA DOMAINS</h1>
           <p className="text-[var(--muted-dark)] max-w-2xl text-sm leading-relaxed">
-            Human-readable on-chain identity for MegaETH. Register a .mega name, attach it to your wallet, 
+            Human-readable onchain identity for MegaETH. Register a .mega name, attach it to your wallet, 
             and use it everywhere — across apps, chains, and protocols.
           </p>
         </div>
@@ -193,7 +193,7 @@ export default function AboutPage() {
               <Feature
                 icon={Globe}
                 label="Warren Site"
-                description="Link your name to an on-chain website via Warren Protocol. Your HTML, CSS, and JS are stored directly in smart contract storage — fully permanent, no servers or IPFS needed."
+                description="Link your name to an onchain website via Warren Protocol. Your HTML, CSS, and JS are stored directly in smart contract storage — fully permanent, no servers or IPFS needed."
               />
             </div>
           </Section>
@@ -354,11 +354,11 @@ export default function AboutPage() {
                 />
                 <UseCase
                   icon={Globe}
-                  title="ON-CHAIN WEBSITES"
-                  description="Link .mega domains to permanent on-chain websites via Warren Protocol. No servers, no IPFS, no DNS."
+                  title="ONCHAIN WEBSITES"
+                  description="Link .mega domains to permanent onchain websites via Warren Protocol. No servers, no IPFS, no DNS."
                   example={{
                     scenario: 'Host your site entirely on MegaETH:',
-                    names: ['portfolio.mega → on-chain portfolio', 'docs.myproject.mega → on-chain documentation'],
+                    names: ['portfolio.mega → onchain portfolio', 'docs.myproject.mega → onchain documentation'],
                     detail: 'Your website lives as long as the blockchain does. True permanence.'
                   }}
                   color="purple"
@@ -366,7 +366,7 @@ export default function AboutPage() {
                 <UseCase
                   icon={Shield}
                   title="SOCIAL PROFILES & PAYMENTS"
-                  description="Attach socials, avatar, and metadata. Share one name that resolves to your full on-chain identity."
+                  description="Attach socials, avatar, and metadata. Share one name that resolves to your full onchain identity."
                   example={{
                     scenario: 'Set profile records on your name:',
                     names: ['avatar · twitter · github · website · bio'],

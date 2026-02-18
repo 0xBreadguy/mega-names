@@ -567,7 +567,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="text-center mb-16">
             <p className="font-label text-[var(--muted)] mb-6 tracking-[0.25em] animate-fade-in-up">
-              on-chain identity
+              onchain identity
             </p>
             <h1 className="font-display text-6xl sm:text-8xl lg:text-[10rem] leading-[0.8] mb-1 text-[var(--foreground)] animate-fade-in-up delay-100">
               .MEGA

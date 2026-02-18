@@ -24,6 +24,9 @@ const ALLOWED_PATHS: Record<string, string> = {
 
 function corsHeaders(origin: string, env: Env): Record<string, string> {
 	const allowed = env.ALLOWED_ORIGIN === '*' || origin === env.ALLOWED_ORIGIN
+		|| origin === 'https://dotmega.domains'
+		|| origin === 'https://meganame.market'
+		|| origin?.endsWith('.meganame-market.pages.dev')
 		|| origin === 'https://meganame-staging.pages.dev'
 		|| origin?.startsWith('http://localhost');
 	return {

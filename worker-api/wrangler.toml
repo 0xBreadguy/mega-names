@@ -1,3 +1,8 @@
 name = "dotmega-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
+workers_dev = true
+
+routes = [
+  { pattern = "api.dotmega.domains/*", zone_name = "dotmega.domains" }
+]

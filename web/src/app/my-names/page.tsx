@@ -1099,7 +1099,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
       setWarrenTokenId(String(wTokenId))
       setViewUrl(`https://${displayName}.thewarren.app`)
 
-      // Step 4: Link contenthash on-chain
+      // Step 4: Link contenthash onchain
       setNamecardStep('linking')
       const txData = encodeFunctionData({
         abi: MEGA_NAMES_ABI,
@@ -1125,7 +1125,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
         setIsSuccess(true)
         setTimeout(() => { onSuccess(); onClose() }, 3000)
       } else {
-        setError('On-chain linking failed')
+        setError('Onchain linking failed')
       }
     } catch (err: any) {
       console.error('Namecard deploy error:', err)
@@ -1180,7 +1180,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
   return (
     <Modal onClose={onClose}>
       <div className="p-6 border-b border-[var(--border)] flex items-center justify-center relative">
-        <h2 className="font-display text-2xl text-center">WARREN ON-CHAIN SITE</h2>
+        <h2 className="font-display text-2xl text-center">WARREN ONCHAIN SITE</h2>
         <button onClick={onClose} className="absolute right-6 p-1 hover:bg-[var(--surface-hover)]">
           <X className="w-5 h-5" />
         </button>
@@ -1260,7 +1260,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
 
               <div className="p-4 border border-[var(--border)] bg-[var(--surface-hover)] mb-4">
                 <p className="text-sm text-[var(--muted)] mb-2 font-medium">
-                  Warren is MegaETH&apos;s on-chain storage protocol. Host websites, namecards, and content permanently on-chain.
+                  Warren is MegaETH&apos;s onchain storage protocol. Host websites, namecards, and content permanently onchain.
                 </p>
                 <p className="text-xs text-[var(--muted)]">
                   Once linked, your name resolves at <strong>{name.label}.mega.thewarren.app</strong>
@@ -1276,7 +1276,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
               CREATE NAMECARD
             </button>
             <p className="text-center text-xs text-[var(--muted)] mb-5">
-              Auto-generate an on-chain profile card from your name&apos;s records
+              Auto-generate an onchain profile card from your name&apos;s records
             </p>
 
             {/* Option 2: Create on Warren directly */}
@@ -1345,14 +1345,14 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                   <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-[var(--muted)]" />
                   <p className="font-label text-sm">
                     {namecardStep === 'estimating' && 'Estimating deployment cost...'}
-                    {namecardStep === 'paying' && `Pay ${feeEstimate?.gasCostEth || '...'} ETH for on-chain storage`}
+                    {namecardStep === 'paying' && `Pay ${feeEstimate?.gasCostEth || '...'} ETH for onchain storage`}
                     {namecardStep === 'deploying' && 'Deploying to Warren...'}
                     {namecardStep === 'linking' && `Linking to ${displayName}...`}
                   </p>
                   <p className="text-xs text-[var(--muted)] mt-1">
                     {namecardStep === 'estimating' && 'Calculating storage costs'}
                     {namecardStep === 'paying' && 'Confirm the payment in your wallet'}
-                    {namecardStep === 'deploying' && 'Storing your namecard on-chain'}
+                    {namecardStep === 'deploying' && 'Storing your namecard onchain'}
                     {namecardStep === 'linking' && 'Confirm the transaction in your wallet'}
                   </p>
                 </div>
@@ -1435,7 +1435,7 @@ function WarrenModal({ name, onClose, onSuccess }: WarrenModalProps) {
                   disabled={isPending}
                   className="btn-primary w-full py-4 text-lg font-label disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  DEPLOY NAMECARD ON-CHAIN
+                  DEPLOY NAMECARD ONCHAIN
                 </button>
 
                 <p className="text-xs text-[var(--muted)] text-center mt-2">
@@ -2653,7 +2653,7 @@ export default function MyNamesPage() {
     }
   }
 
-  // Fetch owned names using on-chain enumerable set + multicall
+  // Fetch owned names using onchain enumerable set + multicall
   const fetchOwnedNames = async () => {
     if (!address || !publicClient) {
       setIsLoading(false)
@@ -2731,7 +2731,7 @@ export default function MyNamesPage() {
       }
 
       // Recursively resolve parent chain label (e.g. "max.jeets" for max.jeets.mega)
-      // Uses allNamesMap first, falls back to on-chain reads for parents not in wallet
+      // Uses allNamesMap first, falls back to onchain reads for parents not in wallet
       async function resolveParentChain(tokenId: bigint): Promise<string> {
         const key = tokenId.toString()
         const cached = allNamesMap.get(key)
