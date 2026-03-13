@@ -23,7 +23,7 @@ Use this skill when the user asks for:
 | Network | Chain ID | RPC | Explorer |
 |---------|----------|-----|----------|
 | Mainnet | 4326 | `https://mainnet.megaeth.com/rpc` | `https://mega.etherscan.io` |
-| Testnet | 6343 | `https://carrot.megaeth.com/rpc` | `https://megaeth-testnet-v2.blockscout.com` |
+| Testnet | 6343 | `https://carrot.megaeth.com/rpc` | `https://testnet-mega.etherscan.io` |
 
 ## Contract Addresses (Mainnet)
 
@@ -38,7 +38,7 @@ Use this skill when the user asks for:
 
 **Testnet:** MegaNames `0x8F0310eEDcfB71E5095ee5ce4f3676D9cEA65101` · MockUSDM `0xa8a7Ea151E366532ce8b0442255aE60E0ff2F833`
 
-**Frontend:** [meganame.market](https://meganame.market)
+**Frontend:** [dotmega.domains](https://dotmega.domains)
 
 ## Default Stack Decisions (Opinionated)
 
